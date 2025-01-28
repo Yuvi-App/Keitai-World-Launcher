@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="shift_jis" ?>
+<Gamelist>
+  <Game>
+    <ENTitle>Game 1</ENTitle>
+    <JPTitle>Game 1</JPTitle>
+    <ZIPName>game1.zip</ZIPName>
+    <DownloadURL>http://example.com/game1.zip</DownloadURL>
+    <CustomAppIconURL></CustomAppIconURL>
+    <SDCardDataURL></SDCardDataURL>
+    <Emulator>doja</Emulator>
+  </Game>
+</Gamelist>

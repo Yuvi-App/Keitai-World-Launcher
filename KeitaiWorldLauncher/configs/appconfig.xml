@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="shift_jis" ?>
+<Config>
+  <Setting name="VersionCheckURL">latest_version.txt</Setting>
+  <Setting name="AutoUpdate">true</Setting>
+  <Setting name="GamelistURL">gamelist.xml</Setting>
+  <Setting name="AutoUpdateGameList">true</Setting>
+  <Setting name="MachiCharaURL">machicharalist.xml</Setting>
+  <Setting name="AutoUpdateMachiCharaList">true</Setting>
+  <Setting name="DOJAPath">c:/doja</Setting>
+  <Setting name="DOJAEXEPath">doja.exe</Setting>
+  <Setting name="DOJAHideUI">true</Setting>
+  <Setting name="DOJASoundType">Standard</Setting>
+  <Setting name="STARPath">c:/star</Setting>
+  <Setting name="STAREXEPath">star.exe</Setting>
+  <Setting name="MachiCharaPath">c:/machichara</Setting>
+  <Setting name="MachiCharaEXEPath">machicharaemu.exe</Setting>
+</Config>
