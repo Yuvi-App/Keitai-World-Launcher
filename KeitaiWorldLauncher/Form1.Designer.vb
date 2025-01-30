@@ -25,6 +25,7 @@ Partial Class Form1
         components = New ComponentModel.Container()
         GroupBox1 = New GroupBox()
         ListViewGamesVarients = New ListView()
+        ImageListGames = New ImageList(components)
         cbxEmuType = New ComboBox()
         Label2 = New Label()
         txtLVSearch = New TextBox()
@@ -33,7 +34,7 @@ Partial Class Form1
         cmsGameLV_Launch = New ToolStripMenuItem()
         cmsGameLV_Download = New ToolStripMenuItem()
         cmsGameLV_Delete = New ToolStripMenuItem()
-        ImageListGames = New ImageList(components)
+        FavoriteToolStripMenuItem = New ToolStripMenuItem()
         lblTotalGameCount = New Label()
         pbGameDL = New ProgressBar()
         gbxGameInfo = New GroupBox()
@@ -100,10 +101,16 @@ Partial Class Form1
         ListViewGamesVarients.TabIndex = 10
         ListViewGamesVarients.UseCompatibleStateImageBehavior = False
         ' 
+        ' ImageListGames
+        ' 
+        ImageListGames.ColorDepth = ColorDepth.Depth32Bit
+        ImageListGames.ImageSize = New Size(24, 24)
+        ImageListGames.TransparentColor = Color.Transparent
+        ' 
         ' cbxEmuType
         ' 
         cbxEmuType.FormattingEnabled = True
-        cbxEmuType.Items.AddRange(New Object() {"All", "Doja", "Star"})
+        cbxEmuType.Items.AddRange(New Object() {"All", "Favorites", "Doja", "Star"})
         cbxEmuType.Location = New Point(295, 25)
         cbxEmuType.Name = "cbxEmuType"
         cbxEmuType.Size = New Size(98, 28)
@@ -139,9 +146,9 @@ Partial Class Form1
         ' cmsGameLV
         ' 
         cmsGameLV.ImageScalingSize = New Size(20, 20)
-        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete})
+        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, FavoriteToolStripMenuItem})
         cmsGameLV.Name = "cmsGameLV"
-        cmsGameLV.Size = New Size(148, 76)
+        cmsGameLV.Size = New Size(148, 100)
         ' 
         ' cmsGameLV_Launch
         ' 
@@ -161,11 +168,11 @@ Partial Class Form1
         cmsGameLV_Delete.Size = New Size(147, 24)
         cmsGameLV_Delete.Text = "Delete"
         ' 
-        ' ImageListGames
+        ' FavoriteToolStripMenuItem
         ' 
-        ImageListGames.ColorDepth = ColorDepth.Depth32Bit
-        ImageListGames.ImageSize = New Size(24, 24)
-        ImageListGames.TransparentColor = Color.Transparent
+        FavoriteToolStripMenuItem.Name = "FavoriteToolStripMenuItem"
+        FavoriteToolStripMenuItem.Size = New Size(147, 24)
+        FavoriteToolStripMenuItem.Text = "Favorite"
         ' 
         ' lblTotalGameCount
         ' 
@@ -502,4 +509,5 @@ Partial Class Form1
     Friend WithEvents AddGameToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ShaderGlassConfigToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ListViewGamesVarients As ListView
+    Friend WithEvents FavoriteToolStripMenuItem As ToolStripMenuItem
 End Class

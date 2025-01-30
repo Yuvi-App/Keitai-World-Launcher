@@ -15,6 +15,7 @@ Namespace My.Managers
         Public Shared Sub SetupDIRS()
             Directory.CreateDirectory("data")
             Directory.CreateDirectory("configs")
+            Directory.CreateDirectory("logs")
             Directory.CreateDirectory("data\downloads")
         End Sub
 

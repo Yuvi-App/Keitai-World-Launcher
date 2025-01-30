@@ -4,6 +4,7 @@ Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Threading
 Imports System.Windows.Forms.VisualStyles.VisualStyleElement
+Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
 
@@ -58,6 +59,10 @@ Public Class Form1
         ' Setup Dirs
         UtilManager.SetupDIRS()
 
+        ' Setup Logging
+        Logger.InitializeLogger()
+        Logger.LogInfo("Application started.")
+
         ' Check PreREQs
         UtilManager.CheckforPreReq()
 
@@ -84,21 +89,25 @@ Public Class Form1
         MachiCharaExe = config("MachiCharaEXEPath")
 
         ' Check for App update
+        Logger.LogInfo("Getting App Update")
         If autoUpdate = True Then
             UtilManager.CheckForUpdates(versionCheckUrl)
         End If
 
         ' Get Updated Game List  
+        Logger.LogInfo("Getting Gamelist.xml")
         If autoUpdateGameList = True Then
             GameListManager.DownloadGameList(gameListUrl)
         End If
 
         ' Get Updated MachiChara List  
+        Logger.LogInfo("Getting Machichara.xml")
         If autoUpdatemachicharaList = True Then
             MachiCharaListManager.DownloadMachiCharaList(machicharaListUrl)
         End If
 
         ' Load Game List
+        Logger.LogInfo("Processing gamelist.xml")
         Try
             games = gameListManager.LoadGames()
             lblTotalGameCount.Text = "Total: " & games.Count
@@ -134,9 +143,11 @@ Public Class Form1
             Next
         Catch ex As Exception
             MessageBox.Show($"Failed to Load Game List:{vbCrLf}{ex}")
+            Logger.LogError("Failed to Load Game List", ex)
         End Try
 
         ' Load MachiChara List
+        Logger.LogInfo("Processing machichara.xml")
         Try
             machicharas = machicharaListManager.LoadMachiChara()
             For Each mc In machicharas
@@ -144,6 +155,7 @@ Public Class Form1
             Next
         Catch ex As Exception
             MessageBox.Show($"Failed to Load MachiChara List:{vbCrLf}{ex}")
+            Logger.LogError("Failed to Load MachiChara List", ex)
         End Try
 
         ' Setup any Config Suff
@@ -152,6 +164,9 @@ Public Class Form1
         cobxAudioType.SelectedIndex = atindex
         chkbxShaderGlass.Checked = UseShaderGlass
         cbxEmuType.SelectedIndex = 0
+
+        'Last Step
+        RefreshFavoritesHighlighting()
     End Sub
 
     ' General Other Function
@@ -170,20 +185,42 @@ Public Class Form1
         ' Clear the ListView
         ListViewGames.Items.Clear()
 
-        ' Filter games based on the selected emulator and search term
-        For Each game In games
-            Dim matchesEmulator As Boolean = (selectedFilter = "all" OrElse game.Emulator.ToLower() = selectedFilter)
-            Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
+        If selectedFilter = "favorites" Then
+            'Filter Games on Favorite List
+            For Each Fav In File.ReadAllLines("configs\favorites.txt")
+                For Each game In games
+                    If Fav = game.ENTitle Then
+                        Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
 
-            ' Add to ListView only if both conditions are met
-            If matchesEmulator AndAlso matchesSearch Then
-                Dim item As New ListViewItem(game.ENTitle)
+                        ' Add to ListView only if both conditions are met
+                        If matchesSearch Then
+                            Dim item As New ListViewItem(game.ENTitle)
 
-                ' Assign the appropriate icon based on the emulator type
-                item.ImageKey = game.ENTitle ' Assign the correct icon
-                ListViewGames.Items.Add(item)
-            End If
-        Next
+                            ' Assign the appropriate icon based on the emulator type
+                            item.ImageKey = game.ENTitle ' Assign the correct icon
+                            ListViewGames.Items.Add(item)
+                        End If
+                        Exit For
+                    End If
+                Next
+            Next
+        Else
+            ' Filter games based on the selected emulator and search term
+            For Each game In games
+                Dim matchesEmulator As Boolean = (selectedFilter = "all" OrElse game.Emulator.ToLower() = selectedFilter)
+                Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
+
+                ' Add to ListView only if both conditions are met
+                If matchesEmulator AndAlso matchesSearch Then
+                    Dim item As New ListViewItem(game.ENTitle)
+
+                    ' Assign the appropriate icon based on the emulator type
+                    item.ImageKey = game.ENTitle ' Assign the correct icon
+                    ListViewGames.Items.Add(item)
+                End If
+            Next
+        End If
+        RefreshFavoritesHighlighting()
     End Sub
     Private Sub DownloadGame(ContextDownload As Boolean)
         ' Get the selected game title from the ListView
@@ -195,6 +232,7 @@ Public Class Form1
             CurrentSelectedGameJAR = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
 
             ' Check if the game is already downloaded
+            Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
             Dim localFilePath As String = CurrentSelectedGameJAR
             Dim DownloadFileZipPath As String = $"{DownloadsFolder}\{selectedGame.ZIPName}"
             If File.Exists(localFilePath) Then
@@ -213,6 +251,7 @@ Public Class Form1
                 ' Download the game, extract it, and load JAM controls
                 Dim result = MessageBox.Show($"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?", "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
+                    Logger.LogInfo($"Starting Download for {selectedGame.DownloadURL}")
                     Dim GameDownloader As New GameDownloader(pbGameDL)
                     Dim ExtractFolder As String = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}"
                     GameDownloader.DownloadGameAsync(selectedGame.DownloadURL, DownloadFileZipPath, ExtractFolder, selectedGame, CurrentSelectedGameJAM, False)
@@ -226,6 +265,7 @@ Public Class Form1
         Dim selectedMachiChara As MachiChara = machicharas.FirstOrDefault(Function(g) g.ENTitle = selectedMachiCharaTitle)
 
         If selectedMachiChara IsNot Nothing Then
+            Logger.LogInfo($"Checking for {DownloadsFolder}\{selectedMachiChara.CFDName}")
             CurrentSelectedMachiCharaCFD = $"{DownloadsFolder}\{selectedMachiChara.CFDName}"
 
             ' Check if the MC is already downloaded
@@ -237,6 +277,7 @@ Public Class Form1
                 ' Download the machi chara 
                 Dim result = MessageBox.Show($"The Machi Chara '{selectedMachiChara.ENTitle} ({selectedMachiChara.CFDName})' is not downloaded. Would you like to download it?", "Download Machi Chara", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
+                    Logger.LogInfo($"Starting Download for {selectedMachiChara.DownloadURL}")
                     Dim MachiCharaDownloader As New MachiCharaDownloader(pbGameDL)
                     MachiCharaDownloader.DownloadMachiCharaAsync(selectedMachiChara.DownloadURL, DownloadFilePath, False)
                 End If
@@ -263,6 +304,16 @@ Public Class Form1
                 MessageBox.Show($"'{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not Downloaded, Unable to Delete.")
             End If
         End If
+    End Sub
+    Private Sub RefreshFavoritesHighlighting()
+        Dim favoritesManager As New FavoritesManager()
+        For Each item As ListViewItem In ListViewGames.Items
+            If favoritesManager.IsGameFavorited(item.Text) Then
+                item.BackColor = Color.LightYellow ' Highlight favorited games
+            Else
+                item.BackColor = Color.White ' Reset non-favorited games
+            End If
+        Next
     End Sub
 
     ' LISTBOX/LISTVIEW CHANGES
@@ -335,6 +386,23 @@ Public Class Form1
     End Sub
     Private Sub cmsGameLV_Delete_Click(sender As Object, e As EventArgs) Handles cmsGameLV_Delete.Click
         DeleteGame()
+    End Sub
+    Private Sub FavoriteToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles FavoriteToolStripMenuItem.Click
+        If ListViewGames.SelectedItems.Count = 0 Then Return
+
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim favoritesManager As New FavoritesManager()
+
+        If favoritesManager.IsGameFavorited(selectedGameTitle) Then
+            favoritesManager.RemoveFromFavorites(selectedGameTitle)
+            MessageBox.Show($"{selectedGameTitle} has been removed from favorites.", "Favorite Removed", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        Else
+            favoritesManager.AddToFavorites(selectedGameTitle)
+            MessageBox.Show($"{selectedGameTitle} has been added to favorites.", "Favorite Added", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        End If
+
+        ' Optionally refresh the UI to indicate favorite status
+        RefreshFavoritesHighlighting()
     End Sub
 
     'Launch Game
@@ -534,4 +602,5 @@ Public Class Form1
         startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
         Dim process As Process = Process.Start(startInfo)
     End Sub
+
 End Class
