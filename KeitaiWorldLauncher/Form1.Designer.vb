@@ -24,7 +24,14 @@ Partial Class Form1
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
         GroupBox1 = New GroupBox()
+        cbxEmuType = New ComboBox()
+        Label2 = New Label()
+        txtLVSearch = New TextBox()
         ListViewGames = New ListView()
+        cmsGameLV = New ContextMenuStrip(components)
+        cmsGameLV_Launch = New ToolStripMenuItem()
+        cmsGameLV_Download = New ToolStripMenuItem()
+        cmsGameLV_Delete = New ToolStripMenuItem()
         ImageListGames = New ImageList(components)
         lblTotalGameCount = New Label()
         pbGameDL = New ProgressBar()
@@ -33,6 +40,7 @@ Partial Class Form1
         chkbxHidePhoneUI = New CheckBox()
         TabControl1 = New TabControl()
         tpGames = New TabPage()
+        chkbxShaderGlass = New CheckBox()
         Label1 = New Label()
         cobxAudioType = New ComboBox()
         tpMachiChara = New TabPage()
@@ -41,19 +49,22 @@ Partial Class Form1
         lbxMachiCharaList = New ListBox()
         MenuStrip1 = New MenuStrip()
         FileToolStripMenuItem = New ToolStripMenuItem()
+        RefreshToolStripMenuItem = New ToolStripMenuItem()
         ExitToolStripMenuItem = New ToolStripMenuItem()
+        ConfigToolStripMenuItem1 = New ToolStripMenuItem()
+        AppConfigToolStripMenuItem = New ToolStripMenuItem()
+        KeyConfiguratorToolStripMenuItem = New ToolStripMenuItem()
         ToolsToolStripMenuItem = New ToolStripMenuItem()
         BatchDownloadToolStripMenuItem = New ToolStripMenuItem()
         GamesToolStripMenuItem = New ToolStripMenuItem()
         MachiCharaToolStripMenuItem = New ToolStripMenuItem()
-        ConfigToolStripMenuItem = New ToolStripMenuItem()
         XMLCreationToolStripMenuItem = New ToolStripMenuItem()
         GamelistToolStripMenuItem = New ToolStripMenuItem()
         HelpToolStripMenuItem = New ToolStripMenuItem()
         AboutToolStripMenuItem = New ToolStripMenuItem()
         OpenFileDialog1 = New OpenFileDialog()
-        RefreshToolStripMenuItem = New ToolStripMenuItem()
         GroupBox1.SuspendLayout()
+        cmsGameLV.SuspendLayout()
         TabControl1.SuspendLayout()
         tpGames.SuspendLayout()
         tpMachiChara.SuspendLayout()
@@ -63,6 +74,9 @@ Partial Class Form1
         ' 
         ' GroupBox1
         ' 
+        GroupBox1.Controls.Add(cbxEmuType)
+        GroupBox1.Controls.Add(Label2)
+        GroupBox1.Controls.Add(txtLVSearch)
         GroupBox1.Controls.Add(ListViewGames)
         GroupBox1.Controls.Add(lblTotalGameCount)
         GroupBox1.Location = New Point(6, 6)
@@ -72,15 +86,66 @@ Partial Class Form1
         GroupBox1.TabStop = False
         GroupBox1.Text = "Available Games"
         ' 
+        ' cbxEmuType
+        ' 
+        cbxEmuType.FormattingEnabled = True
+        cbxEmuType.Items.AddRange(New Object() {"All", "Doja", "Star"})
+        cbxEmuType.Location = New Point(295, 25)
+        cbxEmuType.Name = "cbxEmuType"
+        cbxEmuType.Size = New Size(98, 28)
+        cbxEmuType.TabIndex = 9
+        ' 
+        ' Label2
+        ' 
+        Label2.AutoSize = True
+        Label2.Location = New Point(10, 29)
+        Label2.Name = "Label2"
+        Label2.Size = New Size(56, 20)
+        Label2.TabIndex = 8
+        Label2.Text = "Search:"
+        ' 
+        ' txtLVSearch
+        ' 
+        txtLVSearch.Location = New Point(72, 26)
+        txtLVSearch.Name = "txtLVSearch"
+        txtLVSearch.Size = New Size(217, 27)
+        txtLVSearch.TabIndex = 7
+        ' 
         ' ListViewGames
         ' 
+        ListViewGames.ContextMenuStrip = cmsGameLV
         ListViewGames.LargeImageList = ImageListGames
-        ListViewGames.Location = New Point(6, 26)
+        ListViewGames.Location = New Point(6, 59)
         ListViewGames.Name = "ListViewGames"
-        ListViewGames.Size = New Size(387, 552)
+        ListViewGames.Size = New Size(387, 519)
         ListViewGames.TabIndex = 6
         ListViewGames.UseCompatibleStateImageBehavior = False
         ListViewGames.View = View.Details
+        ' 
+        ' cmsGameLV
+        ' 
+        cmsGameLV.ImageScalingSize = New Size(20, 20)
+        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete})
+        cmsGameLV.Name = "cmsGameLV"
+        cmsGameLV.Size = New Size(148, 76)
+        ' 
+        ' cmsGameLV_Launch
+        ' 
+        cmsGameLV_Launch.Name = "cmsGameLV_Launch"
+        cmsGameLV_Launch.Size = New Size(147, 24)
+        cmsGameLV_Launch.Text = "Launch"
+        ' 
+        ' cmsGameLV_Download
+        ' 
+        cmsGameLV_Download.Name = "cmsGameLV_Download"
+        cmsGameLV_Download.Size = New Size(147, 24)
+        cmsGameLV_Download.Text = "Download"
+        ' 
+        ' cmsGameLV_Delete
+        ' 
+        cmsGameLV_Delete.Name = "cmsGameLV_Delete"
+        cmsGameLV_Delete.Size = New Size(147, 24)
+        cmsGameLV_Delete.Text = "Delete"
         ' 
         ' ImageListGames
         ' 
@@ -147,6 +212,7 @@ Partial Class Form1
         ' tpGames
         ' 
         tpGames.BackColor = Color.WhiteSmoke
+        tpGames.Controls.Add(chkbxShaderGlass)
         tpGames.Controls.Add(Label1)
         tpGames.Controls.Add(cobxAudioType)
         tpGames.Controls.Add(GroupBox1)
@@ -159,6 +225,17 @@ Partial Class Form1
         tpGames.Size = New Size(1095, 625)
         tpGames.TabIndex = 0
         tpGames.Text = "Games"
+        ' 
+        ' chkbxShaderGlass
+        ' 
+        chkbxShaderGlass.AutoSize = True
+        chkbxShaderGlass.Enabled = False
+        chkbxShaderGlass.Location = New Point(687, 541)
+        chkbxShaderGlass.Name = "chkbxShaderGlass"
+        chkbxShaderGlass.Size = New Size(111, 24)
+        chkbxShaderGlass.TabIndex = 6
+        chkbxShaderGlass.Text = "ShaderGlass"
+        chkbxShaderGlass.UseVisualStyleBackColor = True
         ' 
         ' Label1
         ' 
@@ -222,7 +299,7 @@ Partial Class Form1
         ' MenuStrip1
         ' 
         MenuStrip1.ImageScalingSize = New Size(20, 20)
-        MenuStrip1.Items.AddRange(New ToolStripItem() {FileToolStripMenuItem, ToolsToolStripMenuItem, HelpToolStripMenuItem})
+        MenuStrip1.Items.AddRange(New ToolStripItem() {FileToolStripMenuItem, ConfigToolStripMenuItem1, ToolsToolStripMenuItem, HelpToolStripMenuItem})
         MenuStrip1.Location = New Point(0, 0)
         MenuStrip1.Name = "MenuStrip1"
         MenuStrip1.Size = New Size(1124, 28)
@@ -236,15 +313,40 @@ Partial Class Form1
         FileToolStripMenuItem.Size = New Size(46, 24)
         FileToolStripMenuItem.Text = "File"
         ' 
+        ' RefreshToolStripMenuItem
+        ' 
+        RefreshToolStripMenuItem.Name = "RefreshToolStripMenuItem"
+        RefreshToolStripMenuItem.Size = New Size(141, 26)
+        RefreshToolStripMenuItem.Text = "Refresh"
+        ' 
         ' ExitToolStripMenuItem
         ' 
         ExitToolStripMenuItem.Name = "ExitToolStripMenuItem"
-        ExitToolStripMenuItem.Size = New Size(224, 26)
+        ExitToolStripMenuItem.Size = New Size(141, 26)
         ExitToolStripMenuItem.Text = "Exit"
+        ' 
+        ' ConfigToolStripMenuItem1
+        ' 
+        ConfigToolStripMenuItem1.DropDownItems.AddRange(New ToolStripItem() {AppConfigToolStripMenuItem, KeyConfiguratorToolStripMenuItem})
+        ConfigToolStripMenuItem1.Name = "ConfigToolStripMenuItem1"
+        ConfigToolStripMenuItem1.Size = New Size(67, 24)
+        ConfigToolStripMenuItem1.Text = "Config"
+        ' 
+        ' AppConfigToolStripMenuItem
+        ' 
+        AppConfigToolStripMenuItem.Name = "AppConfigToolStripMenuItem"
+        AppConfigToolStripMenuItem.Size = New Size(236, 26)
+        AppConfigToolStripMenuItem.Text = "Application Config"
+        ' 
+        ' KeyConfiguratorToolStripMenuItem
+        ' 
+        KeyConfiguratorToolStripMenuItem.Name = "KeyConfiguratorToolStripMenuItem"
+        KeyConfiguratorToolStripMenuItem.Size = New Size(236, 26)
+        KeyConfiguratorToolStripMenuItem.Text = "Key2Pad Configurator"
         ' 
         ' ToolsToolStripMenuItem
         ' 
-        ToolsToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {BatchDownloadToolStripMenuItem, ConfigToolStripMenuItem, XMLCreationToolStripMenuItem})
+        ToolsToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {BatchDownloadToolStripMenuItem, XMLCreationToolStripMenuItem})
         ToolsToolStripMenuItem.Name = "ToolsToolStripMenuItem"
         ToolsToolStripMenuItem.Size = New Size(58, 24)
         ToolsToolStripMenuItem.Text = "Tools"
@@ -267,12 +369,6 @@ Partial Class Form1
         MachiCharaToolStripMenuItem.Name = "MachiCharaToolStripMenuItem"
         MachiCharaToolStripMenuItem.Size = New Size(174, 26)
         MachiCharaToolStripMenuItem.Text = "Machi Chara"
-        ' 
-        ' ConfigToolStripMenuItem
-        ' 
-        ConfigToolStripMenuItem.Name = "ConfigToolStripMenuItem"
-        ConfigToolStripMenuItem.Size = New Size(202, 26)
-        ConfigToolStripMenuItem.Text = "Config"
         ' 
         ' XMLCreationToolStripMenuItem
         ' 
@@ -304,12 +400,6 @@ Partial Class Form1
         ' 
         OpenFileDialog1.FileName = "OpenFileDialog1"
         ' 
-        ' RefreshToolStripMenuItem
-        ' 
-        RefreshToolStripMenuItem.Name = "RefreshToolStripMenuItem"
-        RefreshToolStripMenuItem.Size = New Size(224, 26)
-        RefreshToolStripMenuItem.Text = "Refresh"
-        ' 
         ' Form1
         ' 
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -323,6 +413,7 @@ Partial Class Form1
         Text = "Keitai World Launcher"
         GroupBox1.ResumeLayout(False)
         GroupBox1.PerformLayout()
+        cmsGameLV.ResumeLayout(False)
         TabControl1.ResumeLayout(False)
         tpGames.ResumeLayout(False)
         tpGames.PerformLayout()
@@ -358,10 +449,20 @@ Partial Class Form1
     Friend WithEvents ExitToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents GamelistToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents OpenFileDialog1 As OpenFileDialog
-    Friend WithEvents ConfigToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ListViewGames As ListView
     Friend WithEvents ImageListGames As ImageList
     Friend WithEvents cobxAudioType As ComboBox
     Friend WithEvents Label1 As Label
     Friend WithEvents RefreshToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ConfigToolStripMenuItem1 As ToolStripMenuItem
+    Friend WithEvents AppConfigToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents KeyConfiguratorToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents Label2 As Label
+    Friend WithEvents txtLVSearch As TextBox
+    Friend WithEvents cbxEmuType As ComboBox
+    Friend WithEvents cmsGameLV As ContextMenuStrip
+    Friend WithEvents cmsGameLV_Launch As ToolStripMenuItem
+    Friend WithEvents cmsGameLV_Download As ToolStripMenuItem
+    Friend WithEvents cmsGameLV_Delete As ToolStripMenuItem
+    Friend WithEvents chkbxShaderGlass As CheckBox
 End Class

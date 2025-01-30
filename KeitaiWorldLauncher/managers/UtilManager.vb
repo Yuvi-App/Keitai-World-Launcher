@@ -7,6 +7,8 @@ Imports System.IO.Compression
 Imports System.Xml
 Imports System.Xml.Xsl
 Imports System.Text.RegularExpressions
+Imports System.Runtime.InteropServices
+Imports System.Threading
 
 Namespace My.Managers
     Public Class UtilManager
@@ -104,6 +106,13 @@ Namespace My.Managers
         End Sub
 
         'Launch App
+        Public Function IsProcessRunning(processName As String) As Boolean
+            ' Get the list of all processes with the given name
+            Dim runningProcesses As Process() = Process.GetProcessesByName(processName)
+
+            ' Return true if any matching process is found, otherwise false
+            Return runningProcesses.Length > 0
+        End Function
         Shared Function CheckAndCloseDoja()
             ' Check if doja.exe is currently running
             Dim dojaProcesses = Process.GetProcessesByName("doja")
@@ -116,6 +125,7 @@ Namespace My.Managers
                                      MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
                     Try
+                        CheckAndCloseShaderGlass()
                         ' Close each instance of doja.exe
                         For Each process As Process In dojaProcesses
                             process.Kill()
@@ -135,6 +145,63 @@ Namespace My.Managers
                 End If
             Else
                 'MessageBox.Show("doja.exe is not currently running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            End If
+        End Function
+        Shared Function CheckAndCloseStar()
+            ' Check if doja.exe is currently running
+            Dim dojaProcesses = Process.GetProcessesByName("star")
+            If dojaProcesses.Length > 0 Then
+                ' Prompt the user to confirm closing the application
+                Dim result = MessageBox.Show("star.exe is currently running. Do you want to close it?",
+                                     "Confirm Close",
+                                     MessageBoxButtons.YesNo,
+                                     MessageBoxIcon.Question)
+                If result = DialogResult.Yes Then
+                    Try
+                        CheckAndCloseShaderGlass()
+
+                        ' Close each instance of star.exe
+                        For Each process As Process In dojaProcesses
+                            process.Kill()
+                            process.WaitForExit() ' Ensure the process has exited
+                        Next
+                        Return False
+                        'MessageBox.Show("star.exe has been closed successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    Catch ex As Exception
+                        MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
+                                "Error",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error)
+                    End Try
+                Else
+                    Return True
+                    'MessageBox.Show("star.exe will remain running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                End If
+            Else
+                'MessageBox.Show("star.exe is not currently running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            End If
+        End Function
+        Shared Function CheckAndCloseShaderGlass()
+            ' Check if doja.exe is currently running
+            Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
+
+            If shaderglassProcesses.Length > 0 Then
+                Try
+                    ' Close each instance of star.exe
+                    For Each process As Process In shaderglassProcesses
+                        process.Kill()
+                        process.WaitForExit() ' Ensure the process has exited
+                    Next
+                    Return False
+                    'MessageBox.Show("star.exe has been closed successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                Catch ex As Exception
+                    MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
+                            "Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                End Try
+            Else
+                'MessageBox.Show("star.exe is not currently running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
         End Function
         Public Sub LaunchApplication(appPath As String, arguments As String)
@@ -165,15 +232,66 @@ Namespace My.Managers
 
                 'Update Device Launch Settings
                 If Form1.chkbxHidePhoneUI.Checked = True Then
-                    UpdateDeviceSkin(DOJAPATH, True)
+                    UpdateDOJADeviceSkin(DOJAPATH, True)
                 Else
-                    UpdateDeviceSkin(DOJAPATH, False)
+                    UpdateDOJADeviceSkin(DOJAPATH, False)
                 End If
                 'Update Device Draw Size
-                Dim JAMDrawArea = ExtractWidthHeight(jamPath)
-                UpdatedDrawSize(DOJAPATH, JAMDrawArea.Item1, JAMDrawArea.Item2)
+                Dim JAMDrawArea = ExtractDOJAWidthHeight(jamPath)
+                UpdatedDOJADrawSize(DOJAPATH, JAMDrawArea.Item1, JAMDrawArea.Item2)
                 'Updated SoundType
-                UpdateSoundConf(DOJAPATH, Form1.cobxAudioType.SelectedItem.ToString)
+                UpdateDOJASoundConf(DOJAPATH, Form1.cobxAudioType.SelectedItem.ToString)
+
+                ' Set up process start info
+                Dim startInfo As New ProcessStartInfo()
+                startInfo.FileName = appPath
+                startInfo.Arguments = arguments
+                startInfo.UseShellExecute = True
+                startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+
+                ' Start the process
+                Dim process As Process = Process.Start(startInfo)
+
+                'Start Shader Glass if Selected
+                If Form1.chkbxShaderGlass.Checked = True Then
+                    Thread.Sleep(2000)
+                    While True
+                        If IsProcessRunning("doja") = True Then
+                            Exit While
+                        End If
+                    End While
+                    LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                End If
+                'MessageBox.Show("Command launched successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Catch ex As Exception
+                MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Public Sub LaunchCustomSTARGameCommand(STARPATH, STAREXELocation, GameJAM)
+            Try
+                ' Paths and arguments
+                Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\locale_emulator\LEProc.exe"
+                Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
+                Dim dojaexePath As String = STAREXELocation
+                Dim jamPath As String = AppDomain.CurrentDomain.BaseDirectory & GameJAM
+
+                ' Combine arguments
+                Dim arguments As String = $"{guidArg} ""{dojaexePath}"" -i ""{jamPath}"""
+
+                'Update Device Launch Settings
+                If Form1.chkbxHidePhoneUI.Checked = True Then
+                    UpdateSTARDeviceSkin(STARPATH, True)
+                Else
+                    UpdateSTARDeviceSkin(STARPATH, False)
+                End If
+                'Update Device Draw Size
+                Dim JAMDrawArea = ExtractSTARWidthHeight(jamPath)
+                UpdatedSTARDrawSize(STARPATH, JAMDrawArea.Item1, JAMDrawArea.Item2)
+                'Updated SoundType
+                UpdateSTARSoundConf(STARPATH, Form1.cobxAudioType.SelectedItem.ToString)
+                'Set AppSettings
+                UpdateSTARAppconfig(STARPATH, GameJAM) 'this setups opengl and more to ensure everything works
+                EnsureSTARJamFileEntries(GameJAM)
 
                 ' Set up process start info
                 Dim startInfo As New ProcessStartInfo()
@@ -185,6 +303,16 @@ Namespace My.Managers
                 ' Start the process
                 Dim process As Process = Process.Start(startInfo)
 
+                'Start Shader Glass if Selected
+                If Form1.chkbxShaderGlass.Checked = True Then
+                    Thread.Sleep(2000)
+                    While True
+                        If IsProcessRunning("star") = True Then
+                            Exit While
+                        End If
+                    End While
+                    LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                End If
                 'MessageBox.Show("Command launched successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Catch ex As Exception
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -213,13 +341,43 @@ Namespace My.Managers
 
                 ' Start the process
                 Dim process As Process = Process.Start(processInfo)
+
             Catch ex As Exception
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+        Public Sub LaunchShaderGlass(AppName As String)
+            Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\ShaderGlass.exe"
+            Dim arguments As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\keitai.sgp"
+            ModifyCaptureWindow(arguments, AppName)
+            Dim startInfo As New ProcessStartInfo()
+            startInfo.FileName = appPath
+            startInfo.Arguments = arguments
+            startInfo.UseShellExecute = True
+            startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+
+            ' Start the process
+            Dim process As Process = Process.Start(startInfo)
+        End Sub
+        Public Sub ModifyCaptureWindow(filePath As String, AppName As String)
+            ' Read all lines from the file
+            Dim lines As List(Of String) = File.ReadAllLines(filePath).ToList()
+
+            ' Find and modify the line that starts with "CaptureWindow"
+            For i As Integer = 0 To lines.Count - 1
+                If lines(i).StartsWith("CaptureWindow") Then
+                    ' Replace the line with the new value
+                    lines(i) = $"CaptureWindow ""{AppName}"""
+                    Exit For ' Stop after finding the first occurrence
+                End If
+            Next
+
+            ' Write the modified lines back to the file
+            File.WriteAllLines(filePath, lines)
+        End Sub
 
         'DOJA EXTRAS
-        Public Sub UpdateDeviceSkin(DOJALOCATION As String, hideUI As Boolean)
+        Public Sub UpdateDOJADeviceSkin(DOJALOCATION As String, hideUI As Boolean)
             Dim DojaSkinFolder = $"{DOJALOCATION}\lib\skin\device1"
             If Directory.Exists(DojaSkinFolder) Then
                 For Each deleteFile In Directory.GetFiles(DojaSkinFolder, "*.*", SearchOption.TopDirectoryOnly)
@@ -229,19 +387,18 @@ Namespace My.Managers
                 Directory.CreateDirectory(DojaSkinFolder)
             End If
 
-
             Dim OurSkinsFolder = AppDomain.CurrentDomain.BaseDirectory & "data\tools\skins"
             If hideUI = True Then
-                For Each F In Directory.GetFiles(OurSkinsFolder & "\device1-noui")
+                For Each F In Directory.GetFiles(OurSkinsFolder & "\doja-device1-noui")
                     File.Copy(F, $"{DojaSkinFolder}\{Path.GetFileName(F)}")
                 Next
             ElseIf hideUI = False Then
-                For Each F In Directory.GetFiles(OurSkinsFolder & "\device1-ui")
+                For Each F In Directory.GetFiles(OurSkinsFolder & "\doja-device1-ui")
                     File.Copy(F, $"{DojaSkinFolder}\{Path.GetFileName(F)}")
                 Next
             End If
         End Sub
-        Function ExtractWidthHeight(filePath As String) As (Integer, Integer)
+        Function ExtractDOJAWidthHeight(filePath As String) As (Integer, Integer)
             Dim width As Integer = 0
             Dim height As Integer = 0
 
@@ -256,18 +413,23 @@ Namespace My.Managers
                         Exit For
                     End If
                 Next
+
+                If width = 0 Or height = 0 Then
+                    width = 240
+                    height = 240
+                End If
             Catch ex As Exception
                 Console.WriteLine("Error: " & ex.Message)
             End Try
 
             Return (width, height)
         End Function
-        Public Sub UpdatedDrawSize(DOJALOOCATION As String, X As Integer, Y As Integer)
+        Public Sub UpdatedDOJADrawSize(DOJALOOCATION As String, X As Integer, Y As Integer)
             Dim Device1InfoFile = $"{DOJALOOCATION}\lib\skin\deviceinfo\device1"
             Dim NewValue = $"device1,{X},{Y},120,120"
             File.WriteAllText(Device1InfoFile, NewValue)
         End Sub
-        Sub UpdateSoundConf(DOJALOOCATION As String, SoundType As String)
+        Sub UpdateDOJASoundConf(DOJALOOCATION As String, SoundType As String)
             Dim SoundPath As String = $"{DOJALOOCATION}\lib\SoundConf.properties"
             If SoundType = "Standard" Then
                 If File.Exists(SoundPath) Then
@@ -298,7 +460,147 @@ Namespace My.Managers
                     Console.WriteLine($"File not found: {SoundPath}")
                 End If
             End If
+        End Sub
 
+        'STAR EXTRAS
+        Public Sub UpdateSTARDeviceSkin(STARLOCATION As String, hideUI As Boolean)
+            Dim StarSkinFolder = $"{STARLOCATION}\lib\skin\device1"
+            If Directory.Exists(StarSkinFolder) Then
+                For Each deleteFile In Directory.GetFiles(StarSkinFolder, "*.*", SearchOption.TopDirectoryOnly)
+                    File.Delete(deleteFile)
+                Next
+            Else
+                Directory.CreateDirectory(StarSkinFolder)
+            End If
+
+
+            Dim OurSkinsFolder = AppDomain.CurrentDomain.BaseDirectory & "data\tools\skins"
+            If hideUI = True Then
+                For Each F In Directory.GetFiles(OurSkinsFolder & "\star-device1-noui")
+                    File.Copy(F, $"{StarSkinFolder}\{Path.GetFileName(F)}")
+                Next
+            ElseIf hideUI = False Then
+                For Each F In Directory.GetFiles(OurSkinsFolder & "\star-device1-ui")
+                    File.Copy(F, $"{StarSkinFolder}\{Path.GetFileName(F)}")
+                Next
+            End If
+        End Sub
+        Function ExtractSTARWidthHeight(filePath As String) As (Integer, Integer)
+            Dim width As Integer = 0
+            Dim height As Integer = 0
+
+            Try
+                For Each line As String In IO.File.ReadLines(filePath)
+                    If line.StartsWith("DrawArea =") Then
+                        Dim parts() As String = line.Split("="c)(1).Trim().Split("x"c)
+                        If parts.Length = 2 Then
+                            width = Convert.ToInt32(parts(0).Trim())
+                            height = Convert.ToInt32(parts(1).Trim())
+                        End If
+                        Exit For
+                    End If
+                Next
+                If width = 0 Or height = 0 Then
+                    width = 480
+                    height = 480
+                End If
+            Catch ex As Exception
+                Console.WriteLine("Error: " & ex.Message)
+            End Try
+
+            Return (width, height)
+        End Function
+        Public Sub UpdatedSTARDrawSize(STARLOOCATION As String, X As Integer, Y As Integer)
+            Dim Device1InfoFile = $"{STARLOOCATION}\lib\skin\deviceinfo\device1"
+            Dim NewValue = $"device1,{X},{Y},120,120,0,2,0,1,3"
+            File.WriteAllText(Device1InfoFile, NewValue)
+        End Sub
+        Sub UpdateSTARSoundConf(STARLOOCATION As String, SoundType As String)
+            Dim SoundPath As String = $"{STARLOOCATION}\lib\SoundConf.properties"
+            If SoundType = "Standard" Then
+                If File.Exists(SoundPath) Then
+                    ' Read the file with Shift-JIS encoding
+                    Dim conf As String = File.ReadAllText(SoundPath, Text.Encoding.GetEncoding("shift-jis"))
+
+                    ' Perform the substitutions
+                    conf = Regex.Replace(conf, "MODE=.", "MODE=0")
+                    conf = Regex.Replace(conf, "SOUNDLIB=...", "SOUNDLIB=001")
+
+                    ' Write the updated content back to the file
+                    File.WriteAllText(SoundPath, conf, Text.Encoding.GetEncoding("shift-jis"))
+                Else
+                    Console.WriteLine($"File not found: {SoundPath}")
+                End If
+            ElseIf SoundType = "903i" Then
+                If File.Exists(SoundPath) Then
+                    ' Read the file with Shift-JIS encoding
+                    Dim conf As String = File.ReadAllText(SoundPath, Text.Encoding.GetEncoding("shift-jis"))
+
+                    ' Perform the substitutions
+                    conf = Regex.Replace(conf, "MODE=.", "MODE=0")
+                    conf = Regex.Replace(conf, "SOUNDLIB=...", "SOUNDLIB=002")
+
+                    ' Write the updated content back to the file
+                    File.WriteAllText(SoundPath, conf, Text.Encoding.GetEncoding("shift-jis"))
+                Else
+                    Console.WriteLine($"File not found: {SoundPath}")
+                End If
+            End If
+
+        End Sub
+        Public Sub UpdateSTARAppconfig(STARLOCATION As String, GAMEJAM As String)
+            Dim AppConfigFile = $"{STARLOCATION}\AppSetting"
+            Dim AppConfigFCFile = $"{STARLOCATION}\AppSetting.fc"
+            Dim GameDirectory As String
+            Dim GameName = Path.GetFileNameWithoutExtension(GAMEJAM)
+            Dim binIndex As Integer = GAMEJAM.IndexOf("\bin")
+            If binIndex <> -1 Then
+                GameDirectory = GAMEJAM.Substring(0, binIndex)
+            Else
+                Console.WriteLine("'\bin' not found in path.")
+            End If
+
+            If File.Exists(AppConfigFile) = False Or File.Exists(AppConfigFCFile) = False Then
+                MessageBox.Show("Missing STAR AppSettingsFiles")
+                Exit Sub
+            Else
+                If File.Exists($"{GameDirectory}\{GameName}") = False Then
+                    File.Copy(AppConfigFile, $"{GameDirectory}\{GameName}")
+                End If
+                If File.Exists($"{GameDirectory}\{GameName}.fc") = False Then
+                    File.Copy(AppConfigFCFile, $"{GameDirectory}\{GameName}.fc")
+                End If
+            End If
+        End Sub
+        Public Sub EnsureSTARJamFileEntries(GAMEJAM As String)
+            ' Ensure the file exists
+            If Not File.Exists(GAMEJAM) Then
+                Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
+            End If
+
+            ' Read the file contents using Shift-JIS encoding
+            Dim lines As List(Of String) = File.ReadAllLines(GAMEJAM, Encoding.GetEncoding("shift-jis")).ToList()
+            Dim modified As Boolean = False
+
+            ' Define the required entries
+            Dim requiredEntries As New Dictionary(Of String, String) From {
+        {"UseNetwork", "yes"},
+        {"TrustedAPID", "00000000000"},
+        {"MessageCode", "0000000000"}
+    }
+
+            ' Check and add missing entries
+            For Each entry In requiredEntries
+                If Not lines.Any(Function(line) line.StartsWith(entry.Key & " = ")) Then
+                    lines.Add(entry.Key & " = " & entry.Value)
+                    modified = True
+                End If
+            Next
+
+            ' Write back to the file if modifications were made
+            If modified Then
+                File.WriteAllLines(GAMEJAM, lines, Encoding.GetEncoding("shift-jis"))
+            End If
         End Sub
 
         'Generate XML for List
@@ -354,15 +656,21 @@ Namespace My.Managers
                     ' Extract AppName from the .jam file
                     Dim appName As String = "Unknown"
                     Dim profilever As String = "doja"
+                    Dim Emulator As String = "doja"
                     If Not String.IsNullOrEmpty(jamFile) Then
                         Dim jamLines As String() = File.ReadAllLines(jamFile, Encoding.GetEncoding("shift-jis"))
                         Dim appNameLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppName = "))
                         Dim ProfileVerLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("ProfileVer = "))
+                        Dim AppTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
                         If Not String.IsNullOrEmpty(appNameLine) Then
                             appName = appNameLine.Replace("AppName = ", "").Trim()
                         End If
                         If Not String.IsNullOrEmpty(ProfileVerLine) Then
                             profilever = ProfileVerLine.Replace("ProfileVer = ", "").Trim()
+                        End If
+                        ' If AppType exists, set emulator to "star", as AppType on exist in star apps
+                        If Not String.IsNullOrEmpty(AppTypeLine) Then
+                            Emulator = "star"
                         End If
                     End If
 
@@ -440,7 +748,7 @@ Namespace My.Managers
                         gameElement.AppendChild(SDCardDataURLElement)
 
                         Dim emulatorElement As XmlElement = xmlDoc.CreateElement("Emulator")
-                        emulatorElement.InnerText = "doja"
+                        emulatorElement.InnerText = Emulator
                         gameElement.AppendChild(emulatorElement)
 
                         root.AppendChild(gameElement)

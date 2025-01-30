@@ -12,6 +12,7 @@ Namespace My.Managers
         {"AutoUpdateGameList", "true"},
         {"MachiCharalistURL", "machicharalist.xml"},
         {"AutoUpdateMachiCharaList", "true"},
+        {"UseShaderGlass", "true"},
         {"DOJAPath", "c:\doja"},
         {"DOJAEXEPath", "doja.exe"},
         {"DOJAHideUI", "true"},
@@ -82,6 +83,21 @@ Namespace My.Managers
                 End If
             Catch ex As Exception
                 MessageBox.Show($"Failed to update the DOJAHideUI setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Public Sub UpdateUseShaderGlassSetting(isChecked As Boolean)
+            Try
+                ' Load the XML document
+                Dim doc As New XmlDocument()
+                doc.Load(ConfigFilePath)
+                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='UseShadeGlass']")
+                If settingNode IsNot Nothing Then
+                    settingNode.InnerText = isChecked.ToString().ToLower()
+                    doc.Save(ConfigFilePath)
+                Else
+                End If
+            Catch ex As Exception
+                MessageBox.Show($"Failed to update the UseShadeGlass setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
         Public Sub UpdateDOJASoundSetting(SoundType As String)

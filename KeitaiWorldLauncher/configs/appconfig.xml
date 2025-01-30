@@ -6,6 +6,7 @@
   <Setting name="AutoUpdateGameList">true</Setting>
   <Setting name="MachiCharaURL">machicharalist.xml</Setting>
   <Setting name="AutoUpdateMachiCharaList">true</Setting>
+  <Setting name="UseShaderGlass">true</Setting>
   <Setting name="DOJAPath">c:/doja</Setting>
   <Setting name="DOJAEXEPath">doja.exe</Setting>
   <Setting name="DOJAHideUI">true</Setting>
