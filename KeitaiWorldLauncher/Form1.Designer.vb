@@ -26,7 +26,7 @@ Partial Class Form1
         GroupBox1 = New GroupBox()
         ListViewGamesVarients = New ListView()
         ImageListGames = New ImageList(components)
-        cbxEmuType = New ComboBox()
+        cbxFilterType = New ComboBox()
         Label2 = New Label()
         txtLVSearch = New TextBox()
         ListViewGames = New ListView()
@@ -80,7 +80,7 @@ Partial Class Form1
         ' GroupBox1
         ' 
         GroupBox1.Controls.Add(ListViewGamesVarients)
-        GroupBox1.Controls.Add(cbxEmuType)
+        GroupBox1.Controls.Add(cbxFilterType)
         GroupBox1.Controls.Add(Label2)
         GroupBox1.Controls.Add(txtLVSearch)
         GroupBox1.Controls.Add(ListViewGames)
@@ -107,14 +107,14 @@ Partial Class Form1
         ImageListGames.ImageSize = New Size(24, 24)
         ImageListGames.TransparentColor = Color.Transparent
         ' 
-        ' cbxEmuType
+        ' cbxFilterType
         ' 
-        cbxEmuType.FormattingEnabled = True
-        cbxEmuType.Items.AddRange(New Object() {"All", "Favorites", "Doja", "Star"})
-        cbxEmuType.Location = New Point(295, 25)
-        cbxEmuType.Name = "cbxEmuType"
-        cbxEmuType.Size = New Size(98, 28)
-        cbxEmuType.TabIndex = 9
+        cbxFilterType.FormattingEnabled = True
+        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Doja", "Star"})
+        cbxFilterType.Location = New Point(295, 25)
+        cbxFilterType.Name = "cbxFilterType"
+        cbxFilterType.Size = New Size(98, 28)
+        cbxFilterType.TabIndex = 9
         ' 
         ' Label2
         ' 
@@ -499,7 +499,7 @@ Partial Class Form1
     Friend WithEvents KeyConfiguratorToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents Label2 As Label
     Friend WithEvents txtLVSearch As TextBox
-    Friend WithEvents cbxEmuType As ComboBox
+    Friend WithEvents cbxFilterType As ComboBox
     Friend WithEvents cmsGameLV As ContextMenuStrip
     Friend WithEvents cmsGameLV_Launch As ToolStripMenuItem
     Friend WithEvents cmsGameLV_Download As ToolStripMenuItem

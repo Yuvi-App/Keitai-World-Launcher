@@ -106,6 +106,7 @@ Namespace My.Managers
                         MessageBox.Show($"Failed to extract the game: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     End Try
                 End If
+                Form1.RefreshGameHighlighting()
             End If
 
             ' Detach event handlers to avoid memory leaks

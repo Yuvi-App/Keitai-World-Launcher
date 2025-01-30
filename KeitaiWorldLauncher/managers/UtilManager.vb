@@ -255,7 +255,7 @@ Namespace My.Managers
 
                 'Start Shader Glass if Selected
                 If Form1.chkbxShaderGlass.Checked = True Then
-                    Thread.Sleep(2000)
+                    Thread.Sleep(3000)
                     While True
                         If IsProcessRunning("doja") = True Then
                             Exit While
@@ -306,7 +306,7 @@ Namespace My.Managers
 
                 'Start Shader Glass if Selected
                 If Form1.chkbxShaderGlass.Checked = True Then
-                    Thread.Sleep(2000)
+                    Thread.Sleep(3000)
                     While True
                         If IsProcessRunning("star") = True Then
                             Exit While

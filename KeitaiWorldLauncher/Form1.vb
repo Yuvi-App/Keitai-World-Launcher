@@ -163,10 +163,10 @@ Public Class Form1
         Dim atindex As Integer = cobxAudioType.FindStringExact(DOJASoundType)
         cobxAudioType.SelectedIndex = atindex
         chkbxShaderGlass.Checked = UseShaderGlass
-        cbxEmuType.SelectedIndex = 0
+        cbxFilterType.SelectedIndex = 0
 
         'Last Step
-        RefreshFavoritesHighlighting()
+        RefreshGameHighlighting()
     End Sub
 
     ' General Other Function
@@ -179,30 +179,57 @@ Public Class Form1
     End Sub
     Private Sub FilterListView()
         ' Get the selected emulator filter and search term
-        Dim selectedFilter As String = cbxEmuType.SelectedItem.ToString().ToLower()
+        Dim selectedFilter As String = cbxFilterType.SelectedItem.ToString().ToLower()
         Dim searchTerm As String = txtLVSearch.Text.Trim().ToLower()
 
         ' Clear the ListView
         ListViewGames.Items.Clear()
 
         If selectedFilter = "favorites" Then
-            'Filter Games on Favorite List
-            For Each Fav In File.ReadAllLines("configs\favorites.txt")
-                For Each game In games
-                    If Fav = game.ENTitle Then
-                        Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
+            ' Ensure the favorites file exists
+            Dim favoritesFile As String = "configs\favorites.txt"
+            If Not File.Exists(favoritesFile) Then Return
 
-                        ' Add to ListView only if both conditions are met
-                        If matchesSearch Then
-                            Dim item As New ListViewItem(game.ENTitle)
+            ' Load favorites into a HashSet for fast lookups
+            Dim favoriteGames As HashSet(Of String) = File.ReadAllLines(favoritesFile).
+                                              Select(Function(fav) fav.Trim()).
+                                              ToHashSet(StringComparer.OrdinalIgnoreCase)
 
-                            ' Assign the appropriate icon based on the emulator type
-                            item.ImageKey = game.ENTitle ' Assign the correct icon
-                            ListViewGames.Items.Add(item)
-                        End If
-                        Exit For
+            ' Loop through the games and check if they are in favorites
+            For Each game In games
+                If favoriteGames.Contains(game.ENTitle) Then
+                    Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
+
+                    ' Add to ListView only if search term matches
+                    If matchesSearch Then
+                        Dim item As New ListViewItem(game.ENTitle)
+
+                        ' Assign the appropriate icon based on the emulator type
+                        item.ImageKey = game.ENTitle ' Assign the correct icon
+                        ListViewGames.Items.Add(item)
                     End If
-                Next
+                End If
+            Next
+        ElseIf selectedFilter = "installed" Then
+            ' Get the list of installed game folders
+            Dim installedGames = Directory.GetDirectories(DownloadsFolder).
+                                  Select(Function(folder) Path.GetFileName(folder)).
+                                  ToHashSet(StringComparer.OrdinalIgnoreCase) ' HashSet for fast lookups
+
+            ' Loop through all games and check if they are installed
+            For Each game In games
+                If installedGames.Contains(Path.GetFileNameWithoutExtension(game.ZIPName)) Then
+                    Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
+
+                    ' Add to ListView only if search term matches
+                    If matchesSearch Then
+                        Dim item As New ListViewItem(game.ENTitle)
+
+                        ' Assign the appropriate icon based on the emulator type
+                        item.ImageKey = game.ENTitle ' Assign the correct icon
+                        ListViewGames.Items.Add(item)
+                    End If
+                End If
             Next
         Else
             ' Filter games based on the selected emulator and search term
@@ -220,7 +247,7 @@ Public Class Form1
                 End If
             Next
         End If
-        RefreshFavoritesHighlighting()
+        RefreshGameHighlighting()
     End Sub
     Private Sub DownloadGame(ContextDownload As Boolean)
         ' Get the selected game title from the ListView
@@ -303,18 +330,47 @@ Public Class Form1
             Else
                 MessageBox.Show($"'{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not Downloaded, Unable to Delete.")
             End If
+            RefreshGameHighlighting()
         End If
     End Sub
-    Private Sub RefreshFavoritesHighlighting()
+    Public Sub RefreshGameHighlighting()
         Dim favoritesManager As New FavoritesManager()
+
         For Each item As ListViewItem In ListViewGames.Items
-            If favoritesManager.IsGameFavorited(item.Text) Then
-                item.BackColor = Color.LightYellow ' Highlight favorited games
-            Else
-                item.BackColor = Color.White ' Reset non-favorited games
+            ' Get the corresponding game object
+            Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = item.Text)
+
+            If selectedGame IsNot Nothing Then
+                ' Check if the game is favorited
+                Dim isFavorited As Boolean = favoritesManager.IsGameFavorited(item.Text)
+
+                ' Check if the game is installed
+                Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName))
+                Dim isInstalled As Boolean = Directory.Exists(gameFolder)
+
+                ' Determine the appropriate highlighting
+                If isInstalled AndAlso isFavorited Then
+                    item.BackColor = Color.LightSeaGreen ' Both installed and favorited (customizable color)
+                ElseIf isInstalled Then
+                    item.BackColor = Color.LightGreen ' Only installed
+                ElseIf isFavorited Then
+                    item.BackColor = Color.LightGoldenrodYellow ' Only favorited
+                Else
+                    item.BackColor = Color.White ' Neither installed nor favorited
+                End If
             End If
         Next
     End Sub
+    Public Function VerifyGameDownloaded()
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+        For Each f In Directory.GetDirectories(DownloadsFolder)
+            If Path.GetFileName(f) = Path.GetFileNameWithoutExtension(selectedGame.ZIPName) Then
+                Return True
+            End If
+        Next
+        Return False
+    End Function
 
     ' LISTBOX/LISTVIEW CHANGES
     'Private Sub ListBoxGames_SelectedIndexChanged(sender As Object, e As EventArgs)
@@ -370,7 +426,7 @@ Public Class Form1
             configManager.UpdateDOJASoundSetting(cobxAudioType.SelectedItem.ToString)
         End If
     End Sub
-    Private Sub cbxEmuType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxEmuType.SelectedIndexChanged
+    Private Sub cbxEmuType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxFilterType.SelectedIndexChanged
         FilterListView()
     End Sub
 
@@ -402,27 +458,30 @@ Public Class Form1
         End If
 
         ' Optionally refresh the UI to indicate favorite status
-        RefreshFavoritesHighlighting()
+        RefreshGameHighlighting()
     End Sub
 
     'Launch Game
     Private Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         ' Get the selected game
         Try
-            Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-            Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-            Select Case selectedGame.Emulator.ToLower
-                Case "doja"
-                    Dim IsDojaRunning = UtilManager.CheckAndCloseDoja
-                    If IsDojaRunning = False Then
-                        utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
-                    End If
-                Case "star"
-                    Dim IsStarRunning = UtilManager.CheckAndCloseStar
-                    If IsStarRunning = False Then
-                        utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
-                    End If
-            End Select
+            'Verify Its Downloaded
+            If VerifyGameDownloaded() = True Then
+                Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+                Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+                Select Case selectedGame.Emulator.ToLower
+                    Case "doja"
+                        Dim IsDojaRunning = UtilManager.CheckAndCloseDoja
+                        If IsDojaRunning = False Then
+                            utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
+                        End If
+                    Case "star"
+                        Dim IsStarRunning = UtilManager.CheckAndCloseStar
+                        If IsStarRunning = False Then
+                            utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
+                        End If
+                End Select
+            End If
         Catch ex As Exception
             MessageBox.Show($"Error Launching Game:{vbCrLf}{ex}")
         End Try
