@@ -14,5 +14,14 @@ The client only need to configure the "AppConfig.XML" with a couple address to p
 - Machichara.xml - XML for everything MachiChara
 - Charaden.xml - XML for everything Charaden
 
+Generating a XML:
+The XML file can be generated within the app itself. However, it reads from a master zip file that contains all the content you want to catalog. The format should be as follows:
+- ListMaster.zip contains 30 folders.
+- Inside each folder, there should be one .jam, one .jar, and one .sp file.
+These files are then packed into their corresponding zip archives and XML files, making them ready for use with the client.
 
-###WIP
+SD Card Data:
+In the Gamelist.xml, there is a parameter specifying a URL for downloading SD Card data. Place the SD Card game data in the doja SVC folder that it generates, then compress (zip) the folder. This zipped folder will be used for downloading and running the game.
+For example, RockmanDASH-sdcarddata.zip contains a folder named SVC0012rockman5island.jam905, which holds 30 game data files. This structure ensures that the client can properly access and use the game data when needed.
+
+### WIP
