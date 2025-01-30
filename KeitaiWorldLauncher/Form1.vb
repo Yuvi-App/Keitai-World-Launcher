@@ -544,6 +544,10 @@ Public Class Form1
         Try
             'Verify Its Downloaded
             If VerifyGameDownloaded() = True Then
+                If ListViewGames.SelectedItems.Count = 0 Then
+                    MessageBox.Show("Please select a game, before launching")
+                    Return
+                End If
                 Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
                 Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
                 Select Case selectedGame.Emulator.ToLower
