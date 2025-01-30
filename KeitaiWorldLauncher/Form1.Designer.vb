@@ -68,6 +68,7 @@ Partial Class Form1
         HelpToolStripMenuItem = New ToolStripMenuItem()
         AboutToolStripMenuItem = New ToolStripMenuItem()
         OpenFileDialog1 = New OpenFileDialog()
+        selectionTimer = New Timer(components)
         GroupBox1.SuspendLayout()
         cmsGameLV.SuspendLayout()
         TabControl1.SuspendLayout()
@@ -104,7 +105,7 @@ Partial Class Form1
         ' ImageListGames
         ' 
         ImageListGames.ColorDepth = ColorDepth.Depth32Bit
-        ImageListGames.ImageSize = New Size(24, 24)
+        ImageListGames.ImageSize = New Size(36, 36)
         ImageListGames.TransparentColor = Color.Transparent
         ' 
         ' cbxFilterType
@@ -185,10 +186,11 @@ Partial Class Form1
         ' 
         ' pbGameDL
         ' 
-        pbGameDL.Location = New Point(28, 695)
+        pbGameDL.Location = New Point(16, 691)
         pbGameDL.Name = "pbGameDL"
-        pbGameDL.Size = New Size(287, 29)
+        pbGameDL.Size = New Size(1095, 29)
         pbGameDL.TabIndex = 1
+        pbGameDL.Visible = False
         ' 
         ' gbxGameInfo
         ' 
@@ -440,6 +442,10 @@ Partial Class Form1
         ' 
         OpenFileDialog1.FileName = "OpenFileDialog1"
         ' 
+        ' selectionTimer
+        ' 
+        selectionTimer.Interval = 200
+        ' 
         ' Form1
         ' 
         AutoScaleDimensions = New SizeF(8F, 20F)
@@ -450,6 +456,7 @@ Partial Class Form1
         Controls.Add(MenuStrip1)
         MainMenuStrip = MenuStrip1
         Name = "Form1"
+        StartPosition = FormStartPosition.CenterScreen
         Text = "Keitai World Launcher"
         GroupBox1.ResumeLayout(False)
         GroupBox1.PerformLayout()
@@ -510,4 +517,5 @@ Partial Class Form1
     Friend WithEvents ShaderGlassConfigToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ListViewGamesVarients As ListView
     Friend WithEvents FavoriteToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents selectionTimer As Timer
 End Class

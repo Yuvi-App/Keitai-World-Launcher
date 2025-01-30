@@ -3,6 +3,7 @@ Imports System.Net.Security
 Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Threading
+Imports System.Timers
 Imports System.Windows.Forms.VisualStyles.VisualStyleElement
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
@@ -119,18 +120,7 @@ Public Class Form1
             ListViewGamesVarients.Columns.Add("Varients", GroupBox1.Width - 20, HorizontalAlignment.Left)
 
             ' Add icons to the ImageList
-            Dim DojaIcon = $"{ToolsFolder}\icons\doja.gif"
-            Dim StarIcon = $"{ToolsFolder}\icons\star.gif"
-            If File.Exists(DojaIcon) = False Or File.Exists(StarIcon) = False Then
-                MessageBox.Show("Missing Doja/Star Defualt icons.")
-            End If
-            For Each game In games
-                If game.Emulator.ToLower = "doja" Then
-                    ImageListGames.Images.Add(game.ENTitle, Image.FromFile(DojaIcon))
-                ElseIf game.Emulator.ToLower = "star" Then
-                    ImageListGames.Images.Add(game.ENTitle, Image.FromFile(StarIcon))
-                End If
-            Next
+            LoadGameIcons()
 
             ' Assign the ImageList to the ListView
             ListViewGames.SmallImageList = ImageListGames
@@ -170,6 +160,35 @@ Public Class Form1
     End Sub
 
     ' General Other Function
+    Private Sub LoadGameIcons()
+        Dim DojaIcon = $"{ToolsFolder}\icons\defaults\doja.gif"
+        Dim StarIcon = $"{ToolsFolder}\icons\defaults\star.gif"
+        If File.Exists(DojaIcon) = False Or File.Exists(StarIcon) = False Then
+            MessageBox.Show("Missing Doja/Star Defualt icons.")
+        End If
+        ' Get all available icon files once
+        Dim availableIcons As HashSet(Of String) = Directory.GetFiles($"{ToolsFolder}\icons").
+        Select(Function(iconPath) Path.GetFileNameWithoutExtension(iconPath).ToLower()).
+        ToHashSet()
+
+        ' Loop through each game and assign the appropriate icon
+        For Each game In games
+            Dim iconFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName).ToLower()
+            Dim iconPath As String = $"{ToolsFolder}\icons\{iconFileName}.gif"
+
+            If availableIcons.Contains(iconFileName) AndAlso File.Exists(iconPath) Then
+                ' Add the game's custom icon
+                ImageListGames.Images.Add(game.ENTitle, Image.FromFile(iconPath))
+            Else
+                ' Assign default icon based on emulator type
+                If game.Emulator.ToLower() = "doja" Then
+                    ImageListGames.Images.Add(game.ENTitle, Image.FromFile(DojaIcon))
+                ElseIf game.Emulator.ToLower() = "star" Then
+                    ImageListGames.Images.Add(game.ENTitle, Image.FromFile(StarIcon))
+                End If
+            End If
+        Next
+    End Sub
     Private Sub EnableButtons()
         ' Enable game launch button and checkbox
         btnLaunchGame.Enabled = True
@@ -249,42 +268,60 @@ Public Class Form1
         End If
         RefreshGameHighlighting()
     End Sub
-    Private Sub DownloadGame(ContextDownload As Boolean)
+    Private Sub DownloadGames(ContextDownload As Boolean)
         ' Get the selected game title from the ListView
         Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
         Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
 
-        If selectedGame IsNot Nothing Then
-            CurrentSelectedGameJAM = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
-            CurrentSelectedGameJAR = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
+        If selectedGame Is Nothing Then
+            MessageBox.Show("Selected game could not be found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Return
+        End If
 
-            ' Check if the game is already downloaded
-            Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
-            Dim localFilePath As String = CurrentSelectedGameJAR
-            Dim DownloadFileZipPath As String = $"{DownloadsFolder}\{selectedGame.ZIPName}"
-            If File.Exists(localFilePath) Then
-                If ContextDownload = True Then
-                    Dim result = MessageBox.Show($"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is already downloaded. Would you like to download it again? {vbCrLf}{vbCrLf}This could delete you're save data so please becareful", "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
-                    If result = DialogResult.Yes Then
-                        Dim GameDownloader As New GameDownloader(pbGameDL)
-                        Dim ExtractFolder As String = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}"
-                        GameDownloader.DownloadGameAsync(selectedGame.DownloadURL, DownloadFileZipPath, ExtractFolder, selectedGame, CurrentSelectedGameJAM, False)
-                        MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'")
-                    End If
-                End If
-                ' Load JAM Controls
-                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, gbxGameInfo)
-            Else
-                ' Download the game, extract it, and load JAM controls
-                Dim result = MessageBox.Show($"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?", "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+        ' Construct paths for game files
+        Dim gameBasePath As String = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}"
+        CurrentSelectedGameJAM = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
+        CurrentSelectedGameJAR = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
+        Dim downloadFileZipPath As String = $"{DownloadsFolder}\{selectedGame.ZIPName}"
+
+        Logger.LogInfo($"Checking for {currentSelectedGameJAR}")
+
+        ' Check if the game is already downloaded
+        If File.Exists(currentSelectedGameJAR) Then
+            If ContextDownload Then
+                Dim result As DialogResult = MessageBox.Show(
+            $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is already downloaded. Would you like to download it again?{vbCrLf}{vbCrLf}" &
+            "This could delete your save data, so please be careful.",
+            "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+
                 If result = DialogResult.Yes Then
-                    Logger.LogInfo($"Starting Download for {selectedGame.DownloadURL}")
-                    Dim GameDownloader As New GameDownloader(pbGameDL)
-                    Dim ExtractFolder As String = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}"
-                    GameDownloader.DownloadGameAsync(selectedGame.DownloadURL, DownloadFileZipPath, ExtractFolder, selectedGame, CurrentSelectedGameJAM, False)
+                    StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, currentSelectedGameJAM, currentSelectedGameJAR)
+                    MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
             End If
+
+            ' Load JAM controls
+            UtilManager.GenerateDynamicControlsFromLines(currentSelectedGameJAM, gbxGameInfo)
+        Else
+            ' Game not downloaded - prompt user to download it
+            Dim result As DialogResult = MessageBox.Show(
+        $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?",
+        "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+
+            If result = DialogResult.Yes Then
+                Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
+                StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, currentSelectedGameJAM, currentSelectedGameJAR)
+            End If
         End If
+    End Sub
+    Private Sub StartGameDownload(selectedGame As Game, downloadFileZipPath As String, extractFolder As String, jamFilePath As String, jarFilePath As String)
+        Try
+            Dim gameDownloader As New GameDownloader(pbGameDL)
+            gameDownloader.DownloadGameAsync(selectedGame.DownloadURL, downloadFileZipPath, extractFolder, selectedGame, jamFilePath, jarFilePath, False)
+        Catch ex As Exception
+            Logger.LogError($"Failed to download or extract game '{selectedGame.ENTitle}': {ex.Message}")
+            MessageBox.Show($"An error occurred while downloading '{selectedGame.ENTitle}'. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
     End Sub
     Private Sub DownloadMachiChara()
         ' Get the selected game
@@ -312,25 +349,55 @@ Public Class Form1
             btnMachiCharaLaunch.Enabled = True
         End If
     End Sub
-    Private Sub DeleteGame()
-        ' Get the selected game title from the ListView
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+    Private Sub DeleteGames()
+        If ListViewGames.SelectedItems.Count = 0 Then
+            MessageBox.Show("Please select at least one game to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
 
-        If selectedGame IsNot Nothing Then
-            Dim CurrentSelectedGameFolder = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}"
-
-            ' Check if the game is already downloaded
-            If Directory.Exists(CurrentSelectedGameFolder) Then
-                Dim result = MessageBox.Show($"'{selectedGame.ENTitle} ({selectedGame.ZIPName})' will be deleted is that okay?", "Delete Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
-                If result = DialogResult.Yes Then
-                    My.Computer.FileSystem.DeleteDirectory(CurrentSelectedGameFolder, FileIO.UIOption.OnlyErrorDialogs, FileIO.RecycleOption.DeletePermanently)
-                    MessageBox.Show($"Deleted '{selectedGame.ENTitle}' successfully.")
-                End If
-            Else
-                MessageBox.Show($"'{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not Downloaded, Unable to Delete.")
+        ' Gather all the selected games
+        Dim gamesToDelete As New List(Of Game)
+        For Each item As ListViewItem In ListViewGames.SelectedItems
+            Dim selectedGameTitle As String = item.Text
+            Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+            If selectedGame IsNot Nothing Then
+                gamesToDelete.Add(selectedGame)
             End If
-            RefreshGameHighlighting()
+        Next
+
+        ' Display confirmation message with a list of games to delete
+        Dim gameList As String = String.Join(Environment.NewLine, gamesToDelete.Select(Function(g) $"{g.ENTitle} ({g.ZIPName})"))
+        Dim result As DialogResult = MessageBox.Show($"The following games will be deleted:{Environment.NewLine}{Environment.NewLine}{gameList}{Environment.NewLine}{Environment.NewLine}Do you want to proceed?", "Delete Games", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+
+        If result = DialogResult.Yes Then
+            Dim deletedGames As New List(Of String)
+            Dim failedGames As New List(Of String)
+
+            For Each game In gamesToDelete
+                Dim CurrentSelectedGameFolder = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(game.ZIPName)}"
+
+                ' Check if the folder exists and attempt to delete it
+                If Directory.Exists(CurrentSelectedGameFolder) Then
+                    Try
+                        My.Computer.FileSystem.DeleteDirectory(CurrentSelectedGameFolder, FileIO.UIOption.OnlyErrorDialogs, FileIO.RecycleOption.DeletePermanently)
+                        deletedGames.Add(game.ENTitle)
+                    Catch ex As Exception
+                        failedGames.Add($"{game.ENTitle} (Error: {ex.Message})")
+                    End Try
+                Else
+                    failedGames.Add($"{game.ENTitle} (Not downloaded)")
+                End If
+            Next
+
+            ' Display results
+            If deletedGames.Count > 0 Then
+                MessageBox.Show($"Successfully deleted:{Environment.NewLine}{String.Join(Environment.NewLine, deletedGames)}", "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            End If
+
+            If failedGames.Count > 0 Then
+                MessageBox.Show($"Could not delete the following games:{Environment.NewLine}{String.Join(Environment.NewLine, failedGames)}", "Deletion Errors", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            End If
+            FilterListView()
         End If
     End Sub
     Public Sub RefreshGameHighlighting()
@@ -403,8 +470,18 @@ Public Class Form1
     '    End If
     'End Sub
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
+        ' Restart the timer on selection change
+        selectionTimer.Stop()
+        selectionTimer.Start()
+    End Sub
+    Private Sub SelectionTimer_Tick(sender As Object, e As EventArgs) Handles selectionTimer.tick
+        selectionTimer.Stop() ' Stop the timer to avoid repeated triggering
+
+        ' Check if any items are selected
         If ListViewGames.SelectedItems.Count = 0 Then Return
-        DownloadGame(False)
+
+        ' Perform actions once after all selections are done
+        DownloadGames(False)
         EnableButtons()
     End Sub
     Private Sub lbxMachiCharaList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles lbxMachiCharaList.SelectedIndexChanged
@@ -438,10 +515,10 @@ Public Class Form1
 
     'ContextMenuStrip Changes
     Private Sub cmsGameLV_Download_Click(sender As Object, e As EventArgs) Handles cmsGameLV_Download.Click
-        DownloadGame(True)
+        DownloadGames(True)
     End Sub
     Private Sub cmsGameLV_Delete_Click(sender As Object, e As EventArgs) Handles cmsGameLV_Delete.Click
-        DeleteGame()
+        DeleteGames()
     End Sub
     Private Sub FavoriteToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles FavoriteToolStripMenuItem.Click
         If ListViewGames.SelectedItems.Count = 0 Then Return
@@ -514,7 +591,7 @@ Public Class Form1
                 SkippedCount += 1
             Else
                 ' Download and wait for it to finish
-                Await GameDownloader.DownloadGameAsync(GURL.DownloadURL, DownloadFileZipPath, $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}", GURL, CurrentSelectedGameJAM, True)
+                Await GameDownloader.DownloadGameAsync(GURL.DownloadURL, DownloadFileZipPath, $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}", GURL, CurrentSelectedGameJAM, CurrentSelectedGameJAR, True)
 
                 ' Check if downloaded and set up correctly
                 If File.Exists($"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}\bin\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}.jar") Then

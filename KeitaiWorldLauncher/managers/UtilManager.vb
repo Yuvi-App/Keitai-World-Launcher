@@ -9,6 +9,8 @@ Imports System.Xml.Xsl
 Imports System.Text.RegularExpressions
 Imports System.Runtime.InteropServices
 Imports System.Threading
+Imports KeitaiWorldLauncher.My.logger
+Imports KeitaiWorldLauncher.My.Models
 
 Namespace My.Managers
     Public Class UtilManager
@@ -105,6 +107,89 @@ Namespace My.Managers
                 MessageBox.Show($"Error generating controls for JAM: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+
+        'Get App Icons
+        Public Sub ExtractAndResizeAppIcon(jarFilePath As String, jamFilePath As String, SelectedGame As Game)
+            Try
+                ' Define the target icon path
+                Dim iconOutputFolder As String = "data\tools\icons"
+                If Not Directory.Exists(iconOutputFolder) Then
+                    Directory.CreateDirectory(iconOutputFolder)
+                End If
+
+                ' Read the JAM file and extract the AppIcon line
+                Dim appIconLine As String = File.ReadLines(jamFilePath).FirstOrDefault(Function(line) line.StartsWith("AppIcon"))
+                If appIconLine Is Nothing Then
+                    logger.Logger.LogError("No AppIcon entry found in the JAM file.")
+                    Return
+                End If
+
+                ' Extract the first icon filename using regex or string parsing
+                Dim iconFileName As String = appIconLine.Split("="c)(1).Split(","c)(0).Trim()
+
+                ' Open the .jar file (ZIP archive)
+                Using archive As ZipArchive = ZipFile.OpenRead(jarFilePath)
+                    ' Find the icon inside the .jar using the filename extracted from the JAM file
+                    Dim iconEntry As ZipArchiveEntry = archive.GetEntry(iconFileName)
+
+                    If iconEntry IsNot Nothing Then
+                        ' Extract the icon and load it as an image
+                        Using originalStream As Stream = iconEntry.Open()
+                            Dim originalIcon As Image = Image.FromStream(originalStream)
+
+                            ' Resize the icon to 24x24
+                            Dim resizedIcon As New Bitmap(36, 36)
+                            Using graphics As Graphics = Graphics.FromImage(resizedIcon)
+                                graphics.InterpolationMode = Drawing2D.InterpolationMode.HighQualityBicubic
+                                graphics.DrawImage(originalIcon, 0, 0, 36, 36)
+                            End Using
+
+                            ' Generate the output path and save the resized icon
+                            Dim outputFileName As String = Path.GetFileNameWithoutExtension(jarFilePath) & ".gif"
+                            Dim outputFilePath As String = Path.Combine(iconOutputFolder, outputFileName)
+                            resizedIcon.Save(outputFilePath, System.Drawing.Imaging.ImageFormat.Gif)
+                            UpdateListViewItemIcon(SelectedGame.ENTitle, outputFilePath)
+                            logger.Logger.LogInfo($"Icon successfully extracted and resized: {outputFilePath}")
+                        End Using
+                    Else
+                        logger.Logger.LogInfo($"Icon '{iconFileName}' not found in the .jar file.")
+                        MessageBox.Show($"Icon '{iconFileName}' not found in the .jar file.", "Icon Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    End If
+                End Using
+            Catch ex As Exception
+                logger.Logger.LogError($"Error extracting and resizing the icon: {ex.Message}")
+                MessageBox.Show($"Error extracting and resizing the icon: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Private Sub UpdateListViewItemIcon(gameTitle As String, newIconPath As String)
+            ' Ensure the ImageList exists
+            If Form1.ListViewGames.SmallImageList Is Nothing Then
+                Form1.ListViewGames.SmallImageList = New ImageList()
+                Form1.ListViewGames.SmallImageList.ImageSize = New Size(24, 24)
+            End If
+
+            ' Load the new icon
+            If File.Exists(newIconPath) Then
+                Dim newIcon As Image = Image.FromFile(newIconPath)
+                Dim newImageKey As String = Path.GetFileNameWithoutExtension(newIconPath)
+
+                ' Add the new icon to the ImageList (if not already added)
+                If Not Form1.ListViewGames.SmallImageList.Images.ContainsKey(newImageKey) Then
+                    Form1.ListViewGames.SmallImageList.Images.Add(newImageKey, newIcon)
+                End If
+
+                ' Find and update the ListView item
+                For Each item As ListViewItem In Form1.ListViewGames.Items
+                    If item.Text = gameTitle Then
+                        item.ImageKey = newImageKey ' Update the item's ImageKey
+                        Exit For
+                    End If
+                Next
+            Else
+                MessageBox.Show("Icon file not found: " & newIconPath, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End If
+        End Sub
+
 
         'Launch App
         Public Function IsProcessRunning(processName As String) As Boolean
@@ -220,7 +305,7 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to launch the application: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Sub LaunchCustomDOJAGameCommand(DOJAPATH, DOJAEXELocation, GameJAM)
+        Public Async Sub LaunchCustomDOJAGameCommand(DOJAPATH, DOJAEXELocation, GameJAM)
             Try
                 ' Paths and arguments
                 Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\locale_emulator\LEProc.exe"
@@ -252,23 +337,27 @@ Namespace My.Managers
 
                 ' Start the process
                 Dim process As Process = Process.Start(startInfo)
+                ' Ensure Doja has started properly
+                process.WaitForInputIdle() ' Wait until the app is ready
 
-                'Start Shader Glass if Selected
-                If Form1.chkbxShaderGlass.Checked = True Then
-                    Thread.Sleep(3000)
-                    While True
-                        If IsProcessRunning("doja") = True Then
-                            Exit While
-                        End If
-                    End While
-                    LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                ' Start ShaderGlass if selected
+                If Form1.chkbxShaderGlass.Checked Then
+                    ' Wait asynchronously for the "STAR" process to be detected
+                    Dim isRunning As Boolean = Await WaitForDojaToStart()
+
+                    If isRunning Then
+                        ' Launch ShaderGlass after Doja is running
+                        LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                    Else
+                        MessageBox.Show("Failed to detect STAR running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    End If
                 End If
                 'MessageBox.Show("Command launched successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Catch ex As Exception
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Sub LaunchCustomSTARGameCommand(STARPATH, STAREXELocation, GameJAM)
+        Public Async Sub LaunchCustomSTARGameCommand(STARPATH, STAREXELocation, GameJAM)
             Try
                 ' Paths and arguments
                 Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\locale_emulator\LEProc.exe"
@@ -303,16 +392,20 @@ Namespace My.Managers
 
                 ' Start the process
                 Dim process As Process = Process.Start(startInfo)
+                ' Ensure STAR has started properly
+                process.WaitForInputIdle() ' Wait until the app is ready
 
-                'Start Shader Glass if Selected
-                If Form1.chkbxShaderGlass.Checked = True Then
-                    Thread.Sleep(3000)
-                    While True
-                        If IsProcessRunning("star") = True Then
-                            Exit While
-                        End If
-                    End While
-                    LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                ' Start ShaderGlass if selected
+                If Form1.chkbxShaderGlass.Checked Then
+                    ' Wait asynchronously for the "STAR" process to be detected
+                    Dim isRunning As Boolean = Await WaitForSTARToStart()
+
+                    If isRunning Then
+                        ' Launch ShaderGlass after Doja is running
+                        LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                    Else
+                        MessageBox.Show("Failed to detect STAR running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    End If
                 End If
                 'MessageBox.Show("Command launched successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Catch ex As Exception
@@ -348,6 +441,7 @@ Namespace My.Managers
             End Try
         End Sub
         Public Sub LaunchShaderGlass(AppName As String)
+            Thread.Sleep(1000)
             Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\ShaderGlass.exe"
             Dim arguments As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\keitai.sgp"
             ModifyCaptureWindow(arguments, AppName)
@@ -376,6 +470,36 @@ Namespace My.Managers
             ' Write the modified lines back to the file
             File.WriteAllLines(filePath, lines)
         End Sub
+
+        ' Asynchronous method to wait for the "doja/star" process to start
+        Private Async Function WaitForDojaToStart(Optional timeoutMilliseconds As Integer = 10000) As Task(Of Boolean)
+            Dim startTime As DateTime = DateTime.Now
+
+            ' Check periodically if the "doja" process is running
+            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
+                If IsProcessRunning("doja") Then
+                    Return True ' Process found, return success
+                End If
+
+                Await Task.Delay(500) ' Wait 500 ms before checking again (non-blocking)
+            End While
+
+            Return False ' Timed out, process not found
+        End Function
+        Private Async Function WaitForSTARToStart(Optional timeoutMilliseconds As Integer = 10000) As Task(Of Boolean)
+            Dim startTime As DateTime = DateTime.Now
+
+            ' Check periodically if the "doja" process is running
+            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
+                If IsProcessRunning("star") Then
+                    Return True ' Process found, return success
+                End If
+
+                Await Task.Delay(500) ' Wait 500 ms before checking again (non-blocking)
+            End While
+
+            Return False ' Timed out, process not found
+        End Function
 
         'DOJA EXTRAS
         Public Sub UpdateDOJADeviceSkin(DOJALOCATION As String, hideUI As Boolean)

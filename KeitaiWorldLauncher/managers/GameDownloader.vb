@@ -16,6 +16,7 @@ Namespace My.Managers
         Private extractFolderPath As String
         Private selectedGameZipPath As String
         Private ReadJam As String
+        Private ReadJar As String
         Private Isthisbatchdownload As Boolean
         Private SelectedGame As Game
         Private SDCardDownloadFile As String
@@ -26,12 +27,13 @@ Namespace My.Managers
             progressBar = progressBarControl
         End Sub
 
-        Public Async Function DownloadGameAsync(url As String, savePath As String, extractTo As String, Inputgame As Game, JAMLocation As String, BatchDownload As Boolean) As Task
+        Public Async Function DownloadGameAsync(url As String, savePath As String, extractTo As String, Inputgame As Game, JAMLocation As String, JARLocation As String, BatchDownload As Boolean) As Task
             Try
                 ' Set paths for use in completion event
                 downloadFilePath = savePath
                 extractFolderPath = extractTo
                 ReadJam = JAMLocation
+                ReadJar = JARLocation
                 Isthisbatchdownload = BatchDownload
                 SelectedGame = Inputgame
 
@@ -107,6 +109,7 @@ Namespace My.Managers
                     End Try
                 End If
                 Form1.RefreshGameHighlighting()
+                utilManager.ExtractAndResizeAppIcon(ReadJar, ReadJam, SelectedGame)
             End If
 
             ' Detach event handlers to avoid memory leaks
