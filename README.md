@@ -21,7 +21,7 @@ The XML file can be generated within the app itself. However, it reads from a ma
 These files are then packed into their corresponding zip archives and XML files, making them ready for use with the client.
 
 SD Card Data:
-In the Gamelist.xml, there is a parameter specifying a URL for downloading SD Card data. Place the SD Card game data in the doja SVC folder that it generates, then compress (zip) the folder. This zipped folder will be used for downloading and running the game.
+In the Gamelist.xml, there is a parameter specifying a URL for downloading SD Card data. Place the SD Card game data in a  folder, name it "SVC0000{GAME JAM}" for example "SVC0000GGenMobile.jam". Then compress (zip) the folder. This zipped folder will be used for downloading and running the game.
 For example, RockmanDASH-sdcarddata.zip contains a folder named SVC0012rockman5island.jam905, which holds 30 game data files. This structure ensures that the client can properly access and use the game data when needed.
 
 ### WIP
