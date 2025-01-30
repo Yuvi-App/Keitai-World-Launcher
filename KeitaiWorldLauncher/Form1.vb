@@ -1,4 +1,5 @@
 ﻿Imports System.IO
+Imports System.Net.Security
 Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Threading
@@ -104,7 +105,9 @@ Public Class Form1
             ' Clear the ListView and ImageList
             ListViewGames.Items.Clear()
             ImageListGames.Images.Clear()
+            ListViewGamesVarients.Clear()
             ListViewGames.Columns.Add("Title", GroupBox1.Width - 20, HorizontalAlignment.Left)
+            ListViewGamesVarients.Columns.Add("Varients", GroupBox1.Width - 20, HorizontalAlignment.Left)
 
             ' Add icons to the ImageList
             Dim DojaIcon = $"{ToolsFolder}\icons\doja.gif"
@@ -152,6 +155,13 @@ Public Class Form1
     End Sub
 
     ' General Other Function
+    Private Sub EnableButtons()
+        ' Enable game launch button and checkbox
+        btnLaunchGame.Enabled = True
+        chkbxHidePhoneUI.Enabled = True
+        cobxAudioType.Enabled = True
+        chkbxShaderGlass.Enabled = True
+    End Sub
     Private Sub FilterListView()
         ' Get the selected emulator filter and search term
         Dim selectedFilter As String = cbxEmuType.SelectedItem.ToString().ToLower()
@@ -208,12 +218,6 @@ Public Class Form1
                     GameDownloader.DownloadGameAsync(selectedGame.DownloadURL, DownloadFileZipPath, ExtractFolder, selectedGame, CurrentSelectedGameJAM, False)
                 End If
             End If
-
-            ' Enable game launch button and checkbox
-            btnLaunchGame.Enabled = True
-            chkbxHidePhoneUI.Enabled = True
-            cobxAudioType.Enabled = True
-            chkbxShaderGlass.Enabled = True
         End If
     End Sub
     Private Sub DownloadMachiChara()
@@ -294,6 +298,7 @@ Public Class Form1
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
         If ListViewGames.SelectedItems.Count = 0 Then Return
         DownloadGame(False)
+        EnableButtons()
     End Sub
     Private Sub lbxMachiCharaList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles lbxMachiCharaList.SelectedIndexChanged
         If lbxMachiCharaList.SelectedIndex = -1 Then Return
@@ -449,6 +454,79 @@ Public Class Form1
         Dim startInfo As New ProcessStartInfo()
         startInfo.FileName = Apppath
         startInfo.Arguments = $"/C {Chr(34)}notepad {AppDomain.CurrentDomain.BaseDirectory}\configs\appconfig.xml {Chr(34)}"
+        startInfo.UseShellExecute = False
+        startInfo.CreateNoWindow = True
+        startInfo.RedirectStandardOutput = True
+        startInfo.RedirectStandardError = True
+        startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+        Dim process As Process = Process.Start(startInfo)
+    End Sub
+    Private Sub AddGameToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AddGameToolStripMenuItem.Click
+        Dim ENTitle = InputBox("Enter the English name of the game:", "English Game Name").Trim()
+
+        ' Validate English Game Name
+        If String.IsNullOrWhiteSpace(ENTitle) Then
+            MsgBox("The English game name cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
+            Exit Sub
+        End If
+
+        Dim JPTitle = InputBox("Enter the Japanese name of the game (leave blank if same as English):", "Japanese Game Name").Trim()
+        If String.IsNullOrWhiteSpace(JPTitle) Then
+            JPTitle = ENTitle
+        End If
+
+        Dim ZIPName = InputBox("Enter the name of the zip file (include .zip at the end):", "Zip File Name").Trim()
+
+        ' Validate ZIP Name
+        If String.IsNullOrWhiteSpace(ZIPName) Then
+            MsgBox("The ZIP file name cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
+            Exit Sub
+        End If
+
+        If Not ZIPName.EndsWith(".zip") Then
+            ZIPName += ".zip"
+        End If
+
+        Dim DownloadURL = InputBox("Enter the download URL for the zip file:", "Download URL").Trim()
+
+        ' Validate Download URL
+        If String.IsNullOrWhiteSpace(DownloadURL) Then
+            MsgBox("The download URL cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
+            Exit Sub
+
+        End If
+
+        Dim AppIconURL = InputBox("Enter the URL of a custom app icon (24x24) or leave blank to use the default icon:", "App Icon URL").Trim()
+        Dim SDCardData = InputBox("Enter the SD Card data zip URL or leave blank if not applicable:", "SD Card Data URL").Trim()
+        Dim Emulator = InputBox("Enter the emulator type (doja or star):", "Emulator").Trim().ToLower()
+
+        ' Validate Emulator Type
+        While Emulator <> "doja" AndAlso Emulator <> "star"
+            Emulator = InputBox("Invalid input. Please enter only 'doja' or 'star':", "Emulator").Trim().ToLower()
+            If String.IsNullOrWhiteSpace(Emulator) Then
+                MsgBox("The emulator type cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
+                Exit Sub
+            End If
+        End While
+
+        Dim newGame As New Game() With {
+            .ENTitle = ENTitle,
+            .JPTitle = JPTitle,
+            .ZIPName = ZIPName,
+            .DownloadURL = DownloadURL,
+            .CustomAppIconURL = AppIconURL,
+            .SDCardDataURL = SDCardData,
+            .Emulator = Emulator
+        }
+        gameListManager.AddGame(newGame)
+
+        MessageBox.Show("Added, Make sure you download this AppConfig and upload")
+    End Sub
+    Private Sub ShaderGlassConfigToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ShaderGlassConfigToolStripMenuItem.Click
+        Dim Apppath = $"cmd"
+        Dim startInfo As New ProcessStartInfo()
+        startInfo.FileName = Apppath
+        startInfo.Arguments = $"/C {Chr(34)}notepad {AppDomain.CurrentDomain.BaseDirectory}\{ToolsFolder}\shaderglass\keitai.sgp {Chr(34)}"
         startInfo.UseShellExecute = False
         startInfo.CreateNoWindow = True
         startInfo.RedirectStandardOutput = True

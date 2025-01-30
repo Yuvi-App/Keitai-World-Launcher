@@ -641,8 +641,7 @@ Namespace My.Managers
             ' Process each folder in the extracted directory
             Try
                 For Each folderPath As String In Directory.GetDirectories(extractedFolder, "*", SearchOption.TopDirectoryOnly)
-                    Dim split As String() = folderPath.Split("\")
-                    Dim parentFolder As String = split(split.Length - 1)
+                    Dim parentFolder As String = Path.GetFileName(Path.GetDirectoryName(folderPath & Path.DirectorySeparatorChar))
                     ' Look for the .jam, .jar, and .sp files in the folder and its subfolders
                     Dim jamFile As String = Directory.GetFiles(folderPath, "*.jam", SearchOption.AllDirectories).FirstOrDefault()
                     Dim jarFile As String = Directory.GetFiles(folderPath, "*.jar", SearchOption.AllDirectories).FirstOrDefault()
@@ -681,16 +680,23 @@ Namespace My.Managers
                     Directory.CreateDirectory(spFolder)
 
                     ' Move files to their respective folders
-                    If Not String.IsNullOrEmpty(jamFile) Then
-                        File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
+                    ' Check and move the files only if they exist
+                    If Not String.IsNullOrEmpty(jamFile) AndAlso File.Exists(jamFile) Then
+                        Dim targetPath As String = Path.Combine(binFolder, Path.GetFileName(jamFile))
+                        If File.Exists(targetPath) Then File.Delete(targetPath) ' Ensure no duplicates
+                        File.Move(jamFile, targetPath)
                     End If
 
-                    If Not String.IsNullOrEmpty(jarFile) Then
-                        File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
+                    If Not String.IsNullOrEmpty(jarFile) AndAlso File.Exists(jarFile) Then
+                        Dim targetPath As String = Path.Combine(binFolder, Path.GetFileName(jarFile))
+                        If File.Exists(targetPath) Then File.Delete(targetPath)
+                        File.Move(jarFile, targetPath)
                     End If
 
-                    If Not String.IsNullOrEmpty(spFile) Then
-                        File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
+                    If Not String.IsNullOrEmpty(spFile) AndAlso File.Exists(spFile) Then
+                        Dim targetPath As String = Path.Combine(spFolder, Path.GetFileName(spFile))
+                        If File.Exists(targetPath) Then File.Delete(targetPath)
+                        File.Move(spFile, targetPath)
                     End If
 
                     ' Create a new ZIP file with the same name as the .jar file
@@ -753,10 +759,19 @@ Namespace My.Managers
 
                         root.AppendChild(gameElement)
                     End If
+
+                    ' Clean up empty folders
+                    If Directory.Exists(binFolder) AndAlso Directory.GetFiles(binFolder).Length = 0 Then
+                        Directory.Delete(binFolder, True)
+                    End If
+
+                    If Directory.Exists(spFolder) AndAlso Directory.GetFiles(spFolder).Length = 0 Then
+                        Directory.Delete(spFolder, True)
+                    End If
                 Next
 
             Catch ex As Exception
-                MessageBox.Show($"Error Creating ZIP: {ex}")
+                MessageBox.Show($"An error occurred while creating the ZIP or updating the XML:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
 
             ' Save the updated XML file with Shift-JIS encoding

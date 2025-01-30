@@ -24,6 +24,7 @@ Partial Class Form1
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
         GroupBox1 = New GroupBox()
+        ListViewGamesVarients = New ListView()
         cbxEmuType = New ComboBox()
         Label2 = New Label()
         txtLVSearch = New TextBox()
@@ -52,14 +53,17 @@ Partial Class Form1
         RefreshToolStripMenuItem = New ToolStripMenuItem()
         ExitToolStripMenuItem = New ToolStripMenuItem()
         ConfigToolStripMenuItem1 = New ToolStripMenuItem()
-        AppConfigToolStripMenuItem = New ToolStripMenuItem()
         KeyConfiguratorToolStripMenuItem = New ToolStripMenuItem()
+        AppConfigToolStripMenuItem = New ToolStripMenuItem()
+        ShaderGlassConfigToolStripMenuItem = New ToolStripMenuItem()
         ToolsToolStripMenuItem = New ToolStripMenuItem()
         BatchDownloadToolStripMenuItem = New ToolStripMenuItem()
         GamesToolStripMenuItem = New ToolStripMenuItem()
         MachiCharaToolStripMenuItem = New ToolStripMenuItem()
         XMLCreationToolStripMenuItem = New ToolStripMenuItem()
         GamelistToolStripMenuItem = New ToolStripMenuItem()
+        XMLUpdateToolStripMenuItem = New ToolStripMenuItem()
+        AddGameToolStripMenuItem = New ToolStripMenuItem()
         HelpToolStripMenuItem = New ToolStripMenuItem()
         AboutToolStripMenuItem = New ToolStripMenuItem()
         OpenFileDialog1 = New OpenFileDialog()
@@ -74,6 +78,7 @@ Partial Class Form1
         ' 
         ' GroupBox1
         ' 
+        GroupBox1.Controls.Add(ListViewGamesVarients)
         GroupBox1.Controls.Add(cbxEmuType)
         GroupBox1.Controls.Add(Label2)
         GroupBox1.Controls.Add(txtLVSearch)
@@ -85,6 +90,15 @@ Partial Class Form1
         GroupBox1.TabIndex = 0
         GroupBox1.TabStop = False
         GroupBox1.Text = "Available Games"
+        ' 
+        ' ListViewGamesVarients
+        ' 
+        ListViewGamesVarients.LargeImageList = ImageListGames
+        ListViewGamesVarients.Location = New Point(6, 491)
+        ListViewGamesVarients.Name = "ListViewGamesVarients"
+        ListViewGamesVarients.Size = New Size(387, 87)
+        ListViewGamesVarients.TabIndex = 10
+        ListViewGamesVarients.UseCompatibleStateImageBehavior = False
         ' 
         ' cbxEmuType
         ' 
@@ -117,7 +131,7 @@ Partial Class Form1
         ListViewGames.LargeImageList = ImageListGames
         ListViewGames.Location = New Point(6, 59)
         ListViewGames.Name = "ListViewGames"
-        ListViewGames.Size = New Size(387, 519)
+        ListViewGames.Size = New Size(387, 426)
         ListViewGames.TabIndex = 6
         ListViewGames.UseCompatibleStateImageBehavior = False
         ListViewGames.View = View.Details
@@ -327,16 +341,10 @@ Partial Class Form1
         ' 
         ' ConfigToolStripMenuItem1
         ' 
-        ConfigToolStripMenuItem1.DropDownItems.AddRange(New ToolStripItem() {AppConfigToolStripMenuItem, KeyConfiguratorToolStripMenuItem})
+        ConfigToolStripMenuItem1.DropDownItems.AddRange(New ToolStripItem() {KeyConfiguratorToolStripMenuItem, AppConfigToolStripMenuItem, ShaderGlassConfigToolStripMenuItem})
         ConfigToolStripMenuItem1.Name = "ConfigToolStripMenuItem1"
         ConfigToolStripMenuItem1.Size = New Size(67, 24)
         ConfigToolStripMenuItem1.Text = "Config"
-        ' 
-        ' AppConfigToolStripMenuItem
-        ' 
-        AppConfigToolStripMenuItem.Name = "AppConfigToolStripMenuItem"
-        AppConfigToolStripMenuItem.Size = New Size(236, 26)
-        AppConfigToolStripMenuItem.Text = "Application Config"
         ' 
         ' KeyConfiguratorToolStripMenuItem
         ' 
@@ -344,9 +352,21 @@ Partial Class Form1
         KeyConfiguratorToolStripMenuItem.Size = New Size(236, 26)
         KeyConfiguratorToolStripMenuItem.Text = "Key2Pad Configurator"
         ' 
+        ' AppConfigToolStripMenuItem
+        ' 
+        AppConfigToolStripMenuItem.Name = "AppConfigToolStripMenuItem"
+        AppConfigToolStripMenuItem.Size = New Size(236, 26)
+        AppConfigToolStripMenuItem.Text = "Application Config"
+        ' 
+        ' ShaderGlassConfigToolStripMenuItem
+        ' 
+        ShaderGlassConfigToolStripMenuItem.Name = "ShaderGlassConfigToolStripMenuItem"
+        ShaderGlassConfigToolStripMenuItem.Size = New Size(236, 26)
+        ShaderGlassConfigToolStripMenuItem.Text = "ShaderGlass Config"
+        ' 
         ' ToolsToolStripMenuItem
         ' 
-        ToolsToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {BatchDownloadToolStripMenuItem, XMLCreationToolStripMenuItem})
+        ToolsToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {BatchDownloadToolStripMenuItem, XMLCreationToolStripMenuItem, XMLUpdateToolStripMenuItem})
         ToolsToolStripMenuItem.Name = "ToolsToolStripMenuItem"
         ToolsToolStripMenuItem.Size = New Size(58, 24)
         ToolsToolStripMenuItem.Text = "Tools"
@@ -382,6 +402,19 @@ Partial Class Form1
         GamelistToolStripMenuItem.Name = "GamelistToolStripMenuItem"
         GamelistToolStripMenuItem.Size = New Size(150, 26)
         GamelistToolStripMenuItem.Text = "Gamelist"
+        ' 
+        ' XMLUpdateToolStripMenuItem
+        ' 
+        XMLUpdateToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {AddGameToolStripMenuItem})
+        XMLUpdateToolStripMenuItem.Name = "XMLUpdateToolStripMenuItem"
+        XMLUpdateToolStripMenuItem.Size = New Size(202, 26)
+        XMLUpdateToolStripMenuItem.Text = "XML Update"
+        ' 
+        ' AddGameToolStripMenuItem
+        ' 
+        AddGameToolStripMenuItem.Name = "AddGameToolStripMenuItem"
+        AddGameToolStripMenuItem.Size = New Size(163, 26)
+        AddGameToolStripMenuItem.Text = "Add Game"
         ' 
         ' HelpToolStripMenuItem
         ' 
@@ -465,4 +498,8 @@ Partial Class Form1
     Friend WithEvents cmsGameLV_Download As ToolStripMenuItem
     Friend WithEvents cmsGameLV_Delete As ToolStripMenuItem
     Friend WithEvents chkbxShaderGlass As CheckBox
+    Friend WithEvents XMLUpdateToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents AddGameToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ShaderGlassConfigToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ListViewGamesVarients As ListView
 End Class
