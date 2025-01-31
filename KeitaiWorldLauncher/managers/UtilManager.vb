@@ -19,6 +19,14 @@ Namespace My.Managers
             Directory.CreateDirectory("configs")
             Directory.CreateDirectory("logs")
             Directory.CreateDirectory("data\downloads")
+            Directory.CreateDirectory("data\tools")
+            Directory.CreateDirectory("data\tools\icons")
+            Directory.CreateDirectory("data\tools\icons\defaults")
+            Directory.CreateDirectory("data\tools\skins")
+            Directory.CreateDirectory("data\tools\skins\doja\ui")
+            Directory.CreateDirectory("data\tools\skins\doja\noui")
+            Directory.CreateDirectory("data\tools\skins\star\ui")
+            Directory.CreateDirectory("data\tools\skins\star\noui")
         End Sub
 
         'PreReq Checks
@@ -294,13 +302,17 @@ Namespace My.Managers
                 Dim arguments As String = $"{guidArg} ""{dojaExePath}"" -i ""{jamPath}"""
 
                 ' Update device settings based on user selections
-                UpdateDOJADeviceSkin(DOJAPATH, Form1.chkbxHidePhoneUI.Checked)
+                If UpdateDOJADeviceSkin(DOJAPATH, Form1.chkbxHidePhoneUI.Checked) = False Then
+                    Exit Sub
+                End If
 
                 ' Update device screen size
-                Dim dimensions = ExtractDOJAWidthHeight(jamPath)
-                Dim width As Integer = dimensions.Item1
-                Dim height As Integer = dimensions.Item2
-                UpdatedDOJADrawSize(DOJAPATH, width, height)
+                If DOJAPATH.Contains("5.1") Then
+                    Dim dimensions = ExtractDOJAWidthHeight(jamPath)
+                    Dim width As Integer = dimensions.Item1
+                    Dim height As Integer = dimensions.Item2
+                    UpdatedDOJADrawSize(DOJAPATH, width, height)
+                End If
 
                 ' Update sound configuration
                 UpdateDOJASoundConf(DOJAPATH, Form1.cobxAudioType.SelectedItem.ToString())
@@ -310,6 +322,7 @@ Namespace My.Managers
                     .FileName = appPath,
                     .Arguments = arguments,
                     .UseShellExecute = False,
+                    .CreateNoWindow = True,
                     .WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
                 }
 
@@ -330,63 +343,70 @@ Namespace My.Managers
                 End If
 
             Catch ex As Exception
+                logger.Logger.LogError($"Failed to launch the command: {ex.Message}")
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Async Sub LaunchCustomSTARGameCommand(STARPATH, STAREXELocation, GameJAM)
+        Public Async Sub LaunchCustomSTARGameCommand(STARPATH As String, STAREXELocation As String, GameJAM As String)
             Try
-                ' Paths and arguments
-                Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\locale_emulator\LEProc.exe"
-                Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
-                Dim dojaexePath As String = STAREXELocation
-                Dim jamPath As String = AppDomain.CurrentDomain.BaseDirectory & GameJAM
-
-                ' Combine arguments
-                Dim arguments As String = $"{guidArg} ""{dojaexePath}"" -i ""{jamPath}"""
-
-                'Update Device Launch Settings
-                If Form1.chkbxHidePhoneUI.Checked = True Then
-                    UpdateSTARDeviceSkin(STARPATH, True)
-                Else
-                    UpdateSTARDeviceSkin(STARPATH, False)
+                ' Validate inputs
+                If String.IsNullOrWhiteSpace(STARPATH) OrElse String.IsNullOrWhiteSpace(STAREXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
+                    Throw New ArgumentException("One or more required parameters are missing.")
                 End If
-                'Update Device Draw Size
+
+                ' Paths and arguments
+                Dim appPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data\tools\locale_emulator\LEProc.exe")
+                Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
+                Dim jamPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GameJAM)
+                Dim arguments As String = $"{guidArg} ""{STAREXELocation}"" -i ""{jamPath}"""
+
+                ' Update device launch settings
+                Dim hideUI As Boolean = Form1.chkbxHidePhoneUI.Checked
+                If Not UpdateSTARDeviceSkin(STARPATH, hideUI) Then Exit Sub
+
+                ' Update device draw size
                 Dim JAMDrawArea = ExtractSTARWidthHeight(jamPath)
                 UpdatedSTARDrawSize(STARPATH, JAMDrawArea.Item1, JAMDrawArea.Item2)
-                'Updated SoundType
-                UpdateSTARSoundConf(STARPATH, Form1.cobxAudioType.SelectedItem.ToString)
-                'Set AppSettings
-                UpdateSTARAppconfig(STARPATH, GameJAM) 'this setups opengl and more to ensure everything works
+
+                ' Update sound configuration
+                UpdateSTARSoundConf(STARPATH, Form1.cobxAudioType.SelectedItem.ToString())
+
+                ' Update app configuration
+                UpdateSTARAppconfig(STARPATH, GameJAM)
                 EnsureSTARJamFileEntries(GameJAM)
 
                 ' Set up process start info
-                Dim startInfo As New ProcessStartInfo()
-                startInfo.FileName = appPath
-                startInfo.Arguments = arguments
-                startInfo.UseShellExecute = False
-                startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+                Dim startInfo As New ProcessStartInfo With {
+                    .FileName = appPath,
+                    .Arguments = arguments,
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True,
+                    .WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+                }
 
-                Dim process As Process = Process.Start(startInfo)
-                If process IsNot Nothing Then
-                    process.WaitForInputIdle()
-                Else
-                    MessageBox.Show("Failed to start process.")
-                End If
+                ' Launch process
+                Using process As Process = Process.Start(startInfo)
+                    If process IsNot Nothing Then
+                        process.WaitForInputIdle()
+                    Else
+                        Throw New Exception("Failed to start process.")
+                    End If
+                End Using
 
-                ' Start ShaderGlass if selected
+                ' Launch ShaderGlass if selected
                 If Form1.chkbxShaderGlass.Checked Then
-                    ' Wait asynchronously for the "STAR" process to be detected
-                    Dim isRunning As Boolean = Await WaitForSTARToStart()
-
-                    If isRunning Then
-                        ' Launch ShaderGlass after Doja is running
+                    If Await WaitForSTARToStart() Then
                         LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
                     Else
                         MessageBox.Show("Failed to detect STAR running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     End If
                 End If
-                'MessageBox.Show("Command launched successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+
+            Catch ex As ArgumentException
+                logger.Logger.LogError($"Invalid input: {ex.Message}")
+                MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
             Catch ex As Exception
+                logger.Logger.LogError($"Failed to launch the command: {ex.Message}")
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
@@ -480,8 +500,9 @@ Namespace My.Managers
         End Function
 
         'DOJA EXTRAS
-        Public Sub UpdateDOJADeviceSkin(DOJALOCATION As String, hideUI As Boolean)
+        Public Function UpdateDOJADeviceSkin(DOJALOCATION As String, hideUI As Boolean)
             Dim dojaSkinFolder As String = Path.Combine(DOJALOCATION, "lib", "skin", "device1")
+            Dim DojaPath = Path.GetFileName(DOJALOCATION)
 
             ' Clear the skin folder or create it if it doesn't exist
             If Directory.Exists(dojaSkinFolder) Then
@@ -491,14 +512,19 @@ Namespace My.Managers
             End If
 
             ' Select the correct skin folder based on UI visibility
-            Dim skinTypeFolder As String = If(hideUI, "doja-device1-noui", "doja-device1-ui")
-            Dim ourSkinsFolder As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", skinTypeFolder)
-
+            Dim skinUIFolder As String = If(hideUI, "noui", "ui")
+            Dim ourSkinsFolder As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", "doja", skinUIFolder, DojaPath)
+            If Directory.Exists(ourSkinsFolder) = False Then
+                MessageBox.Show($"Skin folder missing: {ourSkinsFolder}")
+                logger.Logger.LogError($"Skin folder missing: {ourSkinsFolder}")
+                Return False
+            End If
             ' Copy the files from the selected skin folder to the target folder
             For Each skinFile In Directory.GetFiles(ourSkinsFolder)
                 File.Copy(skinFile, Path.Combine(dojaSkinFolder, Path.GetFileName(skinFile)), True)
             Next
-        End Sub
+            Return True
+        End Function
         Public Function ExtractDOJAWidthHeight(filePath As String) As (Integer, Integer)
             Dim width As Integer = 240
             Dim height As Integer = 240
@@ -549,7 +575,7 @@ Namespace My.Managers
         End Sub
 
         'STAR EXTRAS
-        Public Sub UpdateSTARDeviceSkin(STARLOCATION As String, hideUI As Boolean)
+        Public Function UpdateSTARDeviceSkin(STARLOCATION As String, hideUI As Boolean)
             Dim StarSkinFolder = $"{STARLOCATION}\lib\skin\device1"
             If Directory.Exists(StarSkinFolder) Then
                 For Each deleteFile In Directory.GetFiles(StarSkinFolder, "*.*", SearchOption.TopDirectoryOnly)
@@ -560,17 +586,23 @@ Namespace My.Managers
             End If
 
 
-            Dim OurSkinsFolder = AppDomain.CurrentDomain.BaseDirectory & "data\tools\skins"
+            Dim OurSkinsFolder = AppDomain.CurrentDomain.BaseDirectory & "data\tools\skins\star"
+            If Directory.Exists(OurSkinsFolder) = False Then
+                MessageBox.Show($"Skin folder missing: {OurSkinsFolder}")
+                logger.Logger.LogError($"Skin folder missing: {OurSkinsFolder}")
+                Return False
+            End If
             If hideUI = True Then
-                For Each F In Directory.GetFiles(OurSkinsFolder & "\star-device1-noui")
+                For Each F In Directory.GetFiles(OurSkinsFolder & "\noui\star-device1-noui")
                     File.Copy(F, $"{StarSkinFolder}\{Path.GetFileName(F)}")
                 Next
             ElseIf hideUI = False Then
-                For Each F In Directory.GetFiles(OurSkinsFolder & "\star-device1-ui")
+                For Each F In Directory.GetFiles(OurSkinsFolder & "\ui\star-device1-ui")
                     File.Copy(F, $"{StarSkinFolder}\{Path.GetFileName(F)}")
                 Next
             End If
-        End Sub
+            Return True
+        End Function
         Function ExtractSTARWidthHeight(filePath As String) As (Integer, Integer)
             Dim width As Integer = 0
             Dim height As Integer = 0
@@ -741,14 +773,15 @@ Namespace My.Managers
                     Dim jamFiles = Directory.GetFiles(rootFolderPath, "*.jam", SearchOption.TopDirectoryOnly)
                     Dim jarFiles = Directory.GetFiles(rootFolderPath, "*.jar", SearchOption.TopDirectoryOnly)
                     Dim spFiles = Directory.GetFiles(rootFolderPath, "*.sp", SearchOption.TopDirectoryOnly)
+                    Dim scrFiles = Directory.GetFiles(rootFolderPath, "*.scr", SearchOption.TopDirectoryOnly)
 
                     ' Case 1: Only one subfolder inside the root folder, go into that subfolder
-                    If subFolders.Length = 1 AndAlso jamFiles.Length = 0 AndAlso jarFiles.Length = 0 AndAlso spFiles.Length = 0 Then
-                        zipFileName = ProcessSingleVarient(subFolders(0), inputZipPath, tempFolder, emulator)
+                    If subFolders.Length = 1 AndAlso jamFiles.Length = 0 AndAlso jarFiles.Length = 0 AndAlso spFiles.Length = 0 AndAlso scrFiles.Length = 0 Then
+                        zipFileName = ProcessSingleVarient(subFolders(0), enTitle, inputZipPath, tempFolder, emulator)
 
                         ' Case 2: Files directly in the root folder
                     ElseIf subFolders.Length = 0 Then
-                        zipFileName = ProcessSingleVarient(rootFolderPath, inputZipPath, tempFolder, emulator)
+                        zipFileName = ProcessSingleVarient(rootFolderPath, enTitle, inputZipPath, tempFolder, emulator)
 
                         ' Case 3: Multiple subfolders, treat them as variants
                     Else
@@ -776,7 +809,7 @@ Namespace My.Managers
                     gameElement.AppendChild(zipNameElement)
 
                     Dim downloadUrlElement As XmlElement = xmlDoc.CreateElement("DownloadURL")
-                    downloadUrlElement.InnerText = $"{zipFileName}"
+                    downloadUrlElement.InnerText = $"https://s3.inferia.world/launcher/games/{zipFileName}"
                     gameElement.AppendChild(downloadUrlElement)
 
                     Dim customAppIconURLElement As XmlElement = xmlDoc.CreateElement("CustomAppIconURL")
@@ -810,11 +843,16 @@ Namespace My.Managers
             Directory.Delete(tempFolder, True)
             MessageBox.Show("Completed XML Creation")
         End Sub
-        Private Function ProcessSingleVarient(folderPath As String, inputZipPath As String, tempFolder As String, ByRef emulator As String) As String
+        Private Function ProcessSingleVarient(folderPath As String, inputENTitle As String, inputZipPath As String, tempFolder As String, ByRef emulator As String) As String
+            ' Rename
+            RenameFilesRecursively(folderPath, inputENTitle)
+
             ' Locate .jam, .jar, and .sp files
             Dim jamFile As String = Directory.GetFiles(folderPath, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
             Dim jarFile As String = Directory.GetFiles(folderPath, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
             Dim spFile As String = Directory.GetFiles(folderPath, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
+            Dim scrFile As String = Directory.GetFiles(folderPath, "*.scr", SearchOption.TopDirectoryOnly).FirstOrDefault()
+
 
             ' Skip if no files are found
             If String.IsNullOrEmpty(jarFile) Then Return Nothing
@@ -838,6 +876,7 @@ Namespace My.Managers
             If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
             If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
             If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
+            If Not String.IsNullOrEmpty(scrFile) Then File.Move(scrFile, Path.Combine(spFolder, Path.GetFileName(scrFile)), True)
 
             ' Create the ZIP file
             Dim zipFileName As String = Path.GetFileNameWithoutExtension(jarFile) & ".zip"
@@ -871,6 +910,8 @@ Namespace My.Managers
                 Dim jamFile As String = Directory.GetFiles(VariantFolder, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
                 Dim jarFile As String = Directory.GetFiles(VariantFolder, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
                 Dim spFile As String = Directory.GetFiles(VariantFolder, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                Dim scrFile As String = Directory.GetFiles(VariantFolder, "*.scr", SearchOption.TopDirectoryOnly).FirstOrDefault()
+
                 ' Skip if no files are found
                 If String.IsNullOrEmpty(jarFile) Then Return Nothing
                 MasterJarName = Path.GetFileNameWithoutExtension(jarFile)
@@ -892,15 +933,16 @@ Namespace My.Managers
                 If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
                 If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
                 If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
+                If Not String.IsNullOrEmpty(scrFile) Then File.Move(scrFile, Path.Combine(spFolder, Path.GetFileName(scrFile)), True)
             Next
 
             ' Create the ZIP file
-            Dim zipFileName As String = Path.GetFileNameWithoutExtension(MasterJarName) & ".zip"
+            Dim zipFileName As String = Path.GetFileNameWithoutExtension(RootFolderName).Replace(" ", "_") & ".zip"
             Dim outputZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), zipFileName)
             If File.Exists(outputZipPath) Then File.Delete(outputZipPath)
 
             ' Need to rename all files in the combinedzip to be the same
-            RenameFilesRecursively(tempCombinedZipFolder, Path.GetFileNameWithoutExtension(MasterJarName))
+            RenameFilesRecursively(tempCombinedZipFolder, Path.GetFileNameWithoutExtension(zipFileName))
 
             ' Create the final ZIP containing all variants
             ZipFile.CreateFromDirectory(tempCombinedZipFolder, outputZipPath)
@@ -929,14 +971,30 @@ Namespace My.Managers
         End Sub
         Sub RenameFilesRecursively(ByVal directoryPath As String, newname As String)
             Try
+                ' Replace spaces with underscores in the provided newname
+                Dim sanitizedNewName As String = newname.Replace(" ", "_")
+
                 ' Loop through all files in the current directory
                 For Each filePath As String In Directory.GetFiles(directoryPath)
                     Dim fileExtension As String = Path.GetExtension(filePath).ToLower()
 
-                    ' Check if the file extension matches .jar, .jam, or .sp
+                    ' Check if the file extension matches .jar, .jam, .sp, or .scr
                     If fileExtension = ".jar" OrElse fileExtension = ".jam" OrElse fileExtension = ".sp" Then
-                        ' Get the new file path with the same directory but renamed to test1
-                        Dim newFilePath As String = Path.Combine(Path.GetDirectoryName(filePath), newname & fileExtension)
+                        ' Get the new file path with the sanitized new name
+                        Dim newFilePath As String = Path.Combine(Path.GetDirectoryName(filePath), sanitizedNewName & fileExtension)
+
+                        ' Rename the file
+                        File.Move(filePath, newFilePath)
+
+                    ElseIf fileExtension = ".scr" Then
+                        ' Extract digits before .scr using a regex pattern
+                        Dim fileNameWithoutExtension As String = Path.GetFileNameWithoutExtension(filePath)
+                        Dim digitsMatch As Match = Regex.Match(fileNameWithoutExtension, "(\d{1,2})$")
+
+                        Dim digits As String = If(digitsMatch.Success, digitsMatch.Value, "")
+
+                        ' Construct the new file name with digits appended
+                        Dim newFilePath As String = Path.Combine(Path.GetDirectoryName(filePath), sanitizedNewName & digits & fileExtension)
 
                         ' Rename the file
                         File.Move(filePath, newFilePath)
@@ -952,5 +1010,6 @@ Namespace My.Managers
                 Console.WriteLine("Error: " & ex.Message)
             End Try
         End Sub
+
     End Class
 End Namespace

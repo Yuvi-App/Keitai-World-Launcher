@@ -65,6 +65,7 @@ Public Class Form1
         Logger.LogInfo("Application started.")
 
         ' Check PreREQs
+        Logger.LogInfo("Starting PreReq Check")
         UtilManager.CheckforPreReq()
 
         ' Load Config
@@ -158,18 +159,59 @@ Public Class Form1
             Logger.LogError("Failed to Load MachiChara List", ex)
         End Try
 
+        'Last Step
+        GetSDKs()
+        RefreshGameHighlighting()
+
         ' Setup any Config Suff
         chkbxHidePhoneUI.Checked = DojaHideUI
         Dim atindex As Integer = cobxAudioType.FindStringExact(DOJASoundType)
         cobxAudioType.SelectedIndex = atindex
         chkbxShaderGlass.Checked = UseShaderGlass
         cbxFilterType.SelectedIndex = 0
-
-        'Last Step
-        RefreshGameHighlighting()
     End Sub
 
     ' General Other Function
+    Private Sub GetSDKs()
+        Dim dojaDefault As String = "iDKDoJa5.1"
+        Dim starDefault As String = "iDKStar2.0"
+        Dim dojaFound As Boolean = False
+        Dim starFound As Boolean = False
+
+        ' Clear existing items (if necessary)
+        cbxDojaSDK.Items.Clear()
+        cbxStarSDK.Items.Clear()
+
+        ' Iterate through the directories
+        For Each SSDK In Directory.GetDirectories(ToolsFolder)
+            Dim folder = Path.GetFileName(SSDK)
+            If folder.ToLower.StartsWith("idkstar") Then
+                cbxStarSDK.Items.Add(folder)
+                If folder.Equals(starDefault, StringComparison.OrdinalIgnoreCase) Then
+                    starFound = True
+                End If
+            End If
+            If folder.ToLower.StartsWith("idkdoja") Then
+                cbxDojaSDK.Items.Add(folder)
+                If folder.Equals(dojaDefault, StringComparison.OrdinalIgnoreCase) Then
+                    dojaFound = True
+                End If
+            End If
+        Next
+
+        ' Set the defaults if found
+        If starFound Then
+            cbxStarSDK.SelectedItem = starDefault
+        Else
+            MessageBox.Show($"The default SDK '{starDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+
+        If dojaFound Then
+            cbxDojaSDK.SelectedItem = dojaDefault
+        Else
+            MessageBox.Show($"The default SDK '{dojaDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+    End Sub
     Private Sub LoadGameIcons()
         Dim DojaIcon = $"{ToolsFolder}\icons\defaults\doja.gif"
         Dim StarIcon = $"{ToolsFolder}\icons\defaults\star.gif"
@@ -343,12 +385,13 @@ Public Class Form1
         If File.Exists(CurrentSelectedGameJAR) Then
             If ContextDownload Then
                 Dim result As DialogResult = MessageBox.Show(
-            $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is already downloaded. Would you like to download it again?{vbCrLf}{vbCrLf}" &
-            "This could delete your save data, so please be careful.",
-            "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                    $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is already downloaded. Would you like to download it again?{vbCrLf}{vbCrLf}" &
+                    "This could delete your save data, so please be careful.",
+                    "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 
                 If result = DialogResult.Yes Then
                     StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
+                    Logger.LogInfo($"Starting redownload for {selectedGame.DownloadURL}")
                     MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
             End If
@@ -356,10 +399,15 @@ Public Class Form1
             ' Load JAM controls
             UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, gbxGameInfo)
         Else
+            If selectedGame.ZIPName = String.Empty Or selectedGame.ZIPName Is Nothing Then
+                Logger.LogError($"{selectedGame.ENTitle} has invalid gamelist values, unable to download.")
+                MessageBox.Show($"{selectedGame.ENTitle} has invalid gamelist values, unable to download.")
+                Return
+            End If
             ' Game not downloaded - prompt user to download it
             Dim result As DialogResult = MessageBox.Show(
-    $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?",
-    "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?",
+                "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 
             If result = DialogResult.Yes Then
                 Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
@@ -482,6 +530,12 @@ Public Class Form1
         Next
     End Sub
     Public Function VerifyGameDownloaded() As Boolean
+        ' Check if any item is selected in ListViewGames
+        If ListViewGames.SelectedItems.Count = 0 Then
+            MessageBox.Show("Please select a game.")
+            Return False
+        End If
+
         ' Get the selected game title from ListViewGames
         Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
         Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
@@ -494,12 +548,13 @@ Public Class Form1
         If ListViewGamesVariants.SelectedItems.Count > 0 Then
             selectedVariant = ListViewGamesVariants.SelectedItems(0).Text.Trim()
         Else
-            ' Check if game needs has variant
-            If selectedGame.Variants = String.Empty = False Then
+            ' Check if the game has a variant
+            If Not String.IsNullOrEmpty(selectedGame.Variants) Then
                 MessageBox.Show("Please select a game variant.")
                 Return False
             End If
         End If
+
 
         ' Loop through directories in DownloadsFolder and check if the game (with or without variant) is downloaded
         For Each f In Directory.GetDirectories(DownloadsFolder)
@@ -558,7 +613,7 @@ Public Class Form1
         selectionTimer.Stop()
         selectionTimer.Start()
     End Sub
-    Private Sub SelectionTimer_Tick(sender As Object, e As EventArgs) Handles selectionTimer.tick
+    Private Sub SelectionTimer_Tick(sender As Object, e As EventArgs) Handles selectionTimer.Tick
         selectionTimer.Stop() ' Stop the timer to avoid repeated triggering
 
         ' Check if any items are selected
@@ -594,7 +649,28 @@ Public Class Form1
     Private Sub cbxEmuType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxFilterType.SelectedIndexChanged
         FilterAndHighlightGames()
     End Sub
-
+    Private Sub cbxStarSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxStarSDK.SelectedIndexChanged
+        ' Ensure the SDKs are selected
+        If cbxStarSDK.SelectedItem Is Nothing Then
+            MessageBox.Show("Please select a Star SDK before launching.")
+            Return
+        End If
+        ' Store selected SDKs in variables
+        Dim selectedStarSDK As String = cbxStarSDK.SelectedItem.ToString()
+        Starpath = Path.Combine(ToolsFolder, selectedStarSDK)
+        StarEXE = Path.Combine(ToolsFolder, selectedStarSDK, "bin", "star.exe")
+    End Sub
+    Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxDojaSDK.SelectedIndexChanged
+        ' Ensure the SDKs are selected
+        If cbxDojaSDK.SelectedItem Is Nothing Then
+            MessageBox.Show("Please select a Doja SDK before launching.")
+            Return
+        End If
+        ' Store selected SDKs in variables
+        Dim selectedDojaSDK As String = cbxDojaSDK.SelectedItem.ToString()
+        Dojapath = Path.Combine(ToolsFolder, selectedDojaSDK)
+        DojaEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "bin", "doja.exe")
+    End Sub
 
     'Textbox Changes
     Private Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged
@@ -628,25 +704,44 @@ Public Class Form1
 
     'Launch Game
     Private Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
-        ' Get the selected game
         Try
-            'Verify Its Downloaded
+            ' Ensure a game is selected
+            If ListViewGames.SelectedItems.Count = 0 Then
+                MessageBox.Show("Please select a game before launching.")
+                Return
+            End If
+
+            ' Ensure the SDKs are selected
+            If cbxDojaSDK.SelectedItem Is Nothing Then
+                MessageBox.Show("Please select a Doja SDK before launching.")
+                Return
+            End If
+
+            If cbxStarSDK.SelectedItem Is Nothing Then
+                MessageBox.Show("Please select a Star SDK before launching.")
+                Return
+            End If
+
+            ' Store selected SDKs in variables
+            Dim selectedDojaSDK As String = cbxDojaSDK.SelectedItem.ToString()
+            Dim selectedStarSDK As String = cbxStarSDK.SelectedItem.ToString()
+
+            ' Verify the game is downloaded
             If VerifyGameDownloaded() = True Then
-                If ListViewGames.SelectedItems.Count = 0 Then
-                    MessageBox.Show("Please select a game, before launching")
-                    Return
-                End If
+                ' Get the selected game
                 Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
                 Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-                Select Case selectedGame.Emulator.ToLower
+
+                Select Case selectedGame.Emulator.ToLower()
                     Case "doja"
-                        Dim IsDojaRunning = UtilManager.CheckAndCloseDoja
-                        If IsDojaRunning = False Then
+                        Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
+                        If Not isDojaRunning Then
                             utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
                         End If
+
                     Case "star"
-                        Dim IsStarRunning = UtilManager.CheckAndCloseStar
-                        If IsStarRunning = False Then
+                        Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
+                        If Not isStarRunning Then
                             utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
                         End If
                 End Select
@@ -831,4 +926,5 @@ Public Class Form1
         startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
         Dim process As Process = Process.Start(startInfo)
     End Sub
+
 End Class
