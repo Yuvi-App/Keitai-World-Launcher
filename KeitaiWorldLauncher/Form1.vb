@@ -48,12 +48,51 @@ Public Class Form1
     Dim MachiCharapath As String
     Dim MachiCharaExe As String
 
+    ' DPI Aware Stuff
+    <DllImport("user32.dll")>
+    Private Shared Function SetProcessDpiAwarenessContext(value As IntPtr) As Boolean
+    End Function
+    Private Shared DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 As New IntPtr(-4)
+    Private InitialDpiX As Single
+    Private InitialDpiY As Single
+
     ' FORM LOAD
+    Protected Overrides Sub OnResize(e As EventArgs)
+        MyBase.OnResize(e)
+        AdjustControlScaling()
+    End Sub
+    Private Sub AdjustControlScaling()
+        Using g As Graphics = Me.CreateGraphics()
+            Dim currentDpiX As Single = g.DpiX
+            Dim currentDpiY As Single = g.DpiY
+
+            ' Only adjust controls if DPI has changed
+            If currentDpiX <> InitialDpiX Or currentDpiY <> InitialDpiY Then
+                Dim scaleFactorX As Single = currentDpiX / InitialDpiX
+                Dim scaleFactorY As Single = currentDpiY / InitialDpiY
+
+                For Each ctrl As Control In Me.Controls
+                    ctrl.Scale(New SizeF(scaleFactorX, scaleFactorY))
+                Next
+            End If
+        End Using
+    End Sub
     Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
         UtilManager.CheckAndCloseDoja()
         UtilManager.CheckAndCloseStar()
     End Sub
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' Setup DPIAware
+        SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
+        Me.AutoScaleMode = AutoScaleMode.Dpi
+        Me.Size = New Size(1143, 848)
+        Me.StartPosition = FormStartPosition.CenterScreen
+        ' Record the initial DPI
+        Using g As Graphics = Me.CreateGraphics()
+            InitialDpiX = g.DpiX
+            InitialDpiY = g.DpiY
+        End Using
+
         ' Setup SJIS 
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
 
