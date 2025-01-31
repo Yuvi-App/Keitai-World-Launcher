@@ -115,9 +115,8 @@ Public Class Form1
             ' Clear the ListView and ImageList
             ListViewGames.Items.Clear()
             ImageListGames.Images.Clear()
-            ListViewGamesVarients.Clear()
+            ListViewGamesVariants.Clear()
             ListViewGames.Columns.Add("Title", GroupBox1.Width - 20, HorizontalAlignment.Left)
-            ListViewGamesVarients.Columns.Add("Varients", GroupBox1.Width - 20, HorizontalAlignment.Left)
 
             ' Add icons to the ImageList
             LoadGameIcons()
@@ -126,11 +125,22 @@ Public Class Form1
             ListViewGames.SmallImageList = ImageListGames
 
             ' Add games to the ListView
+            Dim BustedGames As New List(Of String)
             For Each game In games
+                If game.ZIPName = String.Empty Or game.ZIPName Is Nothing Then
+                    BustedGames.Add(game.ENTitle)
+                End If
                 Dim item As New ListViewItem(game.ENTitle)
                 item.ImageKey = game.ENTitle ' Use the game title as the key for the icon
                 ListViewGames.Items.Add(item)
             Next
+            If BustedGames.Count > 0 Then
+                Dim message = $"Busted Games Needing Fixed: {vbCrLf}"
+                For Each g In BustedGames
+                    message += $"{g}{vbCrLf}"
+                Next
+                MessageBox.Show(message)
+            End If
         Catch ex As Exception
             MessageBox.Show($"Failed to Load Game List:{vbCrLf}{ex}")
             Logger.LogError("Failed to Load Game List", ex)
@@ -196,83 +206,117 @@ Public Class Form1
         cobxAudioType.Enabled = True
         chkbxShaderGlass.Enabled = True
     End Sub
-    Private Sub FilterListView()
-        ' Get the selected emulator filter and search term
+    Private Sub FilterAndHighlightGames()
+        ' Get the selected filter and search term
         Dim selectedFilter As String = cbxFilterType.SelectedItem.ToString().ToLower()
         Dim searchTerm As String = txtLVSearch.Text.Trim().ToLower()
 
         ' Clear the ListView
         ListViewGames.Items.Clear()
 
-        If selectedFilter = "favorites" Then
-            ' Ensure the favorites file exists
-            Dim favoritesFile As String = "configs\favorites.txt"
-            If Not File.Exists(favoritesFile) Then Return
-
-            ' Load favorites into a HashSet for fast lookups
-            Dim favoriteGames As HashSet(Of String) = File.ReadAllLines(favoritesFile).
-                                              Select(Function(fav) fav.Trim()).
-                                              ToHashSet(StringComparer.OrdinalIgnoreCase)
-
-            ' Loop through the games and check if they are in favorites
-            For Each game In games
-                If favoriteGames.Contains(game.ENTitle) Then
-                    Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
-
-                    ' Add to ListView only if search term matches
-                    If matchesSearch Then
-                        Dim item As New ListViewItem(game.ENTitle)
-
-                        ' Assign the appropriate icon based on the emulator type
-                        item.ImageKey = game.ENTitle ' Assign the correct icon
-                        ListViewGames.Items.Add(item)
-                    End If
-                End If
-            Next
-        ElseIf selectedFilter = "installed" Then
-            ' Get the list of installed game folders
-            Dim installedGames = Directory.GetDirectories(DownloadsFolder).
-                                  Select(Function(folder) Path.GetFileName(folder)).
-                                  ToHashSet(StringComparer.OrdinalIgnoreCase) ' HashSet for fast lookups
-
-            ' Loop through all games and check if they are installed
-            For Each game In games
-                If installedGames.Contains(Path.GetFileNameWithoutExtension(game.ZIPName)) Then
-                    Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
-
-                    ' Add to ListView only if search term matches
-                    If matchesSearch Then
-                        Dim item As New ListViewItem(game.ENTitle)
-
-                        ' Assign the appropriate icon based on the emulator type
-                        item.ImageKey = game.ENTitle ' Assign the correct icon
-                        ListViewGames.Items.Add(item)
-                    End If
-                End If
-            Next
-        Else
-            ' Filter games based on the selected emulator and search term
-            For Each game In games
-                Dim matchesEmulator As Boolean = (selectedFilter = "all" OrElse game.Emulator.ToLower() = selectedFilter)
-                Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
-
-                ' Add to ListView only if both conditions are met
-                If matchesEmulator AndAlso matchesSearch Then
-                    Dim item As New ListViewItem(game.ENTitle)
-
-                    ' Assign the appropriate icon based on the emulator type
-                    item.ImageKey = game.ENTitle ' Assign the correct icon
-                    ListViewGames.Items.Add(item)
-                End If
-            Next
+        ' Load favorites and installed games into hash sets for quick lookup
+        Dim favoriteGames As HashSet(Of String) = New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+        If File.Exists("configs\favorites.txt") Then
+            favoriteGames = File.ReadAllLines("configs\favorites.txt").
+                         Select(Function(fav) fav.Trim()).
+                         ToHashSet(StringComparer.OrdinalIgnoreCase)
         End If
-        RefreshGameHighlighting()
+
+        Dim installedGames As HashSet(Of String) = Directory.GetDirectories(DownloadsFolder).
+                                               Select(Function(folder) Path.GetFileName(folder)).
+                                               ToHashSet(StringComparer.OrdinalIgnoreCase)
+
+        ' Loop through games and apply filtering and highlighting
+        For Each game In games
+            ' Check if the game matches the current filter and search term
+            Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
+            Dim matchesFilter As Boolean = (selectedFilter = "all" OrElse
+                                        (selectedFilter = "favorites" AndAlso favoriteGames.Contains(game.ENTitle)) OrElse
+                                        (selectedFilter = "installed" AndAlso Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(Path.GetFileNameWithoutExtension(game.ZIPName))) OrElse
+                                        (game.Emulator.ToLower() = selectedFilter))
+
+            If matchesSearch AndAlso matchesFilter Then
+                ' Create the ListView item
+                Dim item As New ListViewItem(game.ENTitle) With {
+                .ImageKey = game.ENTitle ' Assign the correct icon
+            }
+
+                ' Determine highlighting
+                Dim isFavorited As Boolean = favoriteGames.Contains(game.ENTitle)
+                Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(Path.GetFileNameWithoutExtension(game.ZIPName))
+
+                If isInstalled AndAlso isFavorited Then
+                    item.BackColor = Color.LightSeaGreen ' Both installed and favorited
+                ElseIf isInstalled Then
+                    item.BackColor = Color.LightGreen ' Only installed
+                ElseIf isFavorited Then
+                    item.BackColor = Color.LightGoldenrodYellow ' Only favorited
+                Else
+                    item.BackColor = Color.White ' Neither installed nor favorited
+                End If
+
+                ' Add item to the ListView
+                ListViewGames.Items.Add(item)
+            End If
+        Next
+        LoadGameVariants()
+    End Sub
+    Private Sub LoadGameVariants()
+        ' Ensure the ListView view mode is set to Details
+        ListViewGamesVariants.View = View.Details
+        ListViewGamesVariants.Clear()  ' Clear existing items if needed
+        ListViewGamesVariants.Columns.Clear()
+        ListViewGamesVariants.Columns.Add("Game Variants", -2, HorizontalAlignment.Left)  ' Add a column
+
+        ' Get the selected game title from the ListView
+        Dim selectedGameTitle As String
+        Dim selectedGame As Game
+        Try
+            selectedGameTitle = ListViewGames.SelectedItems(0).Text
+            selectedGame = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+            If selectedGame Is Nothing Then
+                Return
+            End If
+        Catch ex As Exception
+            Return
+        End Try
+
+
+        Dim GameVariants = selectedGame.Variants
+        If GameVariants Is Nothing Then
+            Return
+        End If
+
+        ' Split and add variants as rows in the ListView
+        Dim GameVariantsSplit = GameVariants.Split(",")
+        For Each va In GameVariantsSplit
+            Dim item As New ListViewItem(va.Trim())
+            ListViewGamesVariants.Items.Add(item)
+        Next
     End Sub
     Private Sub DownloadGames(ContextDownload As Boolean)
-        ' Get the selected game title from the ListView
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+        ' Get the selected game title from the ListViewGames
+        Dim selectedGameTitle As String
+        Dim selectedGame As Game
+        Try
+            selectedGameTitle = ListViewGames.SelectedItems(0).Text
+            selectedGame = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+        Catch ex As Exception
+            MessageBox.Show("Please select a game")
+        End Try
 
+        ' Get the selected game title from the ListViewVariants
+        Dim selectedGameVariants As String = String.Empty
+        Try
+            ' Determine if a variant is selected
+            If ListViewGamesVariants.SelectedItems.Count > 0 Then
+                selectedGameVariants = ListViewGamesVariants.SelectedItems(0).Text.Trim()
+            End If
+        Catch ex As Exception
+
+        End Try
+
+        'Check if its nothing
         If selectedGame Is Nothing Then
             MessageBox.Show("Selected game could not be found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Return
@@ -280,14 +324,23 @@ Public Class Form1
 
         ' Construct paths for game files
         Dim gameBasePath As String = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}"
-        CurrentSelectedGameJAM = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
-        CurrentSelectedGameJAR = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
         Dim downloadFileZipPath As String = $"{DownloadsFolder}\{selectedGame.ZIPName}"
+        Dim GameVariants = selectedGame.Variants
+        Dim GameVariantsSplit = selectedGame.Variants.Split(",")
+        If GameVariants Is Nothing Or GameVariants = "" Then
+            CurrentSelectedGameJAM = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
+            CurrentSelectedGameJAR = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
+        ElseIf ListViewGamesVariants.SelectedItems.Count > 0 Then
+            CurrentSelectedGameJAM = $"{gameBasePath}\{selectedGameVariants}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
+            CurrentSelectedGameJAR = $"{gameBasePath}\{selectedGameVariants}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
+        Else
+            CurrentSelectedGameJAM = $"{gameBasePath}\{GameVariantsSplit(0)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
+            CurrentSelectedGameJAR = $"{gameBasePath}\{GameVariantsSplit(0)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
+        End If
 
-        Logger.LogInfo($"Checking for {currentSelectedGameJAR}")
-
+        Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
         ' Check if the game is already downloaded
-        If File.Exists(currentSelectedGameJAR) Then
+        If File.Exists(CurrentSelectedGameJAR) Then
             If ContextDownload Then
                 Dim result As DialogResult = MessageBox.Show(
             $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is already downloaded. Would you like to download it again?{vbCrLf}{vbCrLf}" &
@@ -295,22 +348,22 @@ Public Class Form1
             "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 
                 If result = DialogResult.Yes Then
-                    StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, currentSelectedGameJAM, currentSelectedGameJAR)
+                    StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
                     MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
             End If
 
             ' Load JAM controls
-            UtilManager.GenerateDynamicControlsFromLines(currentSelectedGameJAM, gbxGameInfo)
+            UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, gbxGameInfo)
         Else
             ' Game not downloaded - prompt user to download it
             Dim result As DialogResult = MessageBox.Show(
-        $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?",
-        "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+    $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?",
+    "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 
             If result = DialogResult.Yes Then
                 Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
-                StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, currentSelectedGameJAM, currentSelectedGameJAR)
+                StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
             End If
         End If
     End Sub
@@ -397,7 +450,7 @@ Public Class Form1
             If failedGames.Count > 0 Then
                 MessageBox.Show($"Could not delete the following games:{Environment.NewLine}{String.Join(Environment.NewLine, failedGames)}", "Deletion Errors", MessageBoxButtons.OK, MessageBoxIcon.Warning)
             End If
-            FilterListView()
+            FilterAndHighlightGames()
         End If
     End Sub
     Public Sub RefreshGameHighlighting()
@@ -428,14 +481,45 @@ Public Class Form1
             End If
         Next
     End Sub
-    Public Function VerifyGameDownloaded()
+    Public Function VerifyGameDownloaded() As Boolean
+        ' Get the selected game title from ListViewGames
         Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
         Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+        If selectedGame Is Nothing Then
+            Return False
+        End If
+
+        ' Determine if a variant is selected
+        Dim selectedVariant As String = String.Empty
+        If ListViewGamesVariants.SelectedItems.Count > 0 Then
+            selectedVariant = ListViewGamesVariants.SelectedItems(0).Text.Trim()
+        Else
+            ' Check if game needs has variant
+            If selectedGame.Variants = String.Empty = False Then
+                MessageBox.Show("Please select a game variant.")
+                Return False
+            End If
+        End If
+
+        ' Loop through directories in DownloadsFolder and check if the game (with or without variant) is downloaded
         For Each f In Directory.GetDirectories(DownloadsFolder)
-            If Path.GetFileName(f) = Path.GetFileNameWithoutExtension(selectedGame.ZIPName) Then
-                Return True
+            Dim expectedFolderName As String
+            expectedFolderName = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+            ' Check if the directory matches the expected name
+            If Path.GetFileName(f) = expectedFolderName Then
+                If String.IsNullOrEmpty(selectedVariant) Then
+                    Return True
+                Else
+                    For Each Fol In Directory.GetDirectories(f)
+                        expectedFolderName = selectedVariant
+                        If Path.GetFileName(Fol) = expectedFolderName Then
+                            Return True
+                        End If
+                    Next
+                End If
             End If
         Next
+        ' Return false if no match is found
         Return False
     End Function
 
@@ -481,12 +565,16 @@ Public Class Form1
         If ListViewGames.SelectedItems.Count = 0 Then Return
 
         ' Perform actions once after all selections are done
+        LoadGameVariants()
         DownloadGames(False)
         EnableButtons()
     End Sub
     Private Sub lbxMachiCharaList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles lbxMachiCharaList.SelectedIndexChanged
         If lbxMachiCharaList.SelectedIndex = -1 Then Return
         DownloadMachiChara()
+    End Sub
+    Private Sub ListViewGamesVariants_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGamesVariants.SelectedIndexChanged
+        DownloadGames(False)
     End Sub
 
     ' CheckBox Changes
@@ -504,13 +592,13 @@ Public Class Form1
         End If
     End Sub
     Private Sub cbxEmuType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxFilterType.SelectedIndexChanged
-        FilterListView()
+        FilterAndHighlightGames()
     End Sub
 
 
     'Textbox Changes
     Private Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged
-        FilterListView()
+        FilterAndHighlightGames()
     End Sub
 
     'ContextMenuStrip Changes
@@ -564,6 +652,7 @@ Public Class Form1
                 End Select
             End If
         Catch ex As Exception
+            Logger.LogError($"Error Launching Game:{vbCrLf}{ex}")
             MessageBox.Show($"Error Launching Game:{vbCrLf}{ex}")
         End Try
     End Sub
@@ -742,5 +831,4 @@ Public Class Form1
         startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
         Dim process As Process = Process.Start(startInfo)
     End Sub
-
 End Class

@@ -7,5 +7,6 @@
         Public Property CustomAppIconURL As String
         Public Property SDCardDataURL As String
         Public Property Emulator As String
+        Public Property Variants As String
     End Class
 End Namespace

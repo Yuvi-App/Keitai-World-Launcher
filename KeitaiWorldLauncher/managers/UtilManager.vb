@@ -218,7 +218,6 @@ Namespace My.Managers
                             process.WaitForExit() ' Ensure the process has exited
                         Next
                         Return False
-                        'MessageBox.Show("doja.exe has been closed successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
                     Catch ex As Exception
                         MessageBox.Show("An error occurred while trying to close doja.exe: " & ex.Message,
                                 "Error",
@@ -227,10 +226,8 @@ Namespace My.Managers
                     End Try
                 Else
                     Return True
-                    'MessageBox.Show("doja.exe will remain running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
             Else
-                'MessageBox.Show("doja.exe is not currently running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
         End Function
         Shared Function CheckAndCloseStar()
@@ -252,7 +249,6 @@ Namespace My.Managers
                             process.WaitForExit() ' Ensure the process has exited
                         Next
                         Return False
-                        'MessageBox.Show("star.exe has been closed successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
                     Catch ex As Exception
                         MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
                                 "Error",
@@ -261,10 +257,8 @@ Namespace My.Managers
                     End Try
                 Else
                     Return True
-                    'MessageBox.Show("star.exe will remain running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
             Else
-                'MessageBox.Show("star.exe is not currently running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
         End Function
         Shared Function CheckAndCloseShaderGlass()
@@ -290,69 +284,51 @@ Namespace My.Managers
                 'MessageBox.Show("star.exe is not currently running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
         End Function
-        Public Sub LaunchApplication(appPath As String, arguments As String)
-            Try
-                ' Create a new process start info
-                Dim startInfo As New ProcessStartInfo()
-                startInfo.FileName = appPath
-                startInfo.Arguments = arguments
-
-                ' Launch the application
-                Dim process As Process = Process.Start(startInfo)
-
-                MessageBox.Show($"Application launched successfully: {appPath}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Catch ex As Exception
-                MessageBox.Show($"Failed to launch the application: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
-        End Sub
-        Public Async Sub LaunchCustomDOJAGameCommand(DOJAPATH, DOJAEXELocation, GameJAM)
+        Public Async Sub LaunchCustomDOJAGameCommand(DOJAPATH As String, DOJAEXELocation As String, GameJAM As String)
             Try
                 ' Paths and arguments
-                Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\locale_emulator\LEProc.exe"
+                Dim appPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "locale_emulator", "LEProc.exe").Trim
+                Dim dojaExePath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DOJAEXELocation).Trim
+                Dim jamPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GameJAM).Trim
                 Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
-                Dim dojaexePath As String = DOJAEXELocation
-                Dim jamPath As String = AppDomain.CurrentDomain.BaseDirectory & GameJAM
+                Dim arguments As String = $"{guidArg} ""{dojaExePath}"" -i ""{jamPath}"""
 
-                ' Combine arguments
-                Dim arguments As String = $"{guidArg} ""{dojaexePath}"" -i ""{jamPath}"""
+                ' Update device settings based on user selections
+                UpdateDOJADeviceSkin(DOJAPATH, Form1.chkbxHidePhoneUI.Checked)
 
-                'Update Device Launch Settings
-                If Form1.chkbxHidePhoneUI.Checked = True Then
-                    UpdateDOJADeviceSkin(DOJAPATH, True)
-                Else
-                    UpdateDOJADeviceSkin(DOJAPATH, False)
-                End If
-                'Update Device Draw Size
-                Dim JAMDrawArea = ExtractDOJAWidthHeight(jamPath)
-                UpdatedDOJADrawSize(DOJAPATH, JAMDrawArea.Item1, JAMDrawArea.Item2)
-                'Updated SoundType
-                UpdateDOJASoundConf(DOJAPATH, Form1.cobxAudioType.SelectedItem.ToString)
+                ' Update device screen size
+                Dim dimensions = ExtractDOJAWidthHeight(jamPath)
+                Dim width As Integer = dimensions.Item1
+                Dim height As Integer = dimensions.Item2
+                UpdatedDOJADrawSize(DOJAPATH, width, height)
+
+                ' Update sound configuration
+                UpdateDOJASoundConf(DOJAPATH, Form1.cobxAudioType.SelectedItem.ToString())
 
                 ' Set up process start info
-                Dim startInfo As New ProcessStartInfo()
-                startInfo.FileName = appPath
-                startInfo.Arguments = arguments
-                startInfo.UseShellExecute = True
-                startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+                Dim startInfo As New ProcessStartInfo With {
+                    .FileName = appPath,
+                    .Arguments = arguments,
+                    .UseShellExecute = False,
+                    .WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+                }
 
-                ' Start the process
                 Dim process As Process = Process.Start(startInfo)
-                ' Ensure Doja has started properly
-                process.WaitForInputIdle() ' Wait until the app is ready
+                If process IsNot Nothing Then
+                    process.WaitForInputIdle()
+                Else
+                    MessageBox.Show("Failed to start process.")
+                End If
 
-                ' Start ShaderGlass if selected
+                ' Launch ShaderGlass if enabled
                 If Form1.chkbxShaderGlass.Checked Then
-                    ' Wait asynchronously for the "STAR" process to be detected
-                    Dim isRunning As Boolean = Await WaitForDojaToStart()
-
-                    If isRunning Then
-                        ' Launch ShaderGlass after Doja is running
+                    If Await WaitForDojaToStart() Then
                         LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
                     Else
-                        MessageBox.Show("Failed to detect STAR running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        MessageBox.Show("Failed to detect DOJA running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     End If
                 End If
-                'MessageBox.Show("Command launched successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+
             Catch ex As Exception
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
@@ -390,10 +366,12 @@ Namespace My.Managers
                 startInfo.UseShellExecute = False
                 startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
 
-                ' Start the process
                 Dim process As Process = Process.Start(startInfo)
-                ' Ensure STAR has started properly
-                process.WaitForInputIdle() ' Wait until the app is ready
+                If process IsNot Nothing Then
+                    process.WaitForInputIdle()
+                Else
+                    MessageBox.Show("Failed to start process.")
+                End If
 
                 ' Start ShaderGlass if selected
                 If Form1.chkbxShaderGlass.Checked Then
@@ -503,88 +481,71 @@ Namespace My.Managers
 
         'DOJA EXTRAS
         Public Sub UpdateDOJADeviceSkin(DOJALOCATION As String, hideUI As Boolean)
-            Dim DojaSkinFolder = $"{DOJALOCATION}\lib\skin\device1"
-            If Directory.Exists(DojaSkinFolder) Then
-                For Each deleteFile In Directory.GetFiles(DojaSkinFolder, "*.*", SearchOption.TopDirectoryOnly)
-                    File.Delete(deleteFile)
-                Next
+            Dim dojaSkinFolder As String = Path.Combine(DOJALOCATION, "lib", "skin", "device1")
+
+            ' Clear the skin folder or create it if it doesn't exist
+            If Directory.Exists(dojaSkinFolder) Then
+                Directory.GetFiles(dojaSkinFolder).ToList().ForEach(Sub(files) File.Delete(files))
             Else
-                Directory.CreateDirectory(DojaSkinFolder)
+                Directory.CreateDirectory(dojaSkinFolder)
             End If
 
-            Dim OurSkinsFolder = AppDomain.CurrentDomain.BaseDirectory & "data\tools\skins"
-            If hideUI = True Then
-                For Each F In Directory.GetFiles(OurSkinsFolder & "\doja-device1-noui")
-                    File.Copy(F, $"{DojaSkinFolder}\{Path.GetFileName(F)}")
-                Next
-            ElseIf hideUI = False Then
-                For Each F In Directory.GetFiles(OurSkinsFolder & "\doja-device1-ui")
-                    File.Copy(F, $"{DojaSkinFolder}\{Path.GetFileName(F)}")
-                Next
-            End If
+            ' Select the correct skin folder based on UI visibility
+            Dim skinTypeFolder As String = If(hideUI, "doja-device1-noui", "doja-device1-ui")
+            Dim ourSkinsFolder As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", skinTypeFolder)
+
+            ' Copy the files from the selected skin folder to the target folder
+            For Each skinFile In Directory.GetFiles(ourSkinsFolder)
+                File.Copy(skinFile, Path.Combine(dojaSkinFolder, Path.GetFileName(skinFile)), True)
+            Next
         End Sub
-        Function ExtractDOJAWidthHeight(filePath As String) As (Integer, Integer)
-            Dim width As Integer = 0
-            Dim height As Integer = 0
-
+        Public Function ExtractDOJAWidthHeight(filePath As String) As (Integer, Integer)
+            Dim width As Integer = 240
+            Dim height As Integer = 240
             Try
-                For Each line As String In IO.File.ReadLines(filePath)
-                    If line.StartsWith("DrawArea =") Then
-                        Dim parts() As String = line.Split("="c)(1).Trim().Split("x"c)
-                        If parts.Length = 2 Then
-                            width = Convert.ToInt32(parts(0).Trim())
-                            height = Convert.ToInt32(parts(1).Trim())
+                For Each line As String In File.ReadLines(filePath)
+                    If line.StartsWith("DrawArea =", StringComparison.OrdinalIgnoreCase) Then
+                        Dim dimensions = line.Split("="c)(1).Trim().Split("x"c)
+                        If dimensions.Length = 2 Then
+                            width = Convert.ToInt32(dimensions(0).Trim())
+                            height = Convert.ToInt32(dimensions(1).Trim())
                         End If
                         Exit For
                     End If
                 Next
-
-                If width = 0 Or height = 0 Then
-                    width = 240
-                    height = 240
-                End If
             Catch ex As Exception
-                Console.WriteLine("Error: " & ex.Message)
+                Console.WriteLine($"Error reading width and height: {ex.Message}")
             End Try
 
             Return (width, height)
         End Function
-        Public Sub UpdatedDOJADrawSize(DOJALOOCATION As String, X As Integer, Y As Integer)
-            Dim Device1InfoFile = $"{DOJALOOCATION}\lib\skin\deviceinfo\device1"
-            Dim NewValue = $"device1,{X},{Y},120,120"
-            File.WriteAllText(Device1InfoFile, NewValue)
+        Public Sub UpdatedDOJADrawSize(DOJALOCATION As String, width As Integer, height As Integer)
+            Dim deviceInfoFile As String = Path.Combine(DOJALOCATION, "lib", "skin", "deviceinfo", "device1")
+            Dim newValue As String = $"device1,{width},{height},120,120"
+            File.WriteAllText(deviceInfoFile, newValue)
         End Sub
-        Sub UpdateDOJASoundConf(DOJALOOCATION As String, SoundType As String)
-            Dim SoundPath As String = $"{DOJALOOCATION}\lib\SoundConf.properties"
-            If SoundType = "Standard" Then
-                If File.Exists(SoundPath) Then
-                    ' Read the file with Shift-JIS encoding
-                    Dim conf As String = File.ReadAllText(SoundPath, Text.Encoding.GetEncoding("shift-jis"))
-
-                    ' Perform the substitutions
-                    conf = Regex.Replace(conf, "MODE=.", "MODE=0")
-                    conf = Regex.Replace(conf, "SOUNDLIB=...", "SOUNDLIB=001")
-
-                    ' Write the updated content back to the file
-                    File.WriteAllText(SoundPath, conf, Text.Encoding.GetEncoding("shift-jis"))
-                Else
-                    Console.WriteLine($"File not found: {SoundPath}")
-                End If
-            ElseIf SoundType = "903i" Then
-                If File.Exists(SoundPath) Then
-                    ' Read the file with Shift-JIS encoding
-                    Dim conf As String = File.ReadAllText(SoundPath, Text.Encoding.GetEncoding("shift-jis"))
-
-                    ' Perform the substitutions
-                    conf = Regex.Replace(conf, "MODE=.", "MODE=0")
-                    conf = Regex.Replace(conf, "SOUNDLIB=...", "SOUNDLIB=002")
-
-                    ' Write the updated content back to the file
-                    File.WriteAllText(SoundPath, conf, Text.Encoding.GetEncoding("shift-jis"))
-                Else
-                    Console.WriteLine($"File not found: {SoundPath}")
-                End If
+        Public Sub UpdateDOJASoundConf(DOJALOCATION As String, soundType As String)
+            Dim soundPath As String = Path.Combine(DOJALOCATION, "lib", "SoundConf.properties")
+            If Not File.Exists(soundPath) Then
+                Console.WriteLine($"File not found: {soundPath}")
+                Return
             End If
+
+            Try
+                ' Read the file with Shift-JIS encoding
+                Dim conf As String = File.ReadAllText(soundPath, Text.Encoding.GetEncoding("shift-jis"))
+
+                ' Update mode and sound library based on sound type
+                conf = Regex.Replace(conf, "MODE=.", "MODE=0")
+
+                Dim soundLibValue As String = If(soundType = "903i", "002", "001")
+                conf = Regex.Replace(conf, "SOUNDLIB=...", $"SOUNDLIB={soundLibValue}")
+
+                ' Write the updated configuration back to the file
+                File.WriteAllText(soundPath, conf, Text.Encoding.GetEncoding("shift-jis"))
+            Catch ex As Exception
+                Console.WriteLine($"Error updating sound configuration: {ex.Message}")
+            End Try
         End Sub
 
         'STAR EXTRAS
@@ -728,6 +689,10 @@ Namespace My.Managers
             End If
         End Sub
 
+
+        'MISC
+
+
         'Generate XML for List
         Public Sub ProcessZipFileforGamelist(inputZipPath As String)
             ' Ensure the input file exists
@@ -751,9 +716,9 @@ Namespace My.Managers
 
             ' Load or create the XML file with Shift-JIS encoding
             Dim xmlSettings As New XmlWriterSettings() With {
-                .Encoding = Encoding.GetEncoding("shift-jis"),
-                .Indent = True
-            }
+        .Encoding = Encoding.GetEncoding("shift-jis"),
+        .Indent = True
+    }
             Dim xmlDoc As New XmlDocument()
 
             If File.Exists(xmlFilePath) Then
@@ -765,138 +730,76 @@ Namespace My.Managers
 
             ' Process each folder in the extracted directory
             Try
-                For Each folderPath As String In Directory.GetDirectories(extractedFolder, "*", SearchOption.TopDirectoryOnly)
-                    Dim parentFolder As String = Path.GetFileName(Path.GetDirectoryName(folderPath & Path.DirectorySeparatorChar))
-                    ' Look for the .jam, .jar, and .sp files in the folder and its subfolders
-                    Dim jamFile As String = Directory.GetFiles(folderPath, "*.jam", SearchOption.AllDirectories).FirstOrDefault()
-                    Dim jarFile As String = Directory.GetFiles(folderPath, "*.jar", SearchOption.AllDirectories).FirstOrDefault()
-                    Dim spFile As String = Directory.GetFiles(folderPath, "*.sp", SearchOption.AllDirectories).FirstOrDefault()
+                For Each rootFolderPath As String In Directory.GetDirectories(extractedFolder, "*", SearchOption.TopDirectoryOnly)
+                    Dim enTitle As String = Path.GetFileName(rootFolderPath)
+                    Dim variants As New List(Of String)
+                    Dim zipFileName As String = Nothing
+                    Dim emulator As String = "doja"
 
-                    ' Skip if none of the files exist
-                    If String.IsNullOrEmpty(jamFile) AndAlso String.IsNullOrEmpty(jarFile) AndAlso String.IsNullOrEmpty(spFile) Then
-                        Continue For
+                    ' Determine if the root folder contains files directly or multiple subfolders
+                    Dim subFolders = Directory.GetDirectories(rootFolderPath, "*", SearchOption.TopDirectoryOnly)
+                    Dim jamFiles = Directory.GetFiles(rootFolderPath, "*.jam", SearchOption.TopDirectoryOnly)
+                    Dim jarFiles = Directory.GetFiles(rootFolderPath, "*.jar", SearchOption.TopDirectoryOnly)
+                    Dim spFiles = Directory.GetFiles(rootFolderPath, "*.sp", SearchOption.TopDirectoryOnly)
+
+                    ' Case 1: Only one subfolder inside the root folder, go into that subfolder
+                    If subFolders.Length = 1 AndAlso jamFiles.Length = 0 AndAlso jarFiles.Length = 0 AndAlso spFiles.Length = 0 Then
+                        zipFileName = ProcessSingleVarient(subFolders(0), inputZipPath, tempFolder, emulator)
+
+                        ' Case 2: Files directly in the root folder
+                    ElseIf subFolders.Length = 0 Then
+                        zipFileName = ProcessSingleVarient(rootFolderPath, inputZipPath, tempFolder, emulator)
+
+                        ' Case 3: Multiple subfolders, treat them as variants
+                    Else
+                        For Each variantFolder In subFolders
+                            Dim variantName As String = Path.GetFileName(variantFolder).Replace(" ", "_")
+                            variants.Add(variantName)
+                        Next
+                        zipFileName = ProcessMultipleVarient(rootFolderPath, enTitle, variants, inputZipPath, tempFolder, emulator)
                     End If
 
-                    ' Extract AppName from the .jam file
-                    Dim appName As String = "Unknown"
-                    Dim profilever As String = "doja"
-                    Dim Emulator As String = "doja"
-                    If Not String.IsNullOrEmpty(jamFile) Then
-                        Dim jamLines As String() = File.ReadAllLines(jamFile, Encoding.GetEncoding("shift-jis"))
-                        Dim appNameLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppName = "))
-                        Dim ProfileVerLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("ProfileVer = "))
-                        Dim AppTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
-                        If Not String.IsNullOrEmpty(appNameLine) Then
-                            appName = appNameLine.Replace("AppName = ", "").Trim()
-                        End If
-                        If Not String.IsNullOrEmpty(ProfileVerLine) Then
-                            profilever = ProfileVerLine.Replace("ProfileVer = ", "").Trim()
-                        End If
-                        ' If AppType exists, set emulator to "star", as AppType on exist in star apps
-                        If Not String.IsNullOrEmpty(AppTypeLine) Then
-                            Emulator = "star"
-                        End If
-                    End If
+                    ' Add the game entry to the XML
+                    Dim root As XmlElement = xmlDoc.DocumentElement
+                    Dim gameElement As XmlElement = xmlDoc.CreateElement("Game")
 
-                    ' Create "bin" and "sp" folders in the current folder
-                    Dim binFolder As String = Path.Combine(folderPath, "bin")
-                    Dim spFolder As String = Path.Combine(folderPath, "sp")
-                    Directory.CreateDirectory(binFolder)
-                    Directory.CreateDirectory(spFolder)
+                    Dim enTitleElement As XmlElement = xmlDoc.CreateElement("ENTitle")
+                    enTitleElement.InnerText = enTitle
+                    gameElement.AppendChild(enTitleElement)
 
-                    ' Move files to their respective folders
-                    ' Check and move the files only if they exist
-                    If Not String.IsNullOrEmpty(jamFile) AndAlso File.Exists(jamFile) Then
-                        Dim targetPath As String = Path.Combine(binFolder, Path.GetFileName(jamFile))
-                        If File.Exists(targetPath) Then File.Delete(targetPath) ' Ensure no duplicates
-                        File.Move(jamFile, targetPath)
-                    End If
+                    Dim jpTitleElement As XmlElement = xmlDoc.CreateElement("JPTitle")
+                    jpTitleElement.InnerText = enTitle
+                    gameElement.AppendChild(jpTitleElement)
 
-                    If Not String.IsNullOrEmpty(jarFile) AndAlso File.Exists(jarFile) Then
-                        Dim targetPath As String = Path.Combine(binFolder, Path.GetFileName(jarFile))
-                        If File.Exists(targetPath) Then File.Delete(targetPath)
-                        File.Move(jarFile, targetPath)
-                    End If
+                    Dim zipNameElement As XmlElement = xmlDoc.CreateElement("ZIPName")
+                    zipNameElement.InnerText = zipFileName
+                    gameElement.AppendChild(zipNameElement)
 
-                    If Not String.IsNullOrEmpty(spFile) AndAlso File.Exists(spFile) Then
-                        Dim targetPath As String = Path.Combine(spFolder, Path.GetFileName(spFile))
-                        If File.Exists(targetPath) Then File.Delete(targetPath)
-                        File.Move(spFile, targetPath)
-                    End If
+                    Dim downloadUrlElement As XmlElement = xmlDoc.CreateElement("DownloadURL")
+                    downloadUrlElement.InnerText = $"{zipFileName}"
+                    gameElement.AppendChild(downloadUrlElement)
 
-                    ' Create a new ZIP file with the same name as the .jar file
-                    If Not String.IsNullOrEmpty(jarFile) Then
-                        Dim newZipName As String = Path.GetFileNameWithoutExtension(jarFile) & ".zip"
-                        Dim outputZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), newZipName)
-                        If File.Exists(outputZipPath) Then
-                            File.Delete(outputZipPath)
-                        End If
+                    Dim customAppIconURLElement As XmlElement = xmlDoc.CreateElement("CustomAppIconURL")
+                    customAppIconURLElement.InnerText = ""
+                    gameElement.AppendChild(customAppIconURLElement)
 
-                        ' Create a temporary folder for zipping only bin and sp folders
-                        Dim tempZipFolder As String = Path.Combine(tempFolder, "ToZip")
-                        Directory.CreateDirectory(tempZipFolder)
+                    Dim sdCardDataURLElement As XmlElement = xmlDoc.CreateElement("SDCardDataURL")
+                    sdCardDataURLElement.InnerText = ""
+                    gameElement.AppendChild(sdCardDataURLElement)
 
-                        ' Copy bin and sp folders to the temp zip folder
-                        If Directory.Exists(binFolder) Then
-                            DirectoryCopy(binFolder, Path.Combine(tempZipFolder, "bin"), True)
-                        End If
-                        If Directory.Exists(spFolder) Then
-                            DirectoryCopy(spFolder, Path.Combine(tempZipFolder, "sp"), True)
-                        End If
+                    Dim emulatorElement As XmlElement = xmlDoc.CreateElement("Emulator")
+                    emulatorElement.InnerText = emulator
+                    gameElement.AppendChild(emulatorElement)
 
-                        ' Zip only the bin and sp folders
-                        ZipFile.CreateFromDirectory(tempZipFolder, outputZipPath)
+                    Dim variantsElement As XmlElement = xmlDoc.CreateElement("Variants")
+                    variantsElement.InnerText = String.Join(",", variants)
+                    gameElement.AppendChild(variantsElement)
 
-                        ' Clean up the temp zip folder
-                        Directory.Delete(tempZipFolder, True)
-
-                        ' Add entry to the XML file
-                        Dim root As XmlElement = xmlDoc.DocumentElement
-                        Dim gameElement As XmlElement = xmlDoc.CreateElement("Game")
-
-                        Dim enTitleElement As XmlElement = xmlDoc.CreateElement("ENTitle")
-                        enTitleElement.InnerText = parentFolder
-                        gameElement.AppendChild(enTitleElement)
-
-                        Dim jpTitleElement As XmlElement = xmlDoc.CreateElement("JPTitle")
-                        jpTitleElement.InnerText = appName
-                        gameElement.AppendChild(jpTitleElement)
-
-                        Dim zipNameElement As XmlElement = xmlDoc.CreateElement("ZIPName")
-                        zipNameElement.InnerText = newZipName
-                        gameElement.AppendChild(zipNameElement)
-
-                        Dim downloadUrlElement As XmlElement = xmlDoc.CreateElement("DownloadURL")
-                        downloadUrlElement.InnerText = $"https://s3.inferia.world/launcher/{newZipName}"
-                        gameElement.AppendChild(downloadUrlElement)
-
-                        Dim CustomAppIconURLElement As XmlElement = xmlDoc.CreateElement("CustomAppIconURL")
-                        CustomAppIconURLElement.InnerText = $""
-                        gameElement.AppendChild(CustomAppIconURLElement)
-
-                        Dim SDCardDataURLElement As XmlElement = xmlDoc.CreateElement("SDCardDataURL")
-                        SDCardDataURLElement.InnerText = $""
-                        gameElement.AppendChild(SDCardDataURLElement)
-
-                        Dim emulatorElement As XmlElement = xmlDoc.CreateElement("Emulator")
-                        emulatorElement.InnerText = Emulator
-                        gameElement.AppendChild(emulatorElement)
-
-                        root.AppendChild(gameElement)
-                    End If
-
-                    ' Clean up empty folders
-                    If Directory.Exists(binFolder) AndAlso Directory.GetFiles(binFolder).Length = 0 Then
-                        Directory.Delete(binFolder, True)
-                    End If
-
-                    If Directory.Exists(spFolder) AndAlso Directory.GetFiles(spFolder).Length = 0 Then
-                        Directory.Delete(spFolder, True)
-                    End If
+                    root.AppendChild(gameElement)
                 Next
 
             Catch ex As Exception
-                MessageBox.Show($"An error occurred while creating the ZIP or updating the XML:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show($"Error Creating ZIP: {ex}")
             End Try
 
             ' Save the updated XML file with Shift-JIS encoding
@@ -907,30 +810,147 @@ Namespace My.Managers
             Directory.Delete(tempFolder, True)
             MessageBox.Show("Completed XML Creation")
         End Sub
+        Private Function ProcessSingleVarient(folderPath As String, inputZipPath As String, tempFolder As String, ByRef emulator As String) As String
+            ' Locate .jam, .jar, and .sp files
+            Dim jamFile As String = Directory.GetFiles(folderPath, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
+            Dim jarFile As String = Directory.GetFiles(folderPath, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
+            Dim spFile As String = Directory.GetFiles(folderPath, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
+
+            ' Skip if no files are found
+            If String.IsNullOrEmpty(jarFile) Then Return Nothing
+
+            ' Extract emulator and app details from the .jam file
+            If Not String.IsNullOrEmpty(jamFile) Then
+                Dim jamLines As String() = File.ReadAllLines(jamFile, Encoding.GetEncoding("shift-jis"))
+                Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
+                If Not String.IsNullOrEmpty(appTypeLine) Then
+                    emulator = "star"
+                End If
+            End If
+
+            ' Create bin and sp folders
+            Dim binFolder As String = Path.Combine(tempFolder, "bin")
+            Dim spFolder As String = Path.Combine(tempFolder, "sp")
+            Directory.CreateDirectory(binFolder)
+            Directory.CreateDirectory(spFolder)
+
+            ' Move files to bin and sp folders
+            If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
+            If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
+            If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
+
+            ' Create the ZIP file
+            Dim zipFileName As String = Path.GetFileNameWithoutExtension(jarFile) & ".zip"
+            Dim outputZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), zipFileName)
+            If File.Exists(outputZipPath) Then File.Delete(outputZipPath)
+
+            Dim tempZipFolder As String = Path.Combine(tempFolder, "ToZip")
+            Directory.CreateDirectory(tempZipFolder)
+            DirectoryCopy(binFolder, Path.Combine(tempZipFolder, "bin"), True)
+            DirectoryCopy(spFolder, Path.Combine(tempZipFolder, "sp"), True)
+
+            ZipFile.CreateFromDirectory(tempZipFolder, outputZipPath)
+            Directory.Delete(tempZipFolder, True)
+            Directory.Delete(binFolder, True)
+            Directory.Delete(spFolder, True)
+            Return zipFileName
+        End Function
+        Private Function ProcessMultipleVarient(folderPath As String, RootFolderName As String, variants As List(Of String), inputZipPath As String, tempFolder As String, ByRef emulator As String) As String
+            Dim MasterJarName As String = ""
+            ' Setup DIRS
+            Dim combinedZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), RootFolderName & ".zip")
+            Dim tempCombinedZipFolder As String = Path.Combine(tempFolder, "CombinedZip")
+            Directory.CreateDirectory(tempCombinedZipFolder)
+
+            For Each VariantFolder In Directory.GetDirectories(folderPath)
+                Dim variantName As String = Path.GetFileName(VariantFolder).Replace(" ", "_")
+                Dim tempCombinedZipVariantFolder As String = Path.Combine(tempCombinedZipFolder, variantName)
+                Directory.CreateDirectory(tempCombinedZipVariantFolder)
+
+                ' Locate .jam, .jar, and .sp files
+                Dim jamFile As String = Directory.GetFiles(VariantFolder, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                Dim jarFile As String = Directory.GetFiles(VariantFolder, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                Dim spFile As String = Directory.GetFiles(VariantFolder, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                ' Skip if no files are found
+                If String.IsNullOrEmpty(jarFile) Then Return Nothing
+                MasterJarName = Path.GetFileNameWithoutExtension(jarFile)
+                ' Extract emulator and app details from the .jam file
+                If Not String.IsNullOrEmpty(jamFile) Then
+                    Dim jamLines As String() = File.ReadAllLines(jamFile, Encoding.GetEncoding("shift-jis"))
+                    Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
+                    If Not String.IsNullOrEmpty(appTypeLine) Then
+                        emulator = "star"
+                    End If
+                End If
+                ' Create bin and sp folders
+                Dim binFolder As String = Path.Combine(tempCombinedZipVariantFolder, "bin")
+                Dim spFolder As String = Path.Combine(tempCombinedZipVariantFolder, "sp")
+                Directory.CreateDirectory(binFolder)
+                Directory.CreateDirectory(spFolder)
+
+                ' Move files to bin and sp folders
+                If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
+                If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
+                If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
+            Next
+
+            ' Create the ZIP file
+            Dim zipFileName As String = Path.GetFileNameWithoutExtension(MasterJarName) & ".zip"
+            Dim outputZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), zipFileName)
+            If File.Exists(outputZipPath) Then File.Delete(outputZipPath)
+
+            ' Need to rename all files in the combinedzip to be the same
+            RenameFilesRecursively(tempCombinedZipFolder, Path.GetFileNameWithoutExtension(MasterJarName))
+
+            ' Create the final ZIP containing all variants
+            ZipFile.CreateFromDirectory(tempCombinedZipFolder, outputZipPath)
+            Directory.Delete(tempCombinedZipFolder, True)
+            zipFileName = Path.GetFileName(outputZipPath)
+            Return zipFileName
+        End Function
         Private Sub DirectoryCopy(sourceDirName As String, destDirName As String, copySubDirs As Boolean)
             Dim dir As DirectoryInfo = New DirectoryInfo(sourceDirName)
             Dim dirs As DirectoryInfo() = dir.GetDirectories()
-
-            If Not dir.Exists Then
-                Throw New DirectoryNotFoundException($"Source directory does not exist or could not be found: {sourceDirName}")
-            End If
 
             If Not Directory.Exists(destDirName) Then
                 Directory.CreateDirectory(destDirName)
             End If
 
-            Dim files As FileInfo() = dir.GetFiles()
-            For Each file As FileInfo In files
-                Dim tempPath As String = Path.Combine(destDirName, file.Name)
-                file.CopyTo(tempPath, False)
+            For Each file In dir.GetFiles()
+                file.CopyTo(Path.Combine(destDirName, file.Name), True)
             Next
 
             If copySubDirs Then
-                For Each subdir As DirectoryInfo In dirs
+                For Each subdir In dirs
                     Dim tempPath As String = Path.Combine(destDirName, subdir.Name)
                     DirectoryCopy(subdir.FullName, tempPath, copySubDirs)
                 Next
             End If
+        End Sub
+        Sub RenameFilesRecursively(ByVal directoryPath As String, newname As String)
+            Try
+                ' Loop through all files in the current directory
+                For Each filePath As String In Directory.GetFiles(directoryPath)
+                    Dim fileExtension As String = Path.GetExtension(filePath).ToLower()
+
+                    ' Check if the file extension matches .jar, .jam, or .sp
+                    If fileExtension = ".jar" OrElse fileExtension = ".jam" OrElse fileExtension = ".sp" Then
+                        ' Get the new file path with the same directory but renamed to test1
+                        Dim newFilePath As String = Path.Combine(Path.GetDirectoryName(filePath), newname & fileExtension)
+
+                        ' Rename the file
+                        File.Move(filePath, newFilePath)
+                    End If
+                Next
+
+                ' Recursively call this function for all subdirectories
+                For Each subDir As String In Directory.GetDirectories(directoryPath)
+                    RenameFilesRecursively(subDir, newname)
+                Next
+
+            Catch ex As Exception
+                Console.WriteLine("Error: " & ex.Message)
+            End Try
         End Sub
     End Class
 End Namespace

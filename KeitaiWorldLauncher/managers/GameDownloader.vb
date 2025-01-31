@@ -5,6 +5,7 @@ Imports System.Threading
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
 Imports System.Security.Policy
+Imports System.Text
 
 Namespace My.Managers
     Public Class GameDownloader
@@ -56,13 +57,13 @@ Namespace My.Managers
                     Try
                         'MessageBox.Show($"{SelectedGame.ENTitle} Needs SD Card Data, we will attempt to set it up automatically. The EMU will launch itself to process the data.")
                         If SelectedGame.Emulator.ToLower = "doja" Then
-                            ZipFile.ExtractToDirectory(SDCardDownloadFile, $"{Form1.Dojapath}\lib\storagedevice\ext0\SD_BIND", True)
-                            File.Delete(SDCardDownloadFile)
+                            ZipFile.ExtractToDirectory(SDCardDownloadFile, $"{Form1.Dojapath}\lib\storagedevice\ext0\SD_BIND", Encoding.GetEncoding(932), True)
                         ElseIf SelectedGame.Emulator.ToLower = "star" Then
-                            ZipFile.ExtractToDirectory(SDCardDownloadFile, $"{Form1.Starpath}\lib\storagedevice\ext0\SD_BIND", True)
-                            File.Delete(SDCardDownloadFile)
+                            ZipFile.ExtractToDirectory(SDCardDownloadFile, $"{Form1.Starpath}\lib\storagedevice\ext0\SD_BIND", Encoding.GetEncoding(932), True)
                         End If
+                        File.Delete(SDCardDownloadFile)
                     Catch ex As Exception
+                        logger.Logger.LogError($"Failed to Handle SD Card Data: {vbCrLf}{ex}")
                         MessageBox.Show($"Failed to Handle SD Card Data: {vbCrLf}{ex}")
                     End Try
                 Else

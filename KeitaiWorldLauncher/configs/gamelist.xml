@@ -8,5 +8,6 @@
     <CustomAppIconURL></CustomAppIconURL>
     <SDCardDataURL></SDCardDataURL>
     <Emulator>doja</Emulator>
+    <Variants></Variants>
   </Game>
 </Gamelist>
