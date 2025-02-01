@@ -1,4 +1,5 @@
-﻿Imports System.IO
+﻿Imports System.Formats.Tar
+Imports System.IO
 Imports System.Net.Security
 Imports System.Runtime.InteropServices
 Imports System.Text
@@ -14,6 +15,7 @@ Public Class Form1
     Dim configManager As New ConfigManager()
     Dim utilManager As New UtilManager
     Dim gameListManager As New GameListManager()
+    Dim gameManager As New GameManager()
     Dim machicharaListManager As New MachiCharaListManager()
     Dim zipManager As New ZipManager()
     Dim config As Dictionary(Of String, String)
@@ -57,42 +59,11 @@ Public Class Form1
     Private InitialDpiY As Single
 
     ' FORM LOAD
-    Protected Overrides Sub OnResize(e As EventArgs)
-        MyBase.OnResize(e)
-        AdjustControlScaling()
-    End Sub
-    Private Sub AdjustControlScaling()
-        Using g As Graphics = Me.CreateGraphics()
-            Dim currentDpiX As Single = g.DpiX
-            Dim currentDpiY As Single = g.DpiY
-
-            ' Only adjust controls if DPI has changed
-            If currentDpiX <> InitialDpiX Or currentDpiY <> InitialDpiY Then
-                Dim scaleFactorX As Single = currentDpiX / InitialDpiX
-                Dim scaleFactorY As Single = currentDpiY / InitialDpiY
-
-                For Each ctrl As Control In Me.Controls
-                    ctrl.Scale(New SizeF(scaleFactorX, scaleFactorY))
-                Next
-            End If
-        End Using
-    End Sub
     Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
         UtilManager.CheckAndCloseDoja()
         UtilManager.CheckAndCloseStar()
     End Sub
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' Setup DPIAware
-        SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
-        Me.AutoScaleMode = AutoScaleMode.Dpi
-        Me.Size = New Size(1143, 848)
-        Me.StartPosition = FormStartPosition.CenterScreen
-        ' Record the initial DPI
-        Using g As Graphics = Me.CreateGraphics()
-            InitialDpiX = g.DpiX
-            InitialDpiY = g.DpiY
-        End Using
-
         ' Setup SJIS 
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
 
@@ -616,6 +587,18 @@ Public Class Form1
         ' Return false if no match is found
         Return False
     End Function
+    Public Function VerifyEmulatorType(GameJAM As String)
+        ' Extract emulator details from the .jam file
+        If Not String.IsNullOrEmpty(GameJAM) Then
+            Dim jamLines As String() = File.ReadAllLines(GameJAM, Encoding.GetEncoding("shift-jis"))
+            Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
+            If Not String.IsNullOrEmpty(appTypeLine) Then
+                Return "star"
+            Else
+                Return "doja"
+            End If
+        End If
+    End Function
 
     ' LISTBOX/LISTVIEW CHANGES
     'Private Sub ListBoxGames_SelectedIndexChanged(sender As Object, e As EventArgs)
@@ -744,6 +727,7 @@ Public Class Form1
     'Launch Game
     Private Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         Try
+
             ' Ensure a game is selected
             If ListViewGames.SelectedItems.Count = 0 Then
                 MessageBox.Show("Please select a game before launching.")
@@ -771,20 +755,38 @@ Public Class Form1
                 Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
                 Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
 
-                Select Case selectedGame.Emulator.ToLower()
-                    Case "doja"
-                        Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
-                        If Not isDojaRunning Then
-                            utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
-                        End If
+                'Lets Ensure we got the right Emulator
+                Dim CorrectedEmulator = VerifyEmulatorType(CurrentSelectedGameJAM)
 
-                    Case "star"
-                        Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
-                        If Not isStarRunning Then
-                            utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
-                        End If
-                End Select
-            End If
+                'Get GameDirPath
+                Dim GameDirectory As String
+                Dim binIndex As Integer = CurrentSelectedGameJAM.LastIndexOf("\bin")
+                If binIndex <> -1 Then
+                    GameDirectory = CurrentSelectedGameJAM.Substring(0, binIndex)
+                Else
+                    Console.WriteLine("'\bin' not found in path.")
+                End If
+
+                'Check for Helper Scripts
+                If selectedGame.ENTitle.Contains("Dirge of Cerberus") Then
+                    gameManager.FF7_DOCLE_Setup(Dojapath, GameDirectory)
+                End If
+
+
+                Select Case CorrectedEmulator.ToLower()
+                        Case "doja"
+                            Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
+                            If Not isDojaRunning Then
+                                utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
+                            End If
+
+                        Case "star"
+                            Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
+                            If Not isStarRunning Then
+                                utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
+                            End If
+                    End Select
+                End If
         Catch ex As Exception
             Logger.LogError($"Error Launching Game:{vbCrLf}{ex}")
             MessageBox.Show($"Error Launching Game:{vbCrLf}{ex}")

@@ -299,7 +299,7 @@ Namespace My.Managers
                 Dim dojaExePath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DOJAEXELocation).Trim
                 Dim jamPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GameJAM).Trim
                 Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
-                Dim arguments As String = $"{guidArg} ""{dojaExePath}"" -i ""{jamPath}"""
+                Dim arguments As String = $"{guidArg} ""{dojaExePath}"" -i ""{jamPath}"" -s device1"
 
                 ' Update device settings based on user selections
                 If UpdateDOJADeviceSkin(DOJAPATH, Form1.chkbxHidePhoneUI.Checked) = False Then
@@ -307,7 +307,9 @@ Namespace My.Managers
                 End If
 
                 ' Update device screen size
-                If DOJAPATH.Contains("5.1") Then
+                Dim VerIndex As Integer = DOJAPATH.LastIndexOf("\iDKDoJa")
+                Dim DOJAVER As Integer = DOJAPATH.Substring(VerIndex + 8, 1)
+                If DOJAVER = 5 Then
                     Dim dimensions = ExtractDOJAWidthHeight(jamPath)
                     Dim width As Integer = dimensions.Item1
                     Dim height As Integer = dimensions.Item2
@@ -316,6 +318,14 @@ Namespace My.Managers
 
                 ' Update sound configuration
                 UpdateDOJASoundConf(DOJAPATH, Form1.cobxAudioType.SelectedItem.ToString())
+
+                'Update App Config
+                UpdateDOJAAppconfig(DOJAPATH, jamPath)
+                If DOJAVER <> 3 Then
+                    EnsureDOJAJamFileEntries(jamPath)
+                ElseIf DOJAVER = 3 Then
+                    RemoveDOJAJamFileEntries(jamPath)
+                End If
 
                 ' Set up process start info
                 Dim startInfo As New ProcessStartInfo With {
@@ -439,7 +449,7 @@ Namespace My.Managers
             End Try
         End Sub
         Public Sub LaunchShaderGlass(AppName As String)
-            Thread.Sleep(1000)
+            Thread.Sleep(1500)
             Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\ShaderGlass.exe"
             Dim arguments As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\keitai.sgp"
             ModifyCaptureWindow(arguments, AppName)
@@ -573,6 +583,90 @@ Namespace My.Managers
                 Console.WriteLine($"Error updating sound configuration: {ex.Message}")
             End Try
         End Sub
+        Public Sub UpdateDOJAAppconfig(DOJALOCATION As String, GAMEJAM As String)
+            Dim AppConfigFile = $"{DOJALOCATION}\AppSetting"
+            Dim AppConfigPROPFile = $"{DOJALOCATION}\AppSetting.properties"
+            Dim GameDirectory As String
+            Dim GameName = Path.GetFileNameWithoutExtension(GAMEJAM)
+            Dim binIndex As Integer = GAMEJAM.LastIndexOf("\bin")
+            If binIndex <> -1 Then
+                GameDirectory = GAMEJAM.Substring(0, binIndex)
+            Else
+                Console.WriteLine("'\bin' not found in path.")
+            End If
+
+            Dim VerIndex As Integer = DOJALOCATION.LastIndexOf("\iDKDoJa")
+            Dim DOJAVER As Integer = DOJALOCATION.Substring(VerIndex + 8, 1)
+
+            If DOJAVER = 3 Then
+                File.Copy(AppConfigFile, $"{GameDirectory}\{GameName}", True)
+                File.Copy(AppConfigPROPFile, $"{GameDirectory}\{GameName}.properties", True)
+            ElseIf DOJAVER = 5 Then
+                File.Copy(AppConfigFile, $"{GameDirectory}\{GameName}", True)
+                If File.Exists($"{GameDirectory}\{GameName}.properties") Then
+                    File.Delete($"{GameDirectory}\{GameName}.properties")
+                End If
+            End If
+        End Sub
+        Public Sub EnsureDOJAJamFileEntries(GAMEJAM As String)
+            ' Ensure the file exists
+            If Not File.Exists(GAMEJAM) Then
+                Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
+            End If
+
+            ' Read the file contents using Shift-JIS encoding
+            Dim lines As List(Of String) = File.ReadAllLines(GAMEJAM, Encoding.GetEncoding("shift-jis")).ToList()
+            Dim modified As Boolean = False
+
+            ' Define the required entries
+            Dim requiredEntries As New Dictionary(Of String, String) From {
+        {"TrustedAPID", "00000000000"},
+        {"MessageCode", "0000000000"}
+    }
+
+            ' Check and add missing entries
+            For Each entry In requiredEntries
+                If Not lines.Any(Function(line) line.StartsWith(entry.Key & " = ")) Then
+                    lines.Add(entry.Key & " = " & entry.Value)
+                    modified = True
+                End If
+            Next
+
+            ' Write back to the file if modifications were made
+            If modified Then
+                File.WriteAllLines(GAMEJAM, lines, Encoding.GetEncoding("shift-jis"))
+            End If
+        End Sub
+        Public Sub RemoveDOJAJamFileEntries(GAMEJAM As String)
+            ' Ensure the file exists
+            If Not File.Exists(GAMEJAM) Then
+                Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
+            End If
+
+            ' Read the file contents using Shift-JIS encoding
+            Dim lines As List(Of String) = File.ReadAllLines(GAMEJAM, Encoding.GetEncoding("shift-jis")).ToList()
+            Dim modified As Boolean = False
+
+            ' Define the entries to be removed
+            Dim entriesToRemove As List(Of String) = New List(Of String) From {
+        "TrustedAPID =",
+        "MessageCode ="
+    }
+
+            ' Remove lines that start with the specified keys
+            lines = lines.Where(Function(line) Not entriesToRemove.Any(Function(entry) line.StartsWith(entry))).ToList()
+
+            ' Check if any lines were removed
+            If lines.Count <> File.ReadAllLines(GAMEJAM, Encoding.GetEncoding("shift-jis")).Length Then
+                modified = True
+            End If
+
+            ' Write back to the file if modifications were made
+            If modified Then
+                File.WriteAllLines(GAMEJAM, lines, Encoding.GetEncoding("shift-jis"))
+            End If
+        End Sub
+
 
         'STAR EXTRAS
         Public Function UpdateSTARDeviceSkin(STARLOCATION As String, hideUI As Boolean)
@@ -671,7 +765,7 @@ Namespace My.Managers
             Dim AppConfigFCFile = $"{STARLOCATION}\AppSetting.fc"
             Dim GameDirectory As String
             Dim GameName = Path.GetFileNameWithoutExtension(GAMEJAM)
-            Dim binIndex As Integer = GAMEJAM.IndexOf("\bin")
+            Dim binIndex As Integer = GAMEJAM.LastIndexOf("\bin")
             If binIndex <> -1 Then
                 GameDirectory = GAMEJAM.Substring(0, binIndex)
             Else
@@ -682,12 +776,8 @@ Namespace My.Managers
                 MessageBox.Show("Missing STAR AppSettingsFiles")
                 Exit Sub
             Else
-                If File.Exists($"{GameDirectory}\{GameName}") = False Then
-                    File.Copy(AppConfigFile, $"{GameDirectory}\{GameName}")
-                End If
-                If File.Exists($"{GameDirectory}\{GameName}.fc") = False Then
-                    File.Copy(AppConfigFCFile, $"{GameDirectory}\{GameName}.fc")
-                End If
+                File.Copy(AppConfigFile, $"{GameDirectory}\{GameName}", True)
+                File.Copy(AppConfigFCFile, $"{GameDirectory}\{GameName}.fc", True)
             End If
         End Sub
         Public Sub EnsureSTARJamFileEntries(GAMEJAM As String)
