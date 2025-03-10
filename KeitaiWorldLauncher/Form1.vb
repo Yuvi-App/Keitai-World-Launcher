@@ -77,6 +77,7 @@ Public Class Form1
         ' Check PreREQs
         Logger.LogInfo("Starting PreReq Check")
         UtilManager.CheckforPreReq()
+        Logger.LogInfo("PreReq All Good")
 
         ' Load Config
         config = configManager.LoadConfig()

@@ -11,6 +11,7 @@ Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Models
+Imports Microsoft.Win32
 
 Namespace My.Managers
     Public Class UtilManager
@@ -31,20 +32,101 @@ Namespace My.Managers
 
         'PreReq Checks
         Shared Sub CheckforPreReq()
-            Dim DOJAEmulator = "data\tools\iDKDoJa5.1\bin\doja.exe"
-            Dim localeEmu = "data\tools\locale_emulator\LEProc.exe"
+            Dim DOJAEmulator = Form1.DojaEXE
+            Dim StarEmulator = Form1.StarEXE
+            Dim localeEmuLoc = "data\tools\locale_emulator\LEProc.exe"
+            Dim ShaderGlassLoc = "data\tools\shaderglass\ShaderGlass.exe"
 
 
             'Check for DOJA
+            My.logger.Logger.LogInfo("Checking for DOJA Emu")
             If File.Exists(DOJAEmulator) = False Then
-                MessageBox.Show("Missing DOJA Emulator... Download is required")
+                MessageBox.Show($"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator needs to be located at {DOJAEmulator}")
+                OpenURL("https://archive.org/details/iappli-tool-dev-tools")
+            End If
+
+            'Check for STAR
+            My.logger.Logger.LogInfo("Checking for STAR Emu")
+            If File.Exists(StarEmulator) = False Then
+                MessageBox.Show($"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator needs to be located at {StarEmulator}")
+                OpenURL("https://archive.org/details/iappli-tool-dev-tools")
             End If
 
             'Check for LEProc
-            If File.Exists(localeEmu) = False Then
-                MessageBox.Show("Missing Locale Emulator... Download is required")
+            My.logger.Logger.LogInfo("Checking for LEPROC")
+            If File.Exists(localeEmuLoc) = False Then
+                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu needs to be located at {localeEmuLoc}")
+                OpenURL("https://github.com/xupefei/Locale-Emulator/releases")
             End If
+
+            'Check for ShaderGlass
+            My.logger.Logger.LogInfo("Checking for ShaderGlass")
+            If File.Exists(ShaderGlassLoc) = False Then
+                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}ShaderGlass needs to be located at {ShaderGlassLoc}")
+                OpenURL("https://github.com/mausimus/ShaderGlass/releases")
+            End If
+
+            'Check for Java 8 
+            My.logger.Logger.LogInfo("Checking for Java 8")
+            If IsJava8Update152Installed() = False Then
+                MessageBox.Show("Missing JAVA 8... Download is required")
+                OpenURL("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
+            End If
+
+            'Check for Visual C++ Runtimes.
+            My.logger.Logger.LogInfo("Checking for C++ Runtimes")
+            If IsVCRuntime2022Installed() = False Then
+                MessageBox.Show("Unable to Detect C++ Runtimes... To ensure comptability, we recommend you install this Runtime AIO Package.")
+                OpenURL("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
+            End If
+
         End Sub
+        Shared Function IsJava8Update152Installed() As Boolean
+            Dim javaVersions As String() = {
+        "SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_152",
+        "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8.0_152"
+    }
+
+            For Each regPath In javaVersions
+                Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                    If key IsNot Nothing Then
+                        Return True ' Java 8 Update 152 is installed
+                    End If
+                End Using
+            Next
+
+            Return False ' Java 8 Update 152 is not installed
+        End Function
+        Shared Function IsVCRuntime2022Installed() As Boolean
+            Dim vcPaths As String() = {
+        "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64", ' 64-bit
+        "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86"  ' 32-bit
+    }
+
+            For Each regPath In vcPaths
+                Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                    If key IsNot Nothing Then
+                        Dim installed As Object = key.GetValue("Installed")
+                        If installed IsNot Nothing AndAlso installed.ToString() = "1" Then
+                            Return True ' VC++ Runtime 2022 is installed
+                        End If
+                    End If
+                End Using
+            Next
+
+            Return False ' VC++ Runtime 2022 is NOT installed
+        End Function
+        Shared Sub OpenURL(url As String)
+            Try
+                Process.Start(New ProcessStartInfo With {
+            .FileName = url,
+            .UseShellExecute = True
+        })
+            Catch ex As Exception
+                MessageBox.Show("Failed to open the URL: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+
 
         'Check for APP Updates
         Shared Sub CheckForUpdates(latestVersionUrl As String)
