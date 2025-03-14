@@ -74,11 +74,6 @@ Public Class Form1
         Logger.InitializeLogger()
         Logger.LogInfo("Application started.")
 
-        ' Check PreREQs
-        Logger.LogInfo("Starting PreReq Check")
-        UtilManager.CheckforPreReq()
-        Logger.LogInfo("PreReq All Good")
-
         ' Load Config
         config = configManager.LoadConfig()
 
@@ -100,6 +95,11 @@ Public Class Form1
         StarEXE = config("STAREXEPath")
         MachiCharapath = config("MachiCharaPath")
         MachiCharaExe = config("MachiCharaEXEPath")
+
+        ' Check PreREQs
+        Logger.LogInfo("Starting PreReq Check")
+        UtilManager.CheckforPreReq()
+        Logger.LogInfo("PreReq All Good")
 
         ' Check for App update
         Logger.LogInfo("Getting App Update")
@@ -693,6 +693,13 @@ Public Class Form1
         Dim selectedDojaSDK As String = cbxDojaSDK.SelectedItem.ToString()
         Dojapath = Path.Combine(ToolsFolder, selectedDojaSDK)
         DojaEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "bin", "doja.exe")
+
+        If cbxDojaSDK.SelectedItem.ToString().Contains("3.5") Then
+            If chkbxShaderGlass.Checked = True Then
+                MessageBox.Show("Doja 3.5 does not work with ShaderGlass Disabling.")
+                chkbxShaderGlass.Checked = False
+            End If
+        End If
     End Sub
 
     'Textbox Changes
