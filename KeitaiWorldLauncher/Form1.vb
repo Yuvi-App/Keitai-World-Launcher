@@ -643,7 +643,7 @@ Public Class Form1
 
         ' Process each folder name
         For Each gameFolderName In customGameFolders
-            Dim gameFolderPath As String = Path.Combine(downloadsFolder, gameFolderName)
+            Dim gameFolderPath As String = Path.Combine(DownloadsFolder, gameFolderName)
 
             ' Check if the folder exists
             If Directory.Exists(gameFolderPath) Then

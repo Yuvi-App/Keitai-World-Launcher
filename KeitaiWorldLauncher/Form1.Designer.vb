@@ -78,6 +78,7 @@ Partial Class Form1
         FolderBrowserDialog1 = New FolderBrowserDialog()
         GroupBox1.SuspendLayout()
         cmsGameLV.SuspendLayout()
+        gbxGameInfo.SuspendLayout()
         TabControl1.SuspendLayout()
         tpGames.SuspendLayout()
         tpMachiChara.SuspendLayout()
@@ -93,11 +94,12 @@ Partial Class Form1
         GroupBox1.Controls.Add(txtLVSearch)
         GroupBox1.Controls.Add(ListViewGames)
         GroupBox1.Controls.Add(lblTotalGameCount)
+        GroupBox1.FlatStyle = FlatStyle.Flat
         GroupBox1.Location = New Point(5, 4)
         GroupBox1.Margin = New Padding(2)
         GroupBox1.Name = "GroupBox1"
         GroupBox1.Padding = New Padding(2)
-        GroupBox1.Size = New Size(319, 534)
+        GroupBox1.Size = New Size(319, 542)
         GroupBox1.TabIndex = 0
         GroupBox1.TabStop = False
         GroupBox1.Text = "Available Games"
@@ -105,10 +107,10 @@ Partial Class Form1
         ' ListViewGamesVariants
         ' 
         ListViewGamesVariants.LargeImageList = ImageListGames
-        ListViewGamesVariants.Location = New Point(5, 393)
+        ListViewGamesVariants.Location = New Point(5, 406)
         ListViewGamesVariants.Margin = New Padding(2)
         ListViewGamesVariants.Name = "ListViewGamesVariants"
-        ListViewGamesVariants.Size = New Size(310, 120)
+        ListViewGamesVariants.Size = New Size(310, 117)
         ListViewGamesVariants.TabIndex = 10
         ListViewGamesVariants.UseCompatibleStateImageBehavior = False
         ListViewGamesVariants.View = View.SmallIcon
@@ -121,6 +123,7 @@ Partial Class Form1
         ' 
         ' cbxFilterType
         ' 
+        cbxFilterType.FlatStyle = FlatStyle.Flat
         cbxFilterType.FormattingEnabled = True
         cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Doja", "Star"})
         cbxFilterType.Location = New Point(236, 20)
@@ -131,17 +134,18 @@ Partial Class Form1
         ' 
         ' Label2
         ' 
-        Label2.AutoSize = True
-        Label2.Location = New Point(8, 23)
+        Label2.FlatStyle = FlatStyle.Flat
+        Label2.Location = New Point(9, 20)
         Label2.Margin = New Padding(2, 0, 2, 0)
         Label2.Name = "Label2"
-        Label2.Size = New Size(45, 15)
+        Label2.Size = New Size(45, 23)
         Label2.TabIndex = 8
         Label2.Text = "Search:"
+        Label2.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' txtLVSearch
         ' 
-        txtLVSearch.Location = New Point(58, 22)
+        txtLVSearch.Location = New Point(58, 20)
         txtLVSearch.Margin = New Padding(2)
         txtLVSearch.Name = "txtLVSearch"
         txtLVSearch.Size = New Size(174, 23)
@@ -154,7 +158,7 @@ Partial Class Form1
         ListViewGames.Location = New Point(5, 47)
         ListViewGames.Margin = New Padding(2)
         ListViewGames.Name = "ListViewGames"
-        ListViewGames.Size = New Size(310, 341)
+        ListViewGames.Size = New Size(310, 355)
         ListViewGames.TabIndex = 6
         ListViewGames.UseCompatibleStateImageBehavior = False
         ListViewGames.View = View.Details
@@ -193,7 +197,8 @@ Partial Class Form1
         ' lblTotalGameCount
         ' 
         lblTotalGameCount.AutoSize = True
-        lblTotalGameCount.Location = New Point(5, 515)
+        lblTotalGameCount.FlatStyle = FlatStyle.Flat
+        lblTotalGameCount.Location = New Point(4, 525)
         lblTotalGameCount.Margin = New Padding(2, 0, 2, 0)
         lblTotalGameCount.Name = "lblTotalGameCount"
         lblTotalGameCount.Size = New Size(45, 15)
@@ -202,15 +207,17 @@ Partial Class Form1
         ' 
         ' pbGameDL
         ' 
-        pbGameDL.Location = New Point(13, 606)
+        pbGameDL.Location = New Point(4, 443)
         pbGameDL.Margin = New Padding(2)
         pbGameDL.Name = "pbGameDL"
-        pbGameDL.Size = New Size(876, 23)
+        pbGameDL.Size = New Size(534, 23)
         pbGameDL.TabIndex = 1
         pbGameDL.Visible = False
         ' 
         ' gbxGameInfo
         ' 
+        gbxGameInfo.Controls.Add(pbGameDL)
+        gbxGameInfo.FlatStyle = FlatStyle.Flat
         gbxGameInfo.Location = New Point(329, 4)
         gbxGameInfo.Margin = New Padding(2)
         gbxGameInfo.Name = "gbxGameInfo"
@@ -223,6 +230,8 @@ Partial Class Form1
         ' btnLaunchGame
         ' 
         btnLaunchGame.Enabled = False
+        btnLaunchGame.FlatStyle = FlatStyle.Flat
+        btnLaunchGame.Font = New Font("Segoe UI", 9F)
         btnLaunchGame.Location = New Point(329, 490)
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
@@ -235,12 +244,14 @@ Partial Class Form1
         ' 
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.Enabled = False
+        chkbxHidePhoneUI.FlatStyle = FlatStyle.Flat
+        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9F)
         chkbxHidePhoneUI.Location = New Point(443, 490)
         chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
-        chkbxHidePhoneUI.Size = New Size(102, 19)
+        chkbxHidePhoneUI.Size = New Size(99, 19)
         chkbxHidePhoneUI.TabIndex = 3
-        chkbxHidePhoneUI.Text = "Hide phone UI"
+        chkbxHidePhoneUI.Text = "Hide Phone UI"
         chkbxHidePhoneUI.UseVisualStyleBackColor = True
         ' 
         ' TabControl1
@@ -278,26 +289,32 @@ Partial Class Form1
         ' 
         ' Label4
         ' 
-        Label4.AutoSize = True
-        Label4.Location = New Point(728, 526)
+        Label4.FlatStyle = FlatStyle.Flat
+        Label4.Font = New Font("Segoe UI", 9F)
+        Label4.Location = New Point(728, 523)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
-        Label4.Size = New Size(51, 15)
+        Label4.Size = New Size(51, 23)
         Label4.TabIndex = 10
         Label4.Text = "Star SDK"
+        Label4.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Label3
         ' 
-        Label3.AutoSize = True
-        Label3.Location = New Point(723, 496)
+        Label3.FlatStyle = FlatStyle.Flat
+        Label3.Font = New Font("Segoe UI", 9F)
+        Label3.Location = New Point(723, 494)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
-        Label3.Size = New Size(55, 15)
+        Label3.Size = New Size(55, 23)
         Label3.TabIndex = 9
         Label3.Text = "Doja SDK"
+        Label3.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' cbxStarSDK
         ' 
+        cbxStarSDK.FlatStyle = FlatStyle.Flat
+        cbxStarSDK.Font = New Font("Segoe UI", 9F)
         cbxStarSDK.FormattingEnabled = True
         cbxStarSDK.Location = New Point(786, 523)
         cbxStarSDK.Margin = New Padding(2)
@@ -307,6 +324,8 @@ Partial Class Form1
         ' 
         ' cbxDojaSDK
         ' 
+        cbxDojaSDK.FlatStyle = FlatStyle.Flat
+        cbxDojaSDK.Font = New Font("Segoe UI", 9F)
         cbxDojaSDK.FormattingEnabled = True
         cbxDojaSDK.Location = New Point(786, 494)
         cbxDojaSDK.Margin = New Padding(2)
@@ -318,30 +337,36 @@ Partial Class Form1
         ' 
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
-        chkbxShaderGlass.Location = New Point(550, 490)
+        chkbxShaderGlass.FlatStyle = FlatStyle.Flat
+        chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
+        chkbxShaderGlass.Location = New Point(443, 509)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
-        chkbxShaderGlass.Size = New Size(89, 19)
+        chkbxShaderGlass.Size = New Size(86, 19)
         chkbxShaderGlass.TabIndex = 6
         chkbxShaderGlass.Text = "ShaderGlass"
         chkbxShaderGlass.UseVisualStyleBackColor = True
         ' 
         ' Label1
         ' 
-        Label1.AutoSize = True
-        Label1.Location = New Point(443, 527)
+        Label1.FlatStyle = FlatStyle.Flat
+        Label1.Font = New Font("Segoe UI", 9F)
+        Label1.Location = New Point(561, 494)
         Label1.Margin = New Padding(2, 0, 2, 0)
         Label1.Name = "Label1"
-        Label1.Size = New Size(67, 15)
+        Label1.Size = New Size(67, 23)
         Label1.TabIndex = 5
         Label1.Text = "Audio Type"
+        Label1.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' cobxAudioType
         ' 
         cobxAudioType.Enabled = False
+        cobxAudioType.FlatStyle = FlatStyle.Flat
+        cobxAudioType.Font = New Font("Segoe UI", 9F)
         cobxAudioType.FormattingEnabled = True
         cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
-        cobxAudioType.Location = New Point(515, 523)
+        cobxAudioType.Location = New Point(632, 494)
         cobxAudioType.Margin = New Padding(2)
         cobxAudioType.Name = "cobxAudioType"
         cobxAudioType.Size = New Size(74, 23)
@@ -525,7 +550,7 @@ Partial Class Form1
         ' AboutToolStripMenuItem
         ' 
         AboutToolStripMenuItem.Name = "AboutToolStripMenuItem"
-        AboutToolStripMenuItem.Size = New Size(107, 22)
+        AboutToolStripMenuItem.Size = New Size(180, 22)
         AboutToolStripMenuItem.Text = "About"
         ' 
         ' OpenFileDialog1
@@ -540,8 +565,7 @@ Partial Class Form1
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
         AutoScaleMode = AutoScaleMode.Dpi
-        ClientSize = New Size(900, 641)
-        Controls.Add(pbGameDL)
+        ClientSize = New Size(900, 605)
         Controls.Add(TabControl1)
         Controls.Add(MenuStrip1)
         MainMenuStrip = MenuStrip1
@@ -552,6 +576,7 @@ Partial Class Form1
         GroupBox1.ResumeLayout(False)
         GroupBox1.PerformLayout()
         cmsGameLV.ResumeLayout(False)
+        gbxGameInfo.ResumeLayout(False)
         TabControl1.ResumeLayout(False)
         tpGames.ResumeLayout(False)
         tpGames.PerformLayout()
