@@ -59,8 +59,9 @@ Partial Class Form1
         ExitToolStripMenuItem = New ToolStripMenuItem()
         ConfigToolStripMenuItem1 = New ToolStripMenuItem()
         KeyConfiguratorToolStripMenuItem = New ToolStripMenuItem()
-        AppConfigToolStripMenuItem = New ToolStripMenuItem()
         ShaderGlassConfigToolStripMenuItem = New ToolStripMenuItem()
+        AppConfigToolStripMenuItem = New ToolStripMenuItem()
+        NetworkUIDConfigToolStripMenuItem = New ToolStripMenuItem()
         ToolsToolStripMenuItem = New ToolStripMenuItem()
         BatchDownloadToolStripMenuItem = New ToolStripMenuItem()
         GamesToolStripMenuItem = New ToolStripMenuItem()
@@ -69,10 +70,12 @@ Partial Class Form1
         GamelistToolStripMenuItem = New ToolStripMenuItem()
         XMLUpdateToolStripMenuItem = New ToolStripMenuItem()
         AddGameToolStripMenuItem = New ToolStripMenuItem()
+        AddGamesToolStripMenuItem = New ToolStripMenuItem()
         HelpToolStripMenuItem = New ToolStripMenuItem()
         AboutToolStripMenuItem = New ToolStripMenuItem()
         OpenFileDialog1 = New OpenFileDialog()
         selectionTimer = New Timer(components)
+        FolderBrowserDialog1 = New FolderBrowserDialog()
         GroupBox1.SuspendLayout()
         cmsGameLV.SuspendLayout()
         TabControl1.SuspendLayout()
@@ -91,9 +94,9 @@ Partial Class Form1
         GroupBox1.Controls.Add(ListViewGames)
         GroupBox1.Controls.Add(lblTotalGameCount)
         GroupBox1.Location = New Point(5, 4)
-        GroupBox1.Margin = New Padding(2, 2, 2, 2)
+        GroupBox1.Margin = New Padding(2)
         GroupBox1.Name = "GroupBox1"
-        GroupBox1.Padding = New Padding(2, 2, 2, 2)
+        GroupBox1.Padding = New Padding(2)
         GroupBox1.Size = New Size(319, 534)
         GroupBox1.TabIndex = 0
         GroupBox1.TabStop = False
@@ -103,7 +106,7 @@ Partial Class Form1
         ' 
         ListViewGamesVariants.LargeImageList = ImageListGames
         ListViewGamesVariants.Location = New Point(5, 393)
-        ListViewGamesVariants.Margin = New Padding(2, 2, 2, 2)
+        ListViewGamesVariants.Margin = New Padding(2)
         ListViewGamesVariants.Name = "ListViewGamesVariants"
         ListViewGamesVariants.Size = New Size(310, 120)
         ListViewGamesVariants.TabIndex = 10
@@ -119,9 +122,9 @@ Partial Class Form1
         ' cbxFilterType
         ' 
         cbxFilterType.FormattingEnabled = True
-        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Doja", "Star"})
+        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Doja", "Star"})
         cbxFilterType.Location = New Point(236, 20)
-        cbxFilterType.Margin = New Padding(2, 2, 2, 2)
+        cbxFilterType.Margin = New Padding(2)
         cbxFilterType.Name = "cbxFilterType"
         cbxFilterType.Size = New Size(79, 23)
         cbxFilterType.TabIndex = 9
@@ -139,7 +142,7 @@ Partial Class Form1
         ' txtLVSearch
         ' 
         txtLVSearch.Location = New Point(58, 22)
-        txtLVSearch.Margin = New Padding(2, 2, 2, 2)
+        txtLVSearch.Margin = New Padding(2)
         txtLVSearch.Name = "txtLVSearch"
         txtLVSearch.Size = New Size(174, 23)
         txtLVSearch.TabIndex = 7
@@ -149,7 +152,7 @@ Partial Class Form1
         ListViewGames.ContextMenuStrip = cmsGameLV
         ListViewGames.LargeImageList = ImageListGames
         ListViewGames.Location = New Point(5, 47)
-        ListViewGames.Margin = New Padding(2, 2, 2, 2)
+        ListViewGames.Margin = New Padding(2)
         ListViewGames.Name = "ListViewGames"
         ListViewGames.Size = New Size(310, 341)
         ListViewGames.TabIndex = 6
@@ -200,7 +203,7 @@ Partial Class Form1
         ' pbGameDL
         ' 
         pbGameDL.Location = New Point(13, 606)
-        pbGameDL.Margin = New Padding(2, 2, 2, 2)
+        pbGameDL.Margin = New Padding(2)
         pbGameDL.Name = "pbGameDL"
         pbGameDL.Size = New Size(876, 23)
         pbGameDL.TabIndex = 1
@@ -209,9 +212,9 @@ Partial Class Form1
         ' gbxGameInfo
         ' 
         gbxGameInfo.Location = New Point(329, 4)
-        gbxGameInfo.Margin = New Padding(2, 2, 2, 2)
+        gbxGameInfo.Margin = New Padding(2)
         gbxGameInfo.Name = "gbxGameInfo"
-        gbxGameInfo.Padding = New Padding(2, 2, 2, 2)
+        gbxGameInfo.Padding = New Padding(2)
         gbxGameInfo.Size = New Size(542, 481)
         gbxGameInfo.TabIndex = 1
         gbxGameInfo.TabStop = False
@@ -221,7 +224,7 @@ Partial Class Form1
         ' 
         btnLaunchGame.Enabled = False
         btnLaunchGame.Location = New Point(329, 490)
-        btnLaunchGame.Margin = New Padding(2, 2, 2, 2)
+        btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
         btnLaunchGame.Size = New Size(110, 54)
         btnLaunchGame.TabIndex = 2
@@ -233,7 +236,7 @@ Partial Class Form1
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.Enabled = False
         chkbxHidePhoneUI.Location = New Point(443, 490)
-        chkbxHidePhoneUI.Margin = New Padding(2, 2, 2, 2)
+        chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
         chkbxHidePhoneUI.Size = New Size(102, 19)
         chkbxHidePhoneUI.TabIndex = 3
@@ -245,7 +248,7 @@ Partial Class Form1
         TabControl1.Controls.Add(tpGames)
         TabControl1.Controls.Add(tpMachiChara)
         TabControl1.Location = New Point(9, 25)
-        TabControl1.Margin = New Padding(2, 2, 2, 2)
+        TabControl1.Margin = New Padding(2)
         TabControl1.Name = "TabControl1"
         TabControl1.SelectedIndex = 0
         TabControl1.Size = New Size(882, 577)
@@ -266,9 +269,9 @@ Partial Class Form1
         tpGames.Controls.Add(gbxGameInfo)
         tpGames.Controls.Add(btnLaunchGame)
         tpGames.Location = New Point(4, 24)
-        tpGames.Margin = New Padding(2, 2, 2, 2)
+        tpGames.Margin = New Padding(2)
         tpGames.Name = "tpGames"
-        tpGames.Padding = New Padding(2, 2, 2, 2)
+        tpGames.Padding = New Padding(2)
         tpGames.Size = New Size(874, 549)
         tpGames.TabIndex = 0
         tpGames.Text = "Games"
@@ -297,7 +300,7 @@ Partial Class Form1
         ' 
         cbxStarSDK.FormattingEnabled = True
         cbxStarSDK.Location = New Point(786, 523)
-        cbxStarSDK.Margin = New Padding(2, 2, 2, 2)
+        cbxStarSDK.Margin = New Padding(2)
         cbxStarSDK.Name = "cbxStarSDK"
         cbxStarSDK.Size = New Size(85, 23)
         cbxStarSDK.TabIndex = 8
@@ -306,7 +309,7 @@ Partial Class Form1
         ' 
         cbxDojaSDK.FormattingEnabled = True
         cbxDojaSDK.Location = New Point(786, 494)
-        cbxDojaSDK.Margin = New Padding(2, 2, 2, 2)
+        cbxDojaSDK.Margin = New Padding(2)
         cbxDojaSDK.Name = "cbxDojaSDK"
         cbxDojaSDK.Size = New Size(85, 23)
         cbxDojaSDK.TabIndex = 7
@@ -316,7 +319,7 @@ Partial Class Form1
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.Location = New Point(550, 490)
-        chkbxShaderGlass.Margin = New Padding(2, 2, 2, 2)
+        chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
         chkbxShaderGlass.Size = New Size(89, 19)
         chkbxShaderGlass.TabIndex = 6
@@ -339,7 +342,7 @@ Partial Class Form1
         cobxAudioType.FormattingEnabled = True
         cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
         cobxAudioType.Location = New Point(515, 523)
-        cobxAudioType.Margin = New Padding(2, 2, 2, 2)
+        cobxAudioType.Margin = New Padding(2)
         cobxAudioType.Name = "cobxAudioType"
         cobxAudioType.Size = New Size(74, 23)
         cobxAudioType.TabIndex = 4
@@ -350,9 +353,9 @@ Partial Class Form1
         tpMachiChara.Controls.Add(btnMachiCharaLaunch)
         tpMachiChara.Controls.Add(GroupBox2)
         tpMachiChara.Location = New Point(4, 24)
-        tpMachiChara.Margin = New Padding(2, 2, 2, 2)
+        tpMachiChara.Margin = New Padding(2)
         tpMachiChara.Name = "tpMachiChara"
-        tpMachiChara.Padding = New Padding(2, 2, 2, 2)
+        tpMachiChara.Padding = New Padding(2)
         tpMachiChara.Size = New Size(874, 549)
         tpMachiChara.TabIndex = 1
         tpMachiChara.Text = "Machi Chara"
@@ -361,7 +364,7 @@ Partial Class Form1
         ' 
         btnMachiCharaLaunch.Enabled = False
         btnMachiCharaLaunch.Location = New Point(254, 30)
-        btnMachiCharaLaunch.Margin = New Padding(2, 2, 2, 2)
+        btnMachiCharaLaunch.Margin = New Padding(2)
         btnMachiCharaLaunch.Name = "btnMachiCharaLaunch"
         btnMachiCharaLaunch.Size = New Size(110, 54)
         btnMachiCharaLaunch.TabIndex = 3
@@ -372,9 +375,9 @@ Partial Class Form1
         ' 
         GroupBox2.Controls.Add(lbxMachiCharaList)
         GroupBox2.Location = New Point(9, 10)
-        GroupBox2.Margin = New Padding(2, 2, 2, 2)
+        GroupBox2.Margin = New Padding(2)
         GroupBox2.Name = "GroupBox2"
-        GroupBox2.Padding = New Padding(2, 2, 2, 2)
+        GroupBox2.Padding = New Padding(2)
         GroupBox2.Size = New Size(239, 486)
         GroupBox2.TabIndex = 1
         GroupBox2.TabStop = False
@@ -385,7 +388,7 @@ Partial Class Form1
         lbxMachiCharaList.FormattingEnabled = True
         lbxMachiCharaList.ItemHeight = 15
         lbxMachiCharaList.Location = New Point(5, 22)
-        lbxMachiCharaList.Margin = New Padding(2, 2, 2, 2)
+        lbxMachiCharaList.Margin = New Padding(2)
         lbxMachiCharaList.Name = "lbxMachiCharaList"
         lbxMachiCharaList.Size = New Size(230, 439)
         lbxMachiCharaList.TabIndex = 0
@@ -422,7 +425,7 @@ Partial Class Form1
         ' 
         ' ConfigToolStripMenuItem1
         ' 
-        ConfigToolStripMenuItem1.DropDownItems.AddRange(New ToolStripItem() {KeyConfiguratorToolStripMenuItem, AppConfigToolStripMenuItem, ShaderGlassConfigToolStripMenuItem})
+        ConfigToolStripMenuItem1.DropDownItems.AddRange(New ToolStripItem() {KeyConfiguratorToolStripMenuItem, ShaderGlassConfigToolStripMenuItem, AppConfigToolStripMenuItem, NetworkUIDConfigToolStripMenuItem})
         ConfigToolStripMenuItem1.Name = "ConfigToolStripMenuItem1"
         ConfigToolStripMenuItem1.Size = New Size(55, 20)
         ConfigToolStripMenuItem1.Text = "Config"
@@ -433,21 +436,27 @@ Partial Class Form1
         KeyConfiguratorToolStripMenuItem.Size = New Size(190, 22)
         KeyConfiguratorToolStripMenuItem.Text = "Key2Pad Configurator"
         ' 
-        ' AppConfigToolStripMenuItem
-        ' 
-        AppConfigToolStripMenuItem.Name = "AppConfigToolStripMenuItem"
-        AppConfigToolStripMenuItem.Size = New Size(190, 22)
-        AppConfigToolStripMenuItem.Text = "Application Config"
-        ' 
         ' ShaderGlassConfigToolStripMenuItem
         ' 
         ShaderGlassConfigToolStripMenuItem.Name = "ShaderGlassConfigToolStripMenuItem"
         ShaderGlassConfigToolStripMenuItem.Size = New Size(190, 22)
         ShaderGlassConfigToolStripMenuItem.Text = "ShaderGlass Config"
         ' 
+        ' AppConfigToolStripMenuItem
+        ' 
+        AppConfigToolStripMenuItem.Name = "AppConfigToolStripMenuItem"
+        AppConfigToolStripMenuItem.Size = New Size(190, 22)
+        AppConfigToolStripMenuItem.Text = "Application Config"
+        ' 
+        ' NetworkUIDConfigToolStripMenuItem
+        ' 
+        NetworkUIDConfigToolStripMenuItem.Name = "NetworkUIDConfigToolStripMenuItem"
+        NetworkUIDConfigToolStripMenuItem.Size = New Size(190, 22)
+        NetworkUIDConfigToolStripMenuItem.Text = "Network UID Config"
+        ' 
         ' ToolsToolStripMenuItem
         ' 
-        ToolsToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {BatchDownloadToolStripMenuItem, XMLCreationToolStripMenuItem, XMLUpdateToolStripMenuItem})
+        ToolsToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {BatchDownloadToolStripMenuItem, XMLCreationToolStripMenuItem, XMLUpdateToolStripMenuItem, AddGamesToolStripMenuItem})
         ToolsToolStripMenuItem.Name = "ToolsToolStripMenuItem"
         ToolsToolStripMenuItem.Size = New Size(47, 20)
         ToolsToolStripMenuItem.Text = "Tools"
@@ -457,19 +466,19 @@ Partial Class Form1
         BatchDownloadToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamesToolStripMenuItem, MachiCharaToolStripMenuItem})
         BatchDownloadToolStripMenuItem.Enabled = False
         BatchDownloadToolStripMenuItem.Name = "BatchDownloadToolStripMenuItem"
-        BatchDownloadToolStripMenuItem.Size = New Size(180, 22)
+        BatchDownloadToolStripMenuItem.Size = New Size(161, 22)
         BatchDownloadToolStripMenuItem.Text = "Batch Download"
         ' 
         ' GamesToolStripMenuItem
         ' 
         GamesToolStripMenuItem.Name = "GamesToolStripMenuItem"
-        GamesToolStripMenuItem.Size = New Size(180, 22)
+        GamesToolStripMenuItem.Size = New Size(141, 22)
         GamesToolStripMenuItem.Text = "Games"
         ' 
         ' MachiCharaToolStripMenuItem
         ' 
         MachiCharaToolStripMenuItem.Name = "MachiCharaToolStripMenuItem"
-        MachiCharaToolStripMenuItem.Size = New Size(180, 22)
+        MachiCharaToolStripMenuItem.Size = New Size(141, 22)
         MachiCharaToolStripMenuItem.Text = "Machi Chara"
         ' 
         ' XMLCreationToolStripMenuItem
@@ -477,13 +486,13 @@ Partial Class Form1
         XMLCreationToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamelistToolStripMenuItem})
         XMLCreationToolStripMenuItem.Enabled = False
         XMLCreationToolStripMenuItem.Name = "XMLCreationToolStripMenuItem"
-        XMLCreationToolStripMenuItem.Size = New Size(180, 22)
+        XMLCreationToolStripMenuItem.Size = New Size(161, 22)
         XMLCreationToolStripMenuItem.Text = "XML Creation"
         ' 
         ' GamelistToolStripMenuItem
         ' 
         GamelistToolStripMenuItem.Name = "GamelistToolStripMenuItem"
-        GamelistToolStripMenuItem.Size = New Size(180, 22)
+        GamelistToolStripMenuItem.Size = New Size(120, 22)
         GamelistToolStripMenuItem.Text = "Gamelist"
         ' 
         ' XMLUpdateToolStripMenuItem
@@ -491,14 +500,20 @@ Partial Class Form1
         XMLUpdateToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {AddGameToolStripMenuItem})
         XMLUpdateToolStripMenuItem.Enabled = False
         XMLUpdateToolStripMenuItem.Name = "XMLUpdateToolStripMenuItem"
-        XMLUpdateToolStripMenuItem.Size = New Size(180, 22)
+        XMLUpdateToolStripMenuItem.Size = New Size(161, 22)
         XMLUpdateToolStripMenuItem.Text = "XML Update"
         ' 
         ' AddGameToolStripMenuItem
         ' 
         AddGameToolStripMenuItem.Name = "AddGameToolStripMenuItem"
-        AddGameToolStripMenuItem.Size = New Size(180, 22)
+        AddGameToolStripMenuItem.Size = New Size(130, 22)
         AddGameToolStripMenuItem.Text = "Add Game"
+        ' 
+        ' AddGamesToolStripMenuItem
+        ' 
+        AddGamesToolStripMenuItem.Name = "AddGamesToolStripMenuItem"
+        AddGamesToolStripMenuItem.Size = New Size(161, 22)
+        AddGamesToolStripMenuItem.Text = "Add Games"
         ' 
         ' HelpToolStripMenuItem
         ' 
@@ -530,7 +545,7 @@ Partial Class Form1
         Controls.Add(TabControl1)
         Controls.Add(MenuStrip1)
         MainMenuStrip = MenuStrip1
-        Margin = New Padding(2, 2, 2, 2)
+        Margin = New Padding(2)
         Name = "Form1"
         StartPosition = FormStartPosition.CenterScreen
         Text = "Keitai World Launcher"
@@ -598,4 +613,7 @@ Partial Class Form1
     Friend WithEvents Label3 As Label
     Friend WithEvents cbxStarSDK As ComboBox
     Friend WithEvents cbxDojaSDK As ComboBox
+    Friend WithEvents NetworkUIDConfigToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents AddGamesToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents FolderBrowserDialog1 As FolderBrowserDialog
 End Class

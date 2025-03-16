@@ -7,6 +7,7 @@
   <Setting name="MachiCharaURL">machicharalist.xml</Setting>
   <Setting name="AutoUpdateMachiCharaList">true</Setting>
   <Setting name="UseShaderGlass">true</Setting>
+  <Setting name="NetworkUID">NULLGWDOCOMO</Setting>
   <Setting name="DOJAPath">c:/doja</Setting><!--This is the defaults DOJA Path-->
   <Setting name="DOJAEXEPath">doja.exe</Setting><!--This is the defaults DOJA Exe-->
   <Setting name="DOJAHideUI">true</Setting>

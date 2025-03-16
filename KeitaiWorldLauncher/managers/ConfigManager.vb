@@ -1,4 +1,5 @@
 ﻿Imports System.Xml
+Imports KeitaiWorldLauncher.My.logger
 
 Namespace My.Managers
     Public Class ConfigManager
@@ -13,6 +14,7 @@ Namespace My.Managers
         {"MachiCharalistURL", "machicharalist.xml"},
         {"AutoUpdateMachiCharaList", "true"},
         {"UseShaderGlass", "true"},
+        {"NetworkUID", "NULLGWDOCOMO"},
         {"DOJAPath", "c:\doja"},
         {"DOJAEXEPath", "doja.exe"},
         {"DOJAHideUI", "true"},
@@ -83,6 +85,7 @@ Namespace My.Managers
                 End If
             Catch ex As Exception
                 MessageBox.Show($"Failed to update the DOJAHideUI setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"Failed to update the DOJAHideUI setting: {ex.Message}")
             End Try
         End Sub
         Public Sub UpdateUseShaderGlassSetting(isChecked As Boolean)
@@ -98,6 +101,23 @@ Namespace My.Managers
                 End If
             Catch ex As Exception
                 MessageBox.Show($"Failed to update the UseShadeGlass setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"Failed to update the UseShadeGlass setting: {ex.Message}")
+            End Try
+        End Sub
+        Public Sub UpdateNetworkUIDSetting(NewNetworkUID As String)
+            Try
+                ' Load the XML document
+                Dim doc As New XmlDocument()
+                doc.Load(ConfigFilePath)
+                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='NetworkUID']")
+                If settingNode IsNot Nothing Then
+                    settingNode.InnerText = NewNetworkUID
+                    doc.Save(ConfigFilePath)
+                Else
+                End If
+            Catch ex As Exception
+                MessageBox.Show($"Failed to update the NetworkUID setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"Failed to update the NetworkUID setting: {ex.Message}")
             End Try
         End Sub
         Public Sub UpdateDOJASoundSetting(SoundType As String)
@@ -118,6 +138,7 @@ Namespace My.Managers
                 End If
             Catch ex As Exception
                 MessageBox.Show($"Failed to update the DOJASoundType setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"Failed to update the DOJASoundType setting: {ex.Message}")
             End Try
         End Sub
     End Class
