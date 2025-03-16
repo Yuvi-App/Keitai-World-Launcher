@@ -1142,4 +1142,21 @@ Public Class Form1
             End If
         End Using
     End Sub
+    Private Sub ControlsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ControlsToolStripMenuItem.Click
+        Dim keybinds As New StringBuilder()
+        keybinds.AppendLine("Doja & Star Keybinds:")
+        keybinds.AppendLine("--------------------------")
+        keybinds.AppendLine("Phone Button        Keyboard")
+        keybinds.AppendLine("--------------------------")
+        keybinds.AppendLine("UP                 → Up Arrow")
+        keybinds.AppendLine("DOWN               → Down Arrow")
+        keybinds.AppendLine("LEFT               → Left Arrow")
+        keybinds.AppendLine("RIGHT              → Right Arrow")
+        keybinds.AppendLine("Top Left Button    → A")
+        keybinds.AppendLine("Top Right Button   → S")
+        keybinds.AppendLine("Center Button      → Enter")
+        keybinds.AppendLine("123456789*#        → 123456789*#")
+
+        MessageBox.Show(keybinds.ToString(), "Keybinds", MessageBoxButtons.OK, MessageBoxIcon.Information)
+    End Sub
 End Class
