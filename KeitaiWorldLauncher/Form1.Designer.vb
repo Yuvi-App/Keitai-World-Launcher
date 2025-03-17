@@ -48,6 +48,7 @@ Partial Class Form1
         AddGameToolStripMenuItem = New ToolStripMenuItem()
         AddGamesToolStripMenuItem = New ToolStripMenuItem()
         HelpToolStripMenuItem = New ToolStripMenuItem()
+        ControlsToolStripMenuItem = New ToolStripMenuItem()
         AboutToolStripMenuItem = New ToolStripMenuItem()
         OpenFileDialog1 = New OpenFileDialog()
         selectionTimer = New Timer(components)
@@ -57,6 +58,7 @@ Partial Class Form1
         GroupBox2 = New GroupBox()
         lbxMachiCharaList = New ListBox()
         tpGames = New TabPage()
+        lblAudioWarning = New Label()
         Label4 = New Label()
         Label3 = New Label()
         cbxStarSDK = New ComboBox()
@@ -76,7 +78,6 @@ Partial Class Form1
         pbGameDL = New ProgressBar()
         btnLaunchGame = New Button()
         TabControl1 = New TabControl()
-        ControlsToolStripMenuItem = New ToolStripMenuItem()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
         tpMachiChara.SuspendLayout()
@@ -255,10 +256,16 @@ Partial Class Form1
         HelpToolStripMenuItem.Size = New Size(49, 23)
         HelpToolStripMenuItem.Text = "Help"
         ' 
+        ' ControlsToolStripMenuItem
+        ' 
+        ControlsToolStripMenuItem.Name = "ControlsToolStripMenuItem"
+        ControlsToolStripMenuItem.Size = New Size(130, 24)
+        ControlsToolStripMenuItem.Text = "Controls"
+        ' 
         ' AboutToolStripMenuItem
         ' 
         AboutToolStripMenuItem.Name = "AboutToolStripMenuItem"
-        AboutToolStripMenuItem.Size = New Size(180, 24)
+        AboutToolStripMenuItem.Size = New Size(130, 24)
         AboutToolStripMenuItem.Text = "About"
         ' 
         ' OpenFileDialog1
@@ -318,6 +325,7 @@ Partial Class Form1
         ' tpGames
         ' 
         tpGames.BackColor = Color.WhiteSmoke
+        tpGames.Controls.Add(lblAudioWarning)
         tpGames.Controls.Add(Label4)
         tpGames.Controls.Add(Label3)
         tpGames.Controls.Add(cbxStarSDK)
@@ -337,10 +345,24 @@ Partial Class Form1
         tpGames.TabIndex = 0
         tpGames.Text = "Games"
         ' 
+        ' lblAudioWarning
+        ' 
+        lblAudioWarning.FlatStyle = FlatStyle.Flat
+        lblAudioWarning.Font = New Font("Segoe UI", 9.0F)
+        lblAudioWarning.ForeColor = Color.Firebrick
+        lblAudioWarning.Location = New Point(573, 517)
+        lblAudioWarning.Margin = New Padding(2, 0, 2, 0)
+        lblAudioWarning.Name = "lblAudioWarning"
+        lblAudioWarning.Size = New Size(145, 23)
+        lblAudioWarning.TabIndex = 11
+        lblAudioWarning.Text = "Can Cause Performance Issues"
+        lblAudioWarning.TextAlign = ContentAlignment.TopCenter
+        lblAudioWarning.Visible = False
+        ' 
         ' Label4
         ' 
         Label4.FlatStyle = FlatStyle.Flat
-        Label4.Font = New Font("Segoe UI", 9F)
+        Label4.Font = New Font("Segoe UI", 9.0F)
         Label4.Location = New Point(742, 522)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
@@ -352,7 +374,7 @@ Partial Class Form1
         ' Label3
         ' 
         Label3.FlatStyle = FlatStyle.Flat
-        Label3.Font = New Font("Segoe UI", 9F)
+        Label3.Font = New Font("Segoe UI", 9.0F)
         Label3.Location = New Point(738, 494)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
@@ -364,7 +386,7 @@ Partial Class Form1
         ' cbxStarSDK
         ' 
         cbxStarSDK.FlatStyle = FlatStyle.Flat
-        cbxStarSDK.Font = New Font("Segoe UI", 9F)
+        cbxStarSDK.Font = New Font("Segoe UI", 9.0F)
         cbxStarSDK.FormattingEnabled = True
         cbxStarSDK.Location = New Point(797, 523)
         cbxStarSDK.Margin = New Padding(2)
@@ -375,7 +397,7 @@ Partial Class Form1
         ' cbxDojaSDK
         ' 
         cbxDojaSDK.FlatStyle = FlatStyle.Flat
-        cbxDojaSDK.Font = New Font("Segoe UI", 9F)
+        cbxDojaSDK.Font = New Font("Segoe UI", 9.0F)
         cbxDojaSDK.FormattingEnabled = True
         cbxDojaSDK.Location = New Point(797, 494)
         cbxDojaSDK.Margin = New Padding(2)
@@ -388,7 +410,7 @@ Partial Class Form1
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.FlatStyle = FlatStyle.Flat
-        chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
+        chkbxShaderGlass.Font = New Font("Segoe UI", 9.0F)
         chkbxShaderGlass.Location = New Point(443, 509)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
@@ -400,7 +422,7 @@ Partial Class Form1
         ' Label1
         ' 
         Label1.FlatStyle = FlatStyle.Flat
-        Label1.Font = New Font("Segoe UI", 9F)
+        Label1.Font = New Font("Segoe UI", 9.0F)
         Label1.Location = New Point(573, 494)
         Label1.Margin = New Padding(2, 0, 2, 0)
         Label1.Name = "Label1"
@@ -413,7 +435,7 @@ Partial Class Form1
         ' 
         cobxAudioType.Enabled = False
         cobxAudioType.FlatStyle = FlatStyle.Flat
-        cobxAudioType.Font = New Font("Segoe UI", 9F)
+        cobxAudioType.Font = New Font("Segoe UI", 9.0F)
         cobxAudioType.FormattingEnabled = True
         cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
         cobxAudioType.Location = New Point(644, 494)
@@ -456,7 +478,7 @@ Partial Class Form1
         cbxFilterType.FlatStyle = FlatStyle.Flat
         cbxFilterType.FormattingEnabled = True
         cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Doja", "Star"})
-        cbxFilterType.Location = New Point(236, 20)
+        cbxFilterType.Location = New Point(236, 19)
         cbxFilterType.Margin = New Padding(2)
         cbxFilterType.Name = "cbxFilterType"
         cbxFilterType.Size = New Size(79, 27)
@@ -468,14 +490,14 @@ Partial Class Form1
         Label2.Location = New Point(9, 20)
         Label2.Margin = New Padding(2, 0, 2, 0)
         Label2.Name = "Label2"
-        Label2.Size = New Size(45, 23)
+        Label2.Size = New Size(53, 26)
         Label2.TabIndex = 8
         Label2.Text = "Search:"
         Label2.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' txtLVSearch
         ' 
-        txtLVSearch.Location = New Point(58, 20)
+        txtLVSearch.Location = New Point(58, 19)
         txtLVSearch.Margin = New Padding(2)
         txtLVSearch.Name = "txtLVSearch"
         txtLVSearch.Size = New Size(174, 26)
@@ -485,10 +507,10 @@ Partial Class Form1
         ' 
         ListViewGames.ContextMenuStrip = cmsGameLV
         ListViewGames.LargeImageList = ImageListGames
-        ListViewGames.Location = New Point(5, 47)
+        ListViewGames.Location = New Point(5, 50)
         ListViewGames.Margin = New Padding(2)
         ListViewGames.Name = "ListViewGames"
-        ListViewGames.Size = New Size(310, 373)
+        ListViewGames.Size = New Size(310, 370)
         ListViewGames.TabIndex = 6
         ListViewGames.UseCompatibleStateImageBehavior = False
         ListViewGames.View = View.Details
@@ -509,7 +531,7 @@ Partial Class Form1
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.Enabled = False
         chkbxHidePhoneUI.FlatStyle = FlatStyle.Flat
-        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9F)
+        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9.0F)
         chkbxHidePhoneUI.Location = New Point(443, 490)
         chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
@@ -544,7 +566,7 @@ Partial Class Form1
         ' 
         btnLaunchGame.Enabled = False
         btnLaunchGame.FlatStyle = FlatStyle.Flat
-        btnLaunchGame.Font = New Font("Segoe UI", 9F)
+        btnLaunchGame.Font = New Font("Segoe UI", 9.0F)
         btnLaunchGame.Location = New Point(329, 494)
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
@@ -565,15 +587,9 @@ Partial Class Form1
         TabControl1.Size = New Size(890, 607)
         TabControl1.TabIndex = 4
         ' 
-        ' ControlsToolStripMenuItem
-        ' 
-        ControlsToolStripMenuItem.Name = "ControlsToolStripMenuItem"
-        ControlsToolStripMenuItem.Size = New Size(180, 24)
-        ControlsToolStripMenuItem.Text = "Controls"
-        ' 
         ' Form1
         ' 
-        AutoScaleDimensions = New SizeF(96F, 96F)
+        AutoScaleDimensions = New SizeF(96.0F, 96.0F)
         AutoScaleMode = AutoScaleMode.Dpi
         ClientSize = New Size(890, 692)
         Controls.Add(TabControl1)
@@ -651,4 +667,5 @@ Partial Class Form1
     Friend WithEvents btnLaunchGame As Button
     Friend WithEvents TabControl1 As TabControl
     Friend WithEvents ControlsToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents lblAudioWarning As Label
 End Class

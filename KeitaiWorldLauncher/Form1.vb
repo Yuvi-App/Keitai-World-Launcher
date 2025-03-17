@@ -730,6 +730,11 @@ Public Class Form1
     Private Sub cobxAudioType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cobxAudioType.SelectedIndexChanged
         If cobxAudioType.SelectedItem.ToString = "Standard" Or cobxAudioType.SelectedItem.ToString = "903i" Then
             configManager.UpdateDOJASoundSetting(cobxAudioType.SelectedItem.ToString)
+            If cobxAudioType.SelectedItem.ToString = "903i" Then
+                lblAudioWarning.Visible = True
+            Else
+                lblAudioWarning.Visible = False
+            End If
         End If
     End Sub
     Private Sub cbxEmuType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxFilterType.SelectedIndexChanged
