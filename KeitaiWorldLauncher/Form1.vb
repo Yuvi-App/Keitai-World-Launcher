@@ -643,8 +643,8 @@ Public Class Form1
 
         ' Ensure the custom games file exists
         If Not File.Exists(customGamesFile) Then
-            MessageBox.Show("Custom games file not found!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            Return
+            File.Create(customGamesFile)
+            'MessageBox.Show("Custom games file not found!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
 
         ' Read all folder names from the custom games file
