@@ -200,19 +200,20 @@ Partial Class Form1
         BatchDownloadToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamesToolStripMenuItem, MachiCharaToolStripMenuItem})
         BatchDownloadToolStripMenuItem.Enabled = False
         BatchDownloadToolStripMenuItem.Name = "BatchDownloadToolStripMenuItem"
-        BatchDownloadToolStripMenuItem.Size = New Size(178, 24)
+        BatchDownloadToolStripMenuItem.Size = New Size(180, 24)
         BatchDownloadToolStripMenuItem.Text = "Batch Download"
+        BatchDownloadToolStripMenuItem.Visible = False
         ' 
         ' GamesToolStripMenuItem
         ' 
         GamesToolStripMenuItem.Name = "GamesToolStripMenuItem"
-        GamesToolStripMenuItem.Size = New Size(155, 24)
+        GamesToolStripMenuItem.Size = New Size(180, 24)
         GamesToolStripMenuItem.Text = "Games"
         ' 
         ' MachiCharaToolStripMenuItem
         ' 
         MachiCharaToolStripMenuItem.Name = "MachiCharaToolStripMenuItem"
-        MachiCharaToolStripMenuItem.Size = New Size(155, 24)
+        MachiCharaToolStripMenuItem.Size = New Size(180, 24)
         MachiCharaToolStripMenuItem.Text = "Machi Chara"
         ' 
         ' XMLCreationToolStripMenuItem
@@ -220,13 +221,14 @@ Partial Class Form1
         XMLCreationToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamelistToolStripMenuItem})
         XMLCreationToolStripMenuItem.Enabled = False
         XMLCreationToolStripMenuItem.Name = "XMLCreationToolStripMenuItem"
-        XMLCreationToolStripMenuItem.Size = New Size(178, 24)
+        XMLCreationToolStripMenuItem.Size = New Size(180, 24)
         XMLCreationToolStripMenuItem.Text = "XML Creation"
+        XMLCreationToolStripMenuItem.Visible = False
         ' 
         ' GamelistToolStripMenuItem
         ' 
         GamelistToolStripMenuItem.Name = "GamelistToolStripMenuItem"
-        GamelistToolStripMenuItem.Size = New Size(131, 24)
+        GamelistToolStripMenuItem.Size = New Size(180, 24)
         GamelistToolStripMenuItem.Text = "Gamelist"
         ' 
         ' XMLUpdateToolStripMenuItem
@@ -234,19 +236,20 @@ Partial Class Form1
         XMLUpdateToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {AddGameToolStripMenuItem})
         XMLUpdateToolStripMenuItem.Enabled = False
         XMLUpdateToolStripMenuItem.Name = "XMLUpdateToolStripMenuItem"
-        XMLUpdateToolStripMenuItem.Size = New Size(178, 24)
+        XMLUpdateToolStripMenuItem.Size = New Size(180, 24)
         XMLUpdateToolStripMenuItem.Text = "XML Update"
+        XMLUpdateToolStripMenuItem.Visible = False
         ' 
         ' AddGameToolStripMenuItem
         ' 
         AddGameToolStripMenuItem.Name = "AddGameToolStripMenuItem"
-        AddGameToolStripMenuItem.Size = New Size(143, 24)
+        AddGameToolStripMenuItem.Size = New Size(180, 24)
         AddGameToolStripMenuItem.Text = "Add Game"
         ' 
         ' AddGamesToolStripMenuItem
         ' 
         AddGamesToolStripMenuItem.Name = "AddGamesToolStripMenuItem"
-        AddGamesToolStripMenuItem.Size = New Size(178, 24)
+        AddGamesToolStripMenuItem.Size = New Size(180, 24)
         AddGamesToolStripMenuItem.Text = "Add Games"
         ' 
         ' HelpToolStripMenuItem
@@ -259,13 +262,13 @@ Partial Class Form1
         ' ControlsToolStripMenuItem
         ' 
         ControlsToolStripMenuItem.Name = "ControlsToolStripMenuItem"
-        ControlsToolStripMenuItem.Size = New Size(130, 24)
+        ControlsToolStripMenuItem.Size = New Size(180, 24)
         ControlsToolStripMenuItem.Text = "Controls"
         ' 
         ' AboutToolStripMenuItem
         ' 
         AboutToolStripMenuItem.Name = "AboutToolStripMenuItem"
-        AboutToolStripMenuItem.Size = New Size(130, 24)
+        AboutToolStripMenuItem.Size = New Size(180, 24)
         AboutToolStripMenuItem.Text = "About"
         ' 
         ' OpenFileDialog1

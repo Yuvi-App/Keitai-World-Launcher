@@ -12,6 +12,7 @@ Imports KeitaiWorldLauncher.My.Models
 
 Public Class Form1
     'Global Vars
+    Dim isDebug As Boolean = False
     Dim configManager As New ConfigManager()
     Dim utilManager As New UtilManager
     Dim gameListManager As New GameListManager()
@@ -66,6 +67,17 @@ Public Class Form1
         UtilManager.CheckAndCloseStar()
     End Sub
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' Check if Debug
+#If DEBUG Then
+        isDebug = True
+        XMLUpdateToolStripMenuItem.Visible = True
+        XMLCreationToolStripMenuItem.Visible = True
+        BatchDownloadToolStripMenuItem.Visible = True
+        XMLUpdateToolStripMenuItem.Enabled = True
+        XMLCreationToolStripMenuItem.Enabled = True
+        BatchDownloadToolStripMenuItem.Enabled = True
+#End If
+
         ' Setup SJIS 
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
 
