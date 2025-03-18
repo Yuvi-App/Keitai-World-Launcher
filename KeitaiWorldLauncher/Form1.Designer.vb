@@ -314,6 +314,7 @@ Partial Class Form1
         ' 
         ' lbxMachiCharaList
         ' 
+        lbxMachiCharaList.Enabled = False
         lbxMachiCharaList.FormattingEnabled = True
         lbxMachiCharaList.ItemHeight = 19
         lbxMachiCharaList.Location = New Point(5, 22)
@@ -348,7 +349,7 @@ Partial Class Form1
         ' lblAudioWarning
         ' 
         lblAudioWarning.FlatStyle = FlatStyle.Flat
-        lblAudioWarning.Font = New Font("Segoe UI", 9.0F)
+        lblAudioWarning.Font = New Font("Segoe UI", 9F)
         lblAudioWarning.ForeColor = Color.Firebrick
         lblAudioWarning.Location = New Point(573, 517)
         lblAudioWarning.Margin = New Padding(2, 0, 2, 0)
@@ -362,7 +363,7 @@ Partial Class Form1
         ' Label4
         ' 
         Label4.FlatStyle = FlatStyle.Flat
-        Label4.Font = New Font("Segoe UI", 9.0F)
+        Label4.Font = New Font("Segoe UI", 9F)
         Label4.Location = New Point(742, 522)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
@@ -374,7 +375,7 @@ Partial Class Form1
         ' Label3
         ' 
         Label3.FlatStyle = FlatStyle.Flat
-        Label3.Font = New Font("Segoe UI", 9.0F)
+        Label3.Font = New Font("Segoe UI", 9F)
         Label3.Location = New Point(738, 494)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
@@ -386,7 +387,7 @@ Partial Class Form1
         ' cbxStarSDK
         ' 
         cbxStarSDK.FlatStyle = FlatStyle.Flat
-        cbxStarSDK.Font = New Font("Segoe UI", 9.0F)
+        cbxStarSDK.Font = New Font("Segoe UI", 9F)
         cbxStarSDK.FormattingEnabled = True
         cbxStarSDK.Location = New Point(797, 523)
         cbxStarSDK.Margin = New Padding(2)
@@ -397,7 +398,7 @@ Partial Class Form1
         ' cbxDojaSDK
         ' 
         cbxDojaSDK.FlatStyle = FlatStyle.Flat
-        cbxDojaSDK.Font = New Font("Segoe UI", 9.0F)
+        cbxDojaSDK.Font = New Font("Segoe UI", 9F)
         cbxDojaSDK.FormattingEnabled = True
         cbxDojaSDK.Location = New Point(797, 494)
         cbxDojaSDK.Margin = New Padding(2)
@@ -410,7 +411,7 @@ Partial Class Form1
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.FlatStyle = FlatStyle.Flat
-        chkbxShaderGlass.Font = New Font("Segoe UI", 9.0F)
+        chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
         chkbxShaderGlass.Location = New Point(443, 509)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
@@ -422,7 +423,7 @@ Partial Class Form1
         ' Label1
         ' 
         Label1.FlatStyle = FlatStyle.Flat
-        Label1.Font = New Font("Segoe UI", 9.0F)
+        Label1.Font = New Font("Segoe UI", 9F)
         Label1.Location = New Point(573, 494)
         Label1.Margin = New Padding(2, 0, 2, 0)
         Label1.Name = "Label1"
@@ -435,7 +436,7 @@ Partial Class Form1
         ' 
         cobxAudioType.Enabled = False
         cobxAudioType.FlatStyle = FlatStyle.Flat
-        cobxAudioType.Font = New Font("Segoe UI", 9.0F)
+        cobxAudioType.Font = New Font("Segoe UI", 9F)
         cobxAudioType.FormattingEnabled = True
         cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
         cobxAudioType.Location = New Point(644, 494)
@@ -531,7 +532,7 @@ Partial Class Form1
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.Enabled = False
         chkbxHidePhoneUI.FlatStyle = FlatStyle.Flat
-        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9.0F)
+        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9F)
         chkbxHidePhoneUI.Location = New Point(443, 490)
         chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
@@ -566,7 +567,7 @@ Partial Class Form1
         ' 
         btnLaunchGame.Enabled = False
         btnLaunchGame.FlatStyle = FlatStyle.Flat
-        btnLaunchGame.Font = New Font("Segoe UI", 9.0F)
+        btnLaunchGame.Font = New Font("Segoe UI", 9F)
         btnLaunchGame.Location = New Point(329, 494)
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
@@ -589,7 +590,7 @@ Partial Class Form1
         ' 
         ' Form1
         ' 
-        AutoScaleDimensions = New SizeF(96.0F, 96.0F)
+        AutoScaleDimensions = New SizeF(96F, 96F)
         AutoScaleMode = AutoScaleMode.Dpi
         ClientSize = New Size(890, 692)
         Controls.Add(TabControl1)

@@ -41,28 +41,28 @@ Namespace My.Managers
             'Check for DOJA
             My.logger.Logger.LogInfo("Checking for DOJA Emu")
             If File.Exists(DOJAEmulator) = False Then
-                MessageBox.Show($"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator needs to be located at {DOJAEmulator}")
+                MessageBox.Show($"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files needs to be located at {DOJAEmulator}")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
             End If
 
             'Check for STAR
             My.logger.Logger.LogInfo("Checking for STAR Emu")
             If File.Exists(StarEmulator) = False Then
-                MessageBox.Show($"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator needs to be located at {StarEmulator}")
+                MessageBox.Show($"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files needs to be located at {StarEmulator}")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
             End If
 
             'Check for LEProc
             My.logger.Logger.LogInfo("Checking for LEPROC")
             If File.Exists(localeEmuLoc) = False Then
-                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu needs to be located at {localeEmuLoc}")
+                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files needs to be located at {localeEmuLoc}")
                 OpenURL("https://github.com/xupefei/Locale-Emulator/releases")
             End If
 
             'Check for ShaderGlass
             My.logger.Logger.LogInfo("Checking for ShaderGlass")
             If File.Exists(ShaderGlassLoc) = False Then
-                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}ShaderGlass needs to be located at {ShaderGlassLoc}")
+                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}ShaderGlass Files needs to be located at {ShaderGlassLoc}")
                 OpenURL("https://github.com/mausimus/ShaderGlass/releases")
             End If
 
@@ -137,11 +137,12 @@ Namespace My.Managers
                 Dim latestVersion As String = client.DownloadString(latestVersionUrl).Trim()
 
                 If currentVersion <> latestVersion Then
-                    Dim result = MessageBox.Show($"A new version ({latestVersion}) is available. Would you like to update?", "Update Available", MessageBoxButtons.YesNo, MessageBoxIcon.Information)
+                    MessageBox.Show($"You are running an outdated version ({currentVersion}){vbCrLf}A new version ({latestVersion}) is available to download.")
+                    'Dim result = MessageBox.Show($"A new version ({latestVersion}) is available. Would you like to update?", "Update Available", MessageBoxButtons.YesNo, MessageBoxIcon.Information)
 
-                    If result = DialogResult.Yes Then
-                        Process.Start("https://example.com/download") ' Link to download the new version
-                    End If
+                    'If result = DialogResult.Yes Then
+                    '    Process.Start("https://example.com/download") ' Link to download the new version
+                    'End If
                 Else
                     'MessageBox.Show("Launcher is up to date.", "No Updates", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
