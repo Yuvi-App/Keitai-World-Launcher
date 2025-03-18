@@ -43,6 +43,7 @@ Namespace My.Managers
             If File.Exists(DOJAEmulator) = False Then
                 MessageBox.Show($"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files needs to be located at {DOJAEmulator}")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
+                Form1.QuitApplication()
             End If
 
             'Check for STAR
@@ -50,6 +51,7 @@ Namespace My.Managers
             If File.Exists(StarEmulator) = False Then
                 MessageBox.Show($"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files needs to be located at {StarEmulator}")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
+                Form1.QuitApplication()
             End If
 
             'Check for LEProc
@@ -57,6 +59,8 @@ Namespace My.Managers
             If File.Exists(localeEmuLoc) = False Then
                 MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files needs to be located at {localeEmuLoc}")
                 OpenURL("https://github.com/xupefei/Locale-Emulator/releases")
+                Form1.QuitApplication()
+
             End If
 
             'Check for ShaderGlass
@@ -64,6 +68,7 @@ Namespace My.Managers
             If File.Exists(ShaderGlassLoc) = False Then
                 MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}ShaderGlass Files needs to be located at {ShaderGlassLoc}")
                 OpenURL("https://github.com/mausimus/ShaderGlass/releases")
+                Form1.QuitApplication()
             End If
 
             'Check for Java 8 
@@ -71,6 +76,7 @@ Namespace My.Managers
             If IsJava8Update152Installed() = False Then
                 MessageBox.Show("Missing JAVA 8... Download is required")
                 OpenURL("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
+                Form1.QuitApplication()
             End If
 
             'Check for Visual C++ Runtimes.
@@ -78,8 +84,8 @@ Namespace My.Managers
             If IsVCRuntime2022Installed() = False Then
                 MessageBox.Show("Unable to Detect C++ Runtimes... To ensure comptability, we recommend you install this Runtime AIO Package.")
                 OpenURL("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
+                Form1.QuitApplication()
             End If
-
         End Sub
         Shared Function IsJava8Update152Installed() As Boolean
             Dim javaVersions As String() = {
@@ -124,6 +130,51 @@ Namespace My.Managers
         })
             Catch ex As Exception
                 MessageBox.Show("Failed to open the URL: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Public Shared Function IsDpiScalingSet(exePath As String) As Boolean
+            Try
+                Dim regPath As String = "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
+
+                ' Open the registry key for reading
+                Using key As RegistryKey = Registry.CurrentUser.OpenSubKey(regPath, False)
+                    If key IsNot Nothing Then
+                        Dim value As Object = key.GetValue(exePath)
+                        ' Check if the key exists and contains the expected DPI scaling flag
+                        If value IsNot Nothing AndAlso value.ToString().Contains("HIGHDPIAWARE") Then
+                            Return True ' DPI Scaling override is set
+                        End If
+                    End If
+                End Using
+
+            Catch ex As Exception
+                MessageBox.Show("Error reading registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+
+            Return False ' DPI Scaling override is not set
+        End Function
+        Public Sub SetDpiScaling(exePath As String)
+            Try
+                ' Define the registry path
+                Dim regPath As String = "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
+
+                ' Open the registry key
+                Using key As RegistryKey = Registry.CurrentUser.OpenSubKey(regPath, True)
+                    If key Is Nothing Then
+                        ' Create the key if it doesn't exist
+                        Using newKey As RegistryKey = Registry.CurrentUser.CreateSubKey(regPath)
+                            newKey.SetValue(exePath, "~ HIGHDPIAWARE", RegistryValueKind.String)
+                        End Using
+                    Else
+                        ' Set the value for the EXE path
+                        key.SetValue(exePath, "~ HIGHDPIAWARE", RegistryValueKind.String)
+                    End If
+                End Using
+
+                'MessageBox.Show("DPI Scaling override set successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+
+            Catch ex As Exception
+                MessageBox.Show("Error modifying registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
 

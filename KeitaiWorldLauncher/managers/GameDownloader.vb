@@ -41,6 +41,7 @@ Namespace My.Managers
                 ' Reset and show the progress bar
                 progressBar.Value = 0
                 progressBar.Visible = True
+                progressBar.BringToFront()
 
                 ' Attach event handlers
                 AddHandler client1.DownloadProgressChanged, AddressOf DownloadProgressChanged

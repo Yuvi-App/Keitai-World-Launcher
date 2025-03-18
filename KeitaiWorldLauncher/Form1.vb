@@ -9,6 +9,8 @@ Imports System.Windows.Forms.VisualStyles.VisualStyleElement
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
+Imports Microsoft.VisualBasic.FileIO
+Imports ReaLTaiizor.[Enum].Poison
 
 Public Class Form1
     'Global Vars
@@ -24,9 +26,9 @@ Public Class Form1
     Dim machicharas As List(Of MachiChara)
 
     'Directory Var
-    Dim DownloadsFolder = "data\downloads"
-    Dim ToolsFolder = "data\tools"
-    Dim ConfigsFolder = "configs"
+    Dim DownloadsFolder As String = "data\downloads"
+    Dim ToolsFolder As String = "data\tools"
+    Dim ConfigsFolder As String = "configs"
 
     'Index Vars Can Change
     Dim CurrentSelectedGameJAM As String
@@ -229,13 +231,28 @@ Public Class Form1
             End If
         Next
 
+        ' Set DPI Aware
+        For Each I In cbxDojaSDK.Items
+            If UtilManager.IsDpiScalingSet(AppDomain.CurrentDomain.BaseDirectory & Path.Join(ToolsFolder, I) & "bin\doja.exe") = True Then
+                Exit For
+            End If
+            Dim FullPath = AppDomain.CurrentDomain.BaseDirectory & Path.Join(ToolsFolder, I) & "bin\doja.exe"
+            utilManager.SetDpiScaling(FullPath)
+        Next
+        For Each I In cbxStarSDK.Items
+            If UtilManager.IsDpiScalingSet(AppDomain.CurrentDomain.BaseDirectory & Path.Join(ToolsFolder, I) & "bin\star.exe") = True Then
+                Exit For
+            End If
+            Dim FullPath = AppDomain.CurrentDomain.BaseDirectory & Path.Join(ToolsFolder, I) & "bin\star.exe"
+            utilManager.SetDpiScaling(FullPath)
+        Next
+
         ' Set the defaults if found
         If starFound Then
             cbxStarSDK.SelectedItem = starDefault
         Else
             MessageBox.Show($"The default SDK '{starDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
-
         If dojaFound Then
             cbxDojaSDK.SelectedItem = dojaDefault
         Else
@@ -315,7 +332,6 @@ Public Class Form1
                                         (selectedFilter = "custom" AndAlso customGames.Contains(game.ENTitle)) OrElse
                                         (selectedFilter = "installed" AndAlso Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(Path.GetFileNameWithoutExtension(game.ZIPName))) OrElse
                                         (game.Emulator.ToLower() = selectedFilter))
-
             If matchesSearch AndAlso matchesFilter Then
                 ' Create the ListView item
                 Dim item As New ListViewItem(game.ENTitle) With {
@@ -324,10 +340,13 @@ Public Class Form1
 
                 ' Determine highlighting
                 Dim isFavorited As Boolean = favoriteGames.Contains(game.ENTitle)
+                Dim isCustom As Boolean = customGames.Contains(game.ENTitle)
                 Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(Path.GetFileNameWithoutExtension(game.ZIPName))
 
                 If isInstalled AndAlso isFavorited Then
                     item.BackColor = Color.LightSeaGreen ' Both installed and favorited
+                ElseIf isCustom Then
+                    item.BackColor = Color.LightSteelBlue
                 ElseIf isInstalled Then
                     item.BackColor = Color.LightGreen ' Only installed
                 ElseIf isFavorited Then
@@ -340,6 +359,7 @@ Public Class Form1
                 ListViewGames.Items.Add(item)
             End If
         Next
+        lblFilteredGameCount.Text = $"Filtered: {ListViewGames.Items.Count}"
         LoadGameVariants()
     End Sub
     Private Sub LoadGameVariants()
@@ -639,22 +659,27 @@ Public Class Form1
         End If
     End Function
     Public Sub LoadCustomGames()
-        Dim customGamesFile As String = Path.Join(ConfigsFolder, "customgames.txt")
+        Dim customGamesFile As String = Path.Combine(ConfigsFolder, "customgames.txt")
 
         ' Ensure the custom games file exists
         If Not File.Exists(customGamesFile) Then
-            File.Create(customGamesFile)
-            'MessageBox.Show("Custom games file not found!", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            File.Create(customGamesFile).Close() ' Ensure the file is created and closed
         End If
 
-        ' Read all folder names from the custom games file
-        Dim customGameFolders As List(Of String) = File.ReadAllLines(customGamesFile).
-                                                Select(Function(line) line.Trim()).
-                                                Where(Function(line) Not String.IsNullOrWhiteSpace(line)).
-                                                ToList()
+        ' Deduplicate CustomGames.txt
+        Dim customGameLines As List(Of String) = File.ReadAllLines(customGamesFile).
+        Select(Function(line) line.Trim()).
+        Where(Function(line) Not String.IsNullOrWhiteSpace(line)).
+        Distinct(StringComparer.OrdinalIgnoreCase). ' Remove duplicates, case-insensitive
+        ToList()
+
+        ' Write back only if duplicates were removed
+        If customGameLines.Count <> File.ReadAllLines(customGamesFile).Length Then
+            File.WriteAllLines(customGamesFile, customGameLines)
+        End If
 
         ' Process each folder name
-        For Each gameFolderName In customGameFolders
+        For Each gameFolderName In customGameLines
             Dim gameFolderPath As String = Path.Combine(DownloadsFolder, gameFolderName)
 
             ' Check if the folder exists
@@ -675,6 +700,7 @@ Public Class Form1
             End If
         Next
     End Sub
+
 
     ' LISTBOX/LISTVIEW CHANGES
     'Private Sub ListBoxGames_SelectedIndexChanged(sender As Object, e As EventArgs)
@@ -951,6 +977,9 @@ Public Class Form1
         MessageBox.Show($"Keitai World Launcher{vbCrLf}{vbCrLf}Version:B{KeitaiWorldLauncher.My.Application.Info.Version.ToString}")
     End Sub
     Private Sub ExitToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExitToolStripMenuItem.Click
+        Application.Exit()
+    End Sub
+    Public Shared Sub QuitApplication()
         Application.Exit()
     End Sub
     Private Sub GamelistToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GamelistToolStripMenuItem.Click

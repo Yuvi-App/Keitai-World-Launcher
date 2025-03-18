@@ -67,9 +67,9 @@ Partial Class Form1
         Label1 = New Label()
         cobxAudioType = New ComboBox()
         GroupBox1 = New GroupBox()
+        lblFilteredGameCount = New Label()
         ListViewGamesVariants = New ListView()
         cbxFilterType = New ComboBox()
-        Label2 = New Label()
         txtLVSearch = New TextBox()
         ListViewGames = New ListView()
         lblTotalGameCount = New Label()
@@ -200,20 +200,20 @@ Partial Class Form1
         BatchDownloadToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamesToolStripMenuItem, MachiCharaToolStripMenuItem})
         BatchDownloadToolStripMenuItem.Enabled = False
         BatchDownloadToolStripMenuItem.Name = "BatchDownloadToolStripMenuItem"
-        BatchDownloadToolStripMenuItem.Size = New Size(180, 24)
+        BatchDownloadToolStripMenuItem.Size = New Size(178, 24)
         BatchDownloadToolStripMenuItem.Text = "Batch Download"
         BatchDownloadToolStripMenuItem.Visible = False
         ' 
         ' GamesToolStripMenuItem
         ' 
         GamesToolStripMenuItem.Name = "GamesToolStripMenuItem"
-        GamesToolStripMenuItem.Size = New Size(180, 24)
+        GamesToolStripMenuItem.Size = New Size(155, 24)
         GamesToolStripMenuItem.Text = "Games"
         ' 
         ' MachiCharaToolStripMenuItem
         ' 
         MachiCharaToolStripMenuItem.Name = "MachiCharaToolStripMenuItem"
-        MachiCharaToolStripMenuItem.Size = New Size(180, 24)
+        MachiCharaToolStripMenuItem.Size = New Size(155, 24)
         MachiCharaToolStripMenuItem.Text = "Machi Chara"
         ' 
         ' XMLCreationToolStripMenuItem
@@ -221,14 +221,14 @@ Partial Class Form1
         XMLCreationToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamelistToolStripMenuItem})
         XMLCreationToolStripMenuItem.Enabled = False
         XMLCreationToolStripMenuItem.Name = "XMLCreationToolStripMenuItem"
-        XMLCreationToolStripMenuItem.Size = New Size(180, 24)
+        XMLCreationToolStripMenuItem.Size = New Size(178, 24)
         XMLCreationToolStripMenuItem.Text = "XML Creation"
         XMLCreationToolStripMenuItem.Visible = False
         ' 
         ' GamelistToolStripMenuItem
         ' 
         GamelistToolStripMenuItem.Name = "GamelistToolStripMenuItem"
-        GamelistToolStripMenuItem.Size = New Size(180, 24)
+        GamelistToolStripMenuItem.Size = New Size(131, 24)
         GamelistToolStripMenuItem.Text = "Gamelist"
         ' 
         ' XMLUpdateToolStripMenuItem
@@ -236,20 +236,20 @@ Partial Class Form1
         XMLUpdateToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {AddGameToolStripMenuItem})
         XMLUpdateToolStripMenuItem.Enabled = False
         XMLUpdateToolStripMenuItem.Name = "XMLUpdateToolStripMenuItem"
-        XMLUpdateToolStripMenuItem.Size = New Size(180, 24)
+        XMLUpdateToolStripMenuItem.Size = New Size(178, 24)
         XMLUpdateToolStripMenuItem.Text = "XML Update"
         XMLUpdateToolStripMenuItem.Visible = False
         ' 
         ' AddGameToolStripMenuItem
         ' 
         AddGameToolStripMenuItem.Name = "AddGameToolStripMenuItem"
-        AddGameToolStripMenuItem.Size = New Size(180, 24)
+        AddGameToolStripMenuItem.Size = New Size(143, 24)
         AddGameToolStripMenuItem.Text = "Add Game"
         ' 
         ' AddGamesToolStripMenuItem
         ' 
         AddGamesToolStripMenuItem.Name = "AddGamesToolStripMenuItem"
-        AddGamesToolStripMenuItem.Size = New Size(180, 24)
+        AddGamesToolStripMenuItem.Size = New Size(178, 24)
         AddGamesToolStripMenuItem.Text = "Add Games"
         ' 
         ' HelpToolStripMenuItem
@@ -262,13 +262,13 @@ Partial Class Form1
         ' ControlsToolStripMenuItem
         ' 
         ControlsToolStripMenuItem.Name = "ControlsToolStripMenuItem"
-        ControlsToolStripMenuItem.Size = New Size(180, 24)
+        ControlsToolStripMenuItem.Size = New Size(130, 24)
         ControlsToolStripMenuItem.Text = "Controls"
         ' 
         ' AboutToolStripMenuItem
         ' 
         AboutToolStripMenuItem.Name = "AboutToolStripMenuItem"
-        AboutToolStripMenuItem.Size = New Size(180, 24)
+        AboutToolStripMenuItem.Size = New Size(130, 24)
         AboutToolStripMenuItem.Text = "About"
         ' 
         ' OpenFileDialog1
@@ -354,12 +354,12 @@ Partial Class Form1
         lblAudioWarning.FlatStyle = FlatStyle.Flat
         lblAudioWarning.Font = New Font("Segoe UI", 9F)
         lblAudioWarning.ForeColor = Color.Firebrick
-        lblAudioWarning.Location = New Point(573, 517)
+        lblAudioWarning.Location = New Point(573, 519)
         lblAudioWarning.Margin = New Padding(2, 0, 2, 0)
         lblAudioWarning.Name = "lblAudioWarning"
-        lblAudioWarning.Size = New Size(145, 23)
+        lblAudioWarning.Size = New Size(145, 50)
         lblAudioWarning.TabIndex = 11
-        lblAudioWarning.Text = "Can Cause Performance Issues"
+        lblAudioWarning.Text = "Possible Performance Issues"
         lblAudioWarning.TextAlign = ContentAlignment.TopCenter
         lblAudioWarning.Visible = False
         ' 
@@ -367,7 +367,7 @@ Partial Class Form1
         ' 
         Label4.FlatStyle = FlatStyle.Flat
         Label4.Font = New Font("Segoe UI", 9F)
-        Label4.Location = New Point(742, 522)
+        Label4.Location = New Point(740, 522)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
         Label4.Size = New Size(51, 23)
@@ -379,7 +379,7 @@ Partial Class Form1
         ' 
         Label3.FlatStyle = FlatStyle.Flat
         Label3.Font = New Font("Segoe UI", 9F)
-        Label3.Location = New Point(738, 494)
+        Label3.Location = New Point(736, 494)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
         Label3.Size = New Size(55, 23)
@@ -389,10 +389,11 @@ Partial Class Form1
         ' 
         ' cbxStarSDK
         ' 
+        cbxStarSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxStarSDK.FlatStyle = FlatStyle.Flat
         cbxStarSDK.Font = New Font("Segoe UI", 9F)
         cbxStarSDK.FormattingEnabled = True
-        cbxStarSDK.Location = New Point(797, 523)
+        cbxStarSDK.Location = New Point(795, 523)
         cbxStarSDK.Margin = New Padding(2)
         cbxStarSDK.Name = "cbxStarSDK"
         cbxStarSDK.Size = New Size(85, 23)
@@ -400,10 +401,11 @@ Partial Class Form1
         ' 
         ' cbxDojaSDK
         ' 
+        cbxDojaSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxDojaSDK.FlatStyle = FlatStyle.Flat
         cbxDojaSDK.Font = New Font("Segoe UI", 9F)
         cbxDojaSDK.FormattingEnabled = True
-        cbxDojaSDK.Location = New Point(797, 494)
+        cbxDojaSDK.Location = New Point(795, 494)
         cbxDojaSDK.Margin = New Padding(2)
         cbxDojaSDK.Name = "cbxDojaSDK"
         cbxDojaSDK.Size = New Size(85, 23)
@@ -437,6 +439,7 @@ Partial Class Form1
         ' 
         ' cobxAudioType
         ' 
+        cobxAudioType.DropDownStyle = ComboBoxStyle.DropDownList
         cobxAudioType.Enabled = False
         cobxAudioType.FlatStyle = FlatStyle.Flat
         cobxAudioType.Font = New Font("Segoe UI", 9F)
@@ -450,9 +453,9 @@ Partial Class Form1
         ' 
         ' GroupBox1
         ' 
+        GroupBox1.Controls.Add(lblFilteredGameCount)
         GroupBox1.Controls.Add(ListViewGamesVariants)
         GroupBox1.Controls.Add(cbxFilterType)
-        GroupBox1.Controls.Add(Label2)
         GroupBox1.Controls.Add(txtLVSearch)
         GroupBox1.Controls.Add(ListViewGames)
         GroupBox1.Controls.Add(lblTotalGameCount)
@@ -465,6 +468,17 @@ Partial Class Form1
         GroupBox1.TabIndex = 0
         GroupBox1.TabStop = False
         GroupBox1.Text = "Available Games"
+        ' 
+        ' lblFilteredGameCount
+        ' 
+        lblFilteredGameCount.FlatStyle = FlatStyle.Flat
+        lblFilteredGameCount.Location = New Point(210, 543)
+        lblFilteredGameCount.Margin = New Padding(2, 0, 2, 0)
+        lblFilteredGameCount.Name = "lblFilteredGameCount"
+        lblFilteredGameCount.Size = New Size(105, 22)
+        lblFilteredGameCount.TabIndex = 11
+        lblFilteredGameCount.Text = "Filtered: 0"
+        lblFilteredGameCount.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' ListViewGamesVariants
         ' 
@@ -479,6 +493,7 @@ Partial Class Form1
         ' 
         ' cbxFilterType
         ' 
+        cbxFilterType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxFilterType.FlatStyle = FlatStyle.Flat
         cbxFilterType.FormattingEnabled = True
         cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Doja", "Star"})
@@ -488,23 +503,14 @@ Partial Class Form1
         cbxFilterType.Size = New Size(79, 27)
         cbxFilterType.TabIndex = 9
         ' 
-        ' Label2
-        ' 
-        Label2.FlatStyle = FlatStyle.Flat
-        Label2.Location = New Point(9, 20)
-        Label2.Margin = New Padding(2, 0, 2, 0)
-        Label2.Name = "Label2"
-        Label2.Size = New Size(53, 26)
-        Label2.TabIndex = 8
-        Label2.Text = "Search:"
-        Label2.TextAlign = ContentAlignment.MiddleCenter
-        ' 
         ' txtLVSearch
         ' 
-        txtLVSearch.Location = New Point(58, 19)
+        txtLVSearch.ForeColor = SystemColors.ControlText
+        txtLVSearch.Location = New Point(5, 19)
         txtLVSearch.Margin = New Padding(2)
         txtLVSearch.Name = "txtLVSearch"
-        txtLVSearch.Size = New Size(174, 26)
+        txtLVSearch.PlaceholderText = "Search"
+        txtLVSearch.Size = New Size(227, 26)
         txtLVSearch.TabIndex = 7
         ' 
         ' ListViewGames
@@ -521,14 +527,14 @@ Partial Class Form1
         ' 
         ' lblTotalGameCount
         ' 
-        lblTotalGameCount.AutoSize = True
         lblTotalGameCount.FlatStyle = FlatStyle.Flat
-        lblTotalGameCount.Location = New Point(9, 546)
+        lblTotalGameCount.Location = New Point(5, 543)
         lblTotalGameCount.Margin = New Padding(2, 0, 2, 0)
         lblTotalGameCount.Name = "lblTotalGameCount"
-        lblTotalGameCount.Size = New Size(53, 19)
+        lblTotalGameCount.Size = New Size(105, 22)
         lblTotalGameCount.TabIndex = 1
         lblTotalGameCount.Text = "Total: 0"
+        lblTotalGameCount.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' chkbxHidePhoneUI
         ' 
@@ -559,10 +565,10 @@ Partial Class Form1
         ' 
         ' pbGameDL
         ' 
-        pbGameDL.Location = New Point(4, 215)
+        pbGameDL.Location = New Point(4, 424)
         pbGameDL.Margin = New Padding(2)
         pbGameDL.Name = "pbGameDL"
-        pbGameDL.Size = New Size(534, 46)
+        pbGameDL.Size = New Size(545, 46)
         pbGameDL.TabIndex = 1
         pbGameDL.Visible = False
         ' 
@@ -661,8 +667,6 @@ Partial Class Form1
     Friend WithEvents GroupBox1 As GroupBox
     Friend WithEvents ListViewGamesVariants As ListView
     Friend WithEvents cbxFilterType As ComboBox
-    Friend WithEvents Label2 As Label
-    Friend WithEvents txtLVSearch As TextBox
     Friend WithEvents ListViewGames As ListView
     Friend WithEvents lblTotalGameCount As Label
     Friend WithEvents chkbxHidePhoneUI As CheckBox
@@ -672,4 +676,6 @@ Partial Class Form1
     Friend WithEvents TabControl1 As TabControl
     Friend WithEvents ControlsToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents lblAudioWarning As Label
+    Friend WithEvents txtLVSearch As TextBox
+    Friend WithEvents lblFilteredGameCount As Label
 End Class
