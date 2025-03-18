@@ -247,6 +247,11 @@ Public Class Form1
             utilManager.SetDpiScaling(FullPath)
         Next
 
+        ' Ensure Registry is set
+        UtilManager.ImportRegFileIfMissing($"Software\NTTDoCoMo\Emulator\DoJa5.1\system", Path.Join(ToolsFolder, dojaDefault) & "\doja.reg")
+        UtilManager.ImportRegFileIfMissing($"Software\NTTDoCoMo\Emulator\Star2.0\system", Path.Join(ToolsFolder, starDefault) & "\star.reg")
+
+
         ' Set the defaults if found
         If starFound Then
             cbxStarSDK.SelectedItem = starDefault

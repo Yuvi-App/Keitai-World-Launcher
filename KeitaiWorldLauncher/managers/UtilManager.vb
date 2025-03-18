@@ -12,6 +12,7 @@ Imports System.Threading
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.Win32
+Imports System.Security.Principal
 
 Namespace My.Managers
     Public Class UtilManager
@@ -177,7 +178,55 @@ Namespace My.Managers
                 MessageBox.Show("Error modifying registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+        Public Shared Sub ImportRegFileIfMissing(regKeyPath As String, regFilePath As String)
+            Try
+                ' Check if the registry key exists
+                Using key As RegistryKey = Registry.CurrentUser.OpenSubKey(regKeyPath, False)
+                    If key IsNot Nothing Then
+                        Exit Sub
+                    End If
+                End Using
 
+                If IsRunningAsAdmin() = False Then
+                    MessageBox.Show("For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
+                "Please restart the application as an Administrator by right-clicking the executable and selecting 'Run as administrator'.",
+                "Administrator Privileges Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    Form1.QuitApplication()
+                End If
+
+                ' Ensure the .reg file exists before executing
+                If Not IO.File.Exists(regFilePath) Then
+                    logger.Logger.LogWarning("Registry file not found: " & regFilePath)
+                    MessageBox.Show("Registry file not found: " & regFilePath, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End If
+
+                ' Run the regedit command silently
+                Dim process As New Process()
+                process.StartInfo.FileName = "regedit.exe"
+                process.StartInfo.Arguments = "/s """ & regFilePath & """"
+                process.StartInfo.UseShellExecute = False
+                process.StartInfo.CreateNoWindow = True
+                process.Start()
+
+                process.WaitForExit() ' Wait for completion
+                logger.Logger.LogWarning("Registry file imported successfully!: " & regFilePath)
+                MessageBox.Show("Setup Process Complete.. You can now launch KWL as non-admin if desired.", "Info", MessageBoxButtons.OK)
+            Catch ex As Exception
+                logger.Logger.LogWarning("Error importing registry file: " & ex.Message)
+                MessageBox.Show("Error importing registry file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Public Shared Function IsRunningAsAdmin() As Boolean
+            Try
+                Dim identity = WindowsIdentity.GetCurrent()
+                Dim principal = New WindowsPrincipal(identity)
+                Return principal.IsInRole(WindowsBuiltInRole.Administrator)
+            Catch ex As Exception
+                'MessageBox.Show("Error checking privileges: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Return False
+            End Try
+        End Function
 
         'Check for APP Updates
         Shared Sub CheckForUpdates(latestVersionUrl As String)
