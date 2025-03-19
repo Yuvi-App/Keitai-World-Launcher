@@ -29,6 +29,7 @@ Public Class Form1
     Dim DownloadsFolder As String = "data\downloads"
     Dim ToolsFolder As String = "data\tools"
     Dim ConfigsFolder As String = "configs"
+    Dim LogFolder As String = "logs"
 
     'Index Vars Can Change
     Dim CurrentSelectedGameJAM As String
@@ -55,14 +56,6 @@ Public Class Form1
     Dim MachiCharapath As String
     Dim MachiCharaExe As String
 
-    ' DPI Aware Stuff
-    <DllImport("user32.dll")>
-    Private Shared Function SetProcessDpiAwarenessContext(value As IntPtr) As Boolean
-    End Function
-    Private Shared DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 As New IntPtr(-4)
-    Private InitialDpiX As Single
-    Private InitialDpiY As Single
-
     ' FORM LOAD
     Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
         UtilManager.CheckAndCloseDoja()
@@ -79,6 +72,8 @@ Public Class Form1
         XMLCreationToolStripMenuItem.Enabled = True
         BatchDownloadToolStripMenuItem.Enabled = True
 #End If
+        ' Adjust Form
+        AdjustFormPadding()
 
         ' Setup SJIS 
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
@@ -87,6 +82,8 @@ Public Class Form1
         UtilManager.SetupDIRS()
 
         ' Setup Logging
+        ' Check log File Size and Cleanup
+        UtilManager.DeleteLogIfTooLarge(Path.Join(LogFolder, "app_log.txt"))
         Logger.InitializeLogger()
         Logger.LogInfo("Application started.")
 
@@ -140,44 +137,7 @@ Public Class Form1
         LoadCustomGames()
 
         ' Load Game List
-        Logger.LogInfo("Processing gamelist.xml")
-        Try
-            games = gameListManager.LoadGames()
-            lblTotalGameCount.Text = "Total: " & games.Count
-            ' Clear the ListView and ImageList
-            ListViewGames.Items.Clear()
-            ImageListGames.Images.Clear()
-            ListViewGamesVariants.Clear()
-            ListViewGames.Columns.Add("Title", GroupBox1.Width - 20, HorizontalAlignment.Left)
-
-            ' Add icons to the ImageList
-            LoadGameIcons()
-
-            ' Assign the ImageList to the ListView
-            ListViewGames.SmallImageList = ImageListGames
-
-
-            ' Add games to the ListView
-            Dim BustedGames As New List(Of String)
-            For Each game In games
-                If game.ZIPName = String.Empty Or game.ZIPName Is Nothing Then
-                    BustedGames.Add(game.ENTitle)
-                End If
-                Dim item As New ListViewItem(game.ENTitle)
-                item.ImageKey = game.ENTitle ' Use the game title as the key for the icon
-                ListViewGames.Items.Add(item)
-            Next
-            If BustedGames.Count > 0 Then
-                Dim message = $"Busted Games Needing Fixed: {vbCrLf}"
-                For Each g In BustedGames
-                    message += $"{g}{vbCrLf}"
-                Next
-                MessageBox.Show(message)
-            End If
-        Catch ex As Exception
-            MessageBox.Show($"Failed to Load Game List:{vbCrLf}{ex}")
-            Logger.LogError("Failed to Load Game List", ex)
-        End Try
+        LoadGameListFirstTime()
 
         ' Load MachiChara List
         Logger.LogInfo("Processing machichara.xml")
@@ -193,7 +153,6 @@ Public Class Form1
 
         'Last Step
         GetSDKs()
-        RefreshGameHighlighting()
 
         ' Setup any Config Suff
         chkbxHidePhoneUI.Checked = DojaHideUI
@@ -210,20 +169,20 @@ Public Class Form1
         Dim dojaFound As Boolean = False
         Dim starFound As Boolean = False
 
-        ' Clear existing items (if necessary)
+        ' Clear existing items
         cbxDojaSDK.Items.Clear()
         cbxStarSDK.Items.Clear()
 
         ' Iterate through the directories
         For Each SSDK In Directory.GetDirectories(ToolsFolder)
-            Dim folder = Path.GetFileName(SSDK)
-            If folder.ToLower.StartsWith("idkstar") Then
+            Dim folder As String = Path.GetFileName(SSDK)
+
+            If folder.StartsWith("idkstar", StringComparison.OrdinalIgnoreCase) Then
                 cbxStarSDK.Items.Add(folder)
                 If folder.Equals(starDefault, StringComparison.OrdinalIgnoreCase) Then
                     starFound = True
                 End If
-            End If
-            If folder.ToLower.StartsWith("idkdoja") Then
+            ElseIf folder.StartsWith("idkdoja", StringComparison.OrdinalIgnoreCase) Then
                 cbxDojaSDK.Items.Add(folder)
                 If folder.Equals(dojaDefault, StringComparison.OrdinalIgnoreCase) Then
                     dojaFound = True
@@ -231,26 +190,23 @@ Public Class Form1
             End If
         Next
 
-        ' Set DPI Aware
-        For Each I In cbxDojaSDK.Items
-            If UtilManager.IsDpiScalingSet(AppDomain.CurrentDomain.BaseDirectory & Path.Join(ToolsFolder, I) & "bin\doja.exe") = True Then
-                Exit For
-            End If
-            Dim FullPath = AppDomain.CurrentDomain.BaseDirectory & Path.Join(ToolsFolder, I) & "bin\doja.exe"
-            utilManager.SetDpiScaling(FullPath)
+        ' Set DPI Awareness for DoJa SDKs
+        For Each item As Object In cbxDojaSDK.Items
+            Dim sdkFolder As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ToolsFolder, item.ToString(), "bin", "doja.exe")
+            If UtilManager.IsDpiScalingSet(sdkFolder) Then Exit For
+            utilManager.SetDpiScaling(sdkFolder)
         Next
-        For Each I In cbxStarSDK.Items
-            If UtilManager.IsDpiScalingSet(AppDomain.CurrentDomain.BaseDirectory & Path.Join(ToolsFolder, I) & "bin\star.exe") = True Then
-                Exit For
-            End If
-            Dim FullPath = AppDomain.CurrentDomain.BaseDirectory & Path.Join(ToolsFolder, I) & "bin\star.exe"
-            utilManager.SetDpiScaling(FullPath)
+
+        ' Set DPI Awareness for Star SDKs
+        For Each item As Object In cbxStarSDK.Items
+            Dim sdkFolder As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ToolsFolder, item.ToString(), "bin", "star.exe")
+            If UtilManager.IsDpiScalingSet(sdkFolder) Then Exit For
+            utilManager.SetDpiScaling(sdkFolder)
         Next
 
         ' Ensure Registry is set
-        UtilManager.ImportRegFileIfMissing($"Software\NTTDoCoMo\Emulator\DoJa5.1\system", Path.Join(ToolsFolder, dojaDefault) & "\doja.reg")
-        UtilManager.ImportRegFileIfMissing($"Software\NTTDoCoMo\Emulator\Star2.0\system", Path.Join(ToolsFolder, starDefault) & "\star.reg")
-
+        UtilManager.ImportRegFileIfMissing("Software\NTTDoCoMo\Emulator\DoJa5.1\system", Path.Combine(ToolsFolder, dojaDefault, "doja.reg"))
+        UtilManager.ImportRegFileIfMissing("Software\NTTDoCoMo\Emulator\Star2.0\system", Path.Combine(ToolsFolder, starDefault, "star.reg"))
 
         ' Set the defaults if found
         If starFound Then
@@ -258,6 +214,7 @@ Public Class Form1
         Else
             MessageBox.Show($"The default SDK '{starDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
+
         If dojaFound Then
             cbxDojaSDK.SelectedItem = dojaDefault
         Else
@@ -265,33 +222,98 @@ Public Class Form1
         End If
     End Sub
     Private Sub LoadGameIcons()
-        Dim DojaIcon = $"{ToolsFolder}\icons\defaults\doja.gif"
-        Dim StarIcon = $"{ToolsFolder}\icons\defaults\star.gif"
-        If File.Exists(DojaIcon) = False Or File.Exists(StarIcon) = False Then
-            MessageBox.Show("Missing Doja/Star Defualt icons.")
+        Dim DojaIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "doja.gif")
+        Dim StarIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "star.gif")
+
+        ' Validate default icons
+        If Not File.Exists(DojaIconPath) OrElse Not File.Exists(StarIconPath) Then
+            MessageBox.Show("Missing Doja/Star Default icons.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Exit Sub
         End If
+
         ' Get all available icon files once
-        Dim availableIcons As HashSet(Of String) = Directory.GetFiles($"{ToolsFolder}\icons").
+        Dim availableIcons As HashSet(Of String) = Directory.GetFiles(Path.Combine(ToolsFolder, "icons")).
         Select(Function(iconPath) Path.GetFileNameWithoutExtension(iconPath).ToLower()).
         ToHashSet()
 
         ' Loop through each game and assign the appropriate icon
         For Each game In games
             Dim iconFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName).ToLower()
-            Dim iconPath As String = $"{ToolsFolder}\icons\{iconFileName}.gif"
+            Dim customIconPath As String = Path.Combine(ToolsFolder, "icons", $"{iconFileName}.gif")
 
-            If availableIcons.Contains(iconFileName) AndAlso File.Exists(iconPath) Then
-                ' Add the game's custom icon
-                ImageListGames.Images.Add(game.ENTitle, Image.FromFile(iconPath))
-            Else
-                ' Assign default icon based on emulator type
-                If game.Emulator.ToLower() = "doja" Then
-                    ImageListGames.Images.Add(game.ENTitle, Image.FromFile(DojaIcon))
-                ElseIf game.Emulator.ToLower() = "star" Then
-                    ImageListGames.Images.Add(game.ENTitle, Image.FromFile(StarIcon))
+            Try
+                Dim iconToUse As Image
+                If availableIcons.Contains(iconFileName) Then
+                    ' Load custom icon
+                    Using fs As New FileStream(customIconPath, FileMode.Open, FileAccess.Read)
+                        iconToUse = Image.FromStream(fs)
+                    End Using
+                Else
+                    ' Assign default icon based on emulator type
+                    Dim defaultIconPath As String = If(game.Emulator.Equals("doja", StringComparison.OrdinalIgnoreCase), DojaIconPath, StarIconPath)
+                    Using fs As New FileStream(defaultIconPath, FileMode.Open, FileAccess.Read)
+                        iconToUse = Image.FromStream(fs)
+                    End Using
                 End If
-            End If
+
+                ' Add image to ImageList
+                ImageListGames.Images.Add(game.ENTitle, iconToUse)
+
+            Catch ex As Exception
+                Logger.LogError($"Failed to load icon for game: {game.ENTitle}", ex)
+            End Try
         Next
+    End Sub
+    Private Sub LoadGameListFirstTime()
+        ' Load Game List
+        Logger.LogInfo("Processing gamelist.xml")
+        Try
+            games = gameListManager.LoadGames()
+            lblTotalGameCount.Text = $"Total: {games.Count}"
+
+            ' Clear ListView and ImageList
+            ListViewGames.BeginUpdate()
+            ImageListGames.Images.Clear()
+            ListViewGames.Items.Clear()
+            ListViewGamesVariants.Clear()
+
+            ' Adjust column width dynamically
+            ListViewGames.Columns.Clear()
+            ListViewGames.Columns.Add("Title", ListViewGames.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
+
+            ' Load icons into ImageList
+            LoadGameIcons()
+            ListViewGames.SmallImageList = ImageListGames
+
+            ' Track games with missing ZIP names
+            Dim BustedGames As New List(Of String)
+
+            ' Add games to ListView
+            For Each game In games
+                If String.IsNullOrWhiteSpace(game.ZIPName) Then
+                    BustedGames.Add(game.ENTitle)
+                End If
+
+                Dim item As New ListViewItem(game.ENTitle) With {
+                    .ImageKey = game.ENTitle
+                }
+                ListViewGames.Items.Add(item)
+            Next
+
+            ' Notify about busted games if any
+            If BustedGames.Count > 0 Then
+                Dim message As New System.Text.StringBuilder("Busted Games Needing Fixed:" & vbCrLf)
+                For Each g In BustedGames
+                    message.AppendLine(g)
+                Next
+                MessageBox.Show(message.ToString(), "Missing Game Data", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            End If
+
+            ListViewGames.EndUpdate()
+        Catch ex As Exception
+            MessageBox.Show($"Failed to Load Game List:{vbCrLf}{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Logger.LogError("Failed to Load Game List", ex)
+        End Try
     End Sub
     Private Sub EnableButtons()
         ' Enable game launch button and checkbox
@@ -303,51 +325,54 @@ Public Class Form1
     Private Sub FilterAndHighlightGames()
         ' Get the selected filter and search term
         Dim selectedFilter As String = cbxFilterType.SelectedItem.ToString().ToLower()
-        Dim searchTerm As String = txtLVSearch.Text.Trim().ToLower()
+        Dim searchTerm As String = txtLVSearch.Text.Trim()
 
         ' Clear the ListView
         ListViewGames.Items.Clear()
 
         ' Load favorites and installed games into hash sets for quick lookup
-        Dim favoriteGames As HashSet(Of String) = New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
-        If File.Exists("configs\favorites.txt") Then
-            favoriteGames = File.ReadAllLines("configs\favorites.txt").
-                         Select(Function(fav) fav.Trim()).
-                         ToHashSet(StringComparer.OrdinalIgnoreCase)
-        End If
+        Dim favoriteGames As HashSet(Of String) = If(File.Exists(Path.Combine("configs", "favorites.txt")),
+        File.ReadAllLines(Path.Combine("configs", "favorites.txt")).Select(Function(fav) fav.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+        New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
-        ' Load custom and installed games into hash sets for quick lookup
-        Dim customGames As HashSet(Of String) = New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
-        If File.Exists("configs\customgames.txt") Then
-            customGames = File.ReadAllLines("configs\customgames.txt").
-                         Select(Function(fav) fav.Trim()).
-                         ToHashSet(StringComparer.OrdinalIgnoreCase)
-        End If
+        ' Load custom games into hash sets for quick lookup
+        Dim customGames As HashSet(Of String) = If(File.Exists(Path.Combine("configs", "customgames.txt")),
+        File.ReadAllLines(Path.Combine("configs", "customgames.txt")).Select(Function(fav) fav.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+        New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
+        ' Load installed games into hash sets for quick lookup
         Dim installedGames As HashSet(Of String) = Directory.GetDirectories(DownloadsFolder).
-                                               Select(Function(folder) Path.GetFileName(folder)).
-                                               ToHashSet(StringComparer.OrdinalIgnoreCase)
+        Select(Function(folder) Path.GetFileName(folder)).
+        ToHashSet(StringComparer.OrdinalIgnoreCase)
 
         ' Loop through games and apply filtering and highlighting
         For Each game In games
-            ' Check if the game matches the current filter and search term
-            Dim matchesSearch As Boolean = game.ENTitle.ToLower().Contains(searchTerm)
-            Dim matchesFilter As Boolean = (selectedFilter = "all" OrElse
-                                        (selectedFilter = "favorites" AndAlso favoriteGames.Contains(game.ENTitle)) OrElse
-                                        (selectedFilter = "custom" AndAlso customGames.Contains(game.ENTitle)) OrElse
-                                        (selectedFilter = "installed" AndAlso Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(Path.GetFileNameWithoutExtension(game.ZIPName))) OrElse
-                                        (game.Emulator.ToLower() = selectedFilter))
+            ' Extract relevant data
+            Dim gameTitle As String = game.ENTitle
+            Dim emulatorType As String = game.Emulator.ToLower()
+            Dim zipFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName)
+
+            ' Check if the game matches the search term (case insensitive)
+            Dim matchesSearch As Boolean = gameTitle.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0
+
+            ' Check filter conditions
+            Dim isFavorited As Boolean = favoriteGames.Contains(gameTitle)
+            Dim isCustom As Boolean = customGames.Contains(gameTitle)
+            Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(zipFileName)
+            Dim matchesFilter As Boolean = selectedFilter = "all" OrElse
+                                    (selectedFilter = "favorites" AndAlso isFavorited) OrElse
+                                    (selectedFilter = "custom" AndAlso isCustom) OrElse
+                                    (selectedFilter = "installed" AndAlso isInstalled) OrElse
+                                    (emulatorType = selectedFilter)
+
+            ' Add matching games to ListView
             If matchesSearch AndAlso matchesFilter Then
-                ' Create the ListView item
-                Dim item As New ListViewItem(game.ENTitle) With {
-                .ImageKey = game.ENTitle ' Assign the correct icon
+                ' Create ListView item
+                Dim item As New ListViewItem(gameTitle) With {
+                .ImageKey = gameTitle ' Assign correct icon
             }
 
-                ' Determine highlighting
-                Dim isFavorited As Boolean = favoriteGames.Contains(game.ENTitle)
-                Dim isCustom As Boolean = customGames.Contains(game.ENTitle)
-                Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(Path.GetFileNameWithoutExtension(game.ZIPName))
-
+                ' Determine highlighting color
                 If isInstalled AndAlso isFavorited Then
                     item.BackColor = Color.LightSeaGreen ' Both installed and favorited
                 ElseIf isCustom Then
@@ -360,44 +385,41 @@ Public Class Form1
                     item.BackColor = Color.White ' Neither installed nor favorited
                 End If
 
-                ' Add item to the ListView
+                ' Add item to ListView
                 ListViewGames.Items.Add(item)
             End If
         Next
+
+        ' Update filtered game count label
         lblFilteredGameCount.Text = $"Filtered: {ListViewGames.Items.Count}"
+
+        ' Load game variants
         LoadGameVariants()
     End Sub
     Private Sub LoadGameVariants()
         ' Ensure the ListView view mode is set to Details
         ListViewGamesVariants.View = View.Details
-        ListViewGamesVariants.Clear()  ' Clear existing items if needed
+        ListViewGamesVariants.Items.Clear()
         ListViewGamesVariants.Columns.Clear()
-        ListViewGamesVariants.Columns.Add("Game Variants", -2, HorizontalAlignment.Left)  ' Add a column
+        ListViewGamesVariants.Columns.Add("Game Variants", -2, HorizontalAlignment.Left) ' Add a column
 
-        ' Get the selected game title from the ListView
-        Dim selectedGameTitle As String
-        Dim selectedGame As Game
-        Try
-            selectedGameTitle = ListViewGames.SelectedItems(0).Text
-            selectedGame = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-            If selectedGame Is Nothing Then
-                Return
-            End If
-        Catch ex As Exception
+        ' Ensure a game is selected
+        If ListViewGames.SelectedItems.Count = 0 Then
             Return
-        End Try
+        End If
 
+        ' Get selected game
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
 
-        Dim GameVariants = selectedGame.Variants
-        If GameVariants Is Nothing Then
+        If selectedGame Is Nothing OrElse String.IsNullOrWhiteSpace(selectedGame.Variants) Then
             Return
         End If
 
         ' Split and add variants as rows in the ListView
-        Dim GameVariantsSplit = GameVariants.Split(",")
+        Dim GameVariantsSplit As String() = selectedGame.Variants.Split(","c)
         For Each va In GameVariantsSplit
-            Dim item As New ListViewItem(va.Trim())
-            ListViewGamesVariants.Items.Add(item)
+            ListViewGamesVariants.Items.Add(New ListViewItem(va.Trim()))
         Next
     End Sub
     Private Sub DownloadGames(ContextDownload As Boolean)
@@ -705,38 +727,52 @@ Public Class Form1
             End If
         Next
     End Sub
+    Private Sub AdjustFormPadding()
+        Try
+
+            ' Get the system DPI scaling factor
+            Dim g As Graphics = Me.CreateGraphics()
+            Dim dpiScale As Single = g.DpiX / 96.0F ' 96 DPI is default (100%)
+            g.Dispose()
+
+            ' Get the menu bar height dynamically (if a MenuStrip exists)
+            Dim menuHeight As Integer = If(Me.MainMenuStrip IsNot Nothing, Me.MainMenuStrip.Height, 0)
+
+            ' Calculate adjusted top padding based on DPI
+            Dim adjustedPadding As Integer
+            If dpiScale = 1 Then
+                adjustedPadding = 65
+            ElseIf dpiScale = 1.25 Then
+                adjustedPadding = 65
+            ElseIf dpiScale = 1.5 Then
+                adjustedPadding = 65
+            ElseIf dpiScale = 1.75 Then
+                adjustedPadding = 65
+            ElseIf dpiScale = 2 Then
+                adjustedPadding = 65
+            End If
+
+            ' Apply padding to the form
+            Me.Padding = New Padding(0, adjustedPadding, 0, 3)
+
+            ' Adjust TabControl position
+            If TabControl1 IsNot Nothing Then
+                TabControl1.Top = Me.MainMenuStrip.Bottom + 5 ' Adjust this value if needed
+
+                ' Ensure the form's height is 5 pixels below the TabControl
+                Dim newHeight As Integer = TabControl1.Bottom + 5
+
+                ' Apply the new form height
+                Me.Height = newHeight
+            End If
+
+        Catch ex As Exception
+            MessageBox.Show("Error adjusting form padding: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
 
 
     ' LISTBOX/LISTVIEW CHANGES
-    'Private Sub ListBoxGames_SelectedIndexChanged(sender As Object, e As EventArgs)
-    '    If ListBoxGames.SelectedIndex = -1 Then Return
-
-    '    ' Get the selected game
-    '    Dim selectedGameTitle = ListBoxGames.SelectedItem.ToString
-    '    Dim selectedGame = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-
-    '    If selectedGame IsNot Nothing Then
-    '        CurrentSelectedGameJAM = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
-    '        CurrentSelectedGameJAR = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
-    '        ' Check if the game is already downloaded
-    '        Dim localFilePath = CurrentSelectedGameJAR
-    '        Dim DownloadFileZipPath = $"{DownloadsFolder}\{selectedGame.ZIPName}"
-    '        If File.Exists(localFilePath) Then 'Load JAM Controls
-    '            'MessageBox.Show($"The game '{selectedGame.ENTitle} ({Path.GetFileNameWithoutExtension(selectedGame.ZIPName)})' is already downloaded.", "Game Found", MessageBoxButtons.OK, MessageBoxIcon.Information)
-    '            UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, gbxGameInfo)
-    '        Else
-    '            ' Download the game & Extract it & Load JAM Controls
-    '            Dim result = MessageBox.Show($"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?", "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
-    '            If result = DialogResult.Yes Then
-    '                Dim GameDownloader As New GameDownloader(pbGameDL)
-    '                GameDownloader.DownloadGameAsync(selectedGame.DownloadURL, DownloadFileZipPath, $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}", CurrentSelectedGameJAM, False)
-    '            End If
-    '        End If
-
-    '        btnLaunchGame.Enabled = True
-    '        chkbxHidePhoneUI.Enabled = True
-    '    End If
-    'End Sub
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
         ' Restart the timer on selection change
         selectionTimer.Stop()
@@ -892,17 +928,22 @@ Public Class Form1
                 End If
 
 
+                'Start Launching Game
                 Select Case CorrectedEmulator.ToLower()
                     Case "doja"
                         Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
-                        If Not isDojaRunning Then
+                        Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
+                        If Not isDojaRunning AndAlso Not isStarRunning Then
                             utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
+                            Logger.LogInfo($"Loading Game using: {Dojapath} | {DojaEXE} | {CurrentSelectedGameJAM}")
                         End If
 
                     Case "star"
                         Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
-                        If Not isStarRunning Then
+                        Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
+                        If Not isStarRunning AndAlso Not isDojaRunning Then
                             utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
+                            Logger.LogInfo($"Loading Game using: {Starpath} | {StarEXE} | {CurrentSelectedGameJAM}")
                         End If
                 End Select
             End If

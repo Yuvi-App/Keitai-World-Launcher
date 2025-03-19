@@ -13,10 +13,11 @@ Namespace My.Managers
                 Using client As New WebClient()
                     ' Download the file from the specified URL
                     client.DownloadFile(url, GameListPath)
-                    'MessageBox.Show("Updated Game list downloaded successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    logger.Logger.LogInfo("Updated Game list downloaded successfully!")
                 End Using
             Catch ex As Exception
                 ' Handle errors such as network issues or invalid URL
+                logger.Logger.LogWarning($"Failed to download gamelist: {ex.Message}")
                 MessageBox.Show($"Failed to download gamelist: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub

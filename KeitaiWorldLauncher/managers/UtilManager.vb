@@ -17,21 +17,27 @@ Imports System.Security.Principal
 Namespace My.Managers
     Public Class UtilManager
         Public Shared Sub SetupDIRS()
-            Directory.CreateDirectory("data")
-            Directory.CreateDirectory("configs")
-            Directory.CreateDirectory("logs")
-            Directory.CreateDirectory("data\downloads")
-            Directory.CreateDirectory("data\tools")
-            Directory.CreateDirectory("data\tools\icons")
-            Directory.CreateDirectory("data\tools\icons\defaults")
-            Directory.CreateDirectory("data\tools\skins")
-            Directory.CreateDirectory("data\tools\skins\doja\ui")
-            Directory.CreateDirectory("data\tools\skins\doja\noui")
-            Directory.CreateDirectory("data\tools\skins\star\ui")
-            Directory.CreateDirectory("data\tools\skins\star\noui")
+            Dim directories As String() = {
+                "data",
+                "configs",
+                "logs",
+                Path.Combine("data", "downloads"),
+                Path.Combine("data", "tools"),
+                Path.Combine("data", "tools", "icons"),
+                Path.Combine("data", "tools", "icons", "defaults"),
+                Path.Combine("data", "tools", "skins"),
+                Path.Combine("data", "tools", "skins", "doja", "ui"),
+                Path.Combine("data", "tools", "skins", "doja", "noui"),
+                Path.Combine("data", "tools", "skins", "star", "ui"),
+                Path.Combine("data", "tools", "skins", "star", "noui")
+            }
+
+            For Each D In directories
+                Directory.CreateDirectory(D)
+            Next
         End Sub
 
-        'PreReq Checks
+        'PreReq Check
         Shared Sub CheckforPreReq()
             Dim DOJAEmulator = Form1.DojaEXE
             Dim StarEmulator = Form1.StarEXE
@@ -43,6 +49,7 @@ Namespace My.Managers
             My.logger.Logger.LogInfo("Checking for DOJA Emu")
             If File.Exists(DOJAEmulator) = False Then
                 MessageBox.Show($"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files needs to be located at {DOJAEmulator}")
+                My.logger.Logger.LogInfo("Missing DOJA 5.1 Emulator")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
                 Form1.QuitApplication()
             End If
@@ -51,6 +58,7 @@ Namespace My.Managers
             My.logger.Logger.LogInfo("Checking for STAR Emu")
             If File.Exists(StarEmulator) = False Then
                 MessageBox.Show($"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files needs to be located at {StarEmulator}")
+                My.logger.Logger.LogInfo("Missing STAR 2.0 Emulator")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
                 Form1.QuitApplication()
             End If
@@ -59,15 +67,16 @@ Namespace My.Managers
             My.logger.Logger.LogInfo("Checking for LEPROC")
             If File.Exists(localeEmuLoc) = False Then
                 MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files needs to be located at {localeEmuLoc}")
+                My.logger.Logger.LogInfo("Missing Locale Emulator")
                 OpenURL("https://github.com/xupefei/Locale-Emulator/releases")
                 Form1.QuitApplication()
-
             End If
 
             'Check for ShaderGlass
             My.logger.Logger.LogInfo("Checking for ShaderGlass")
             If File.Exists(ShaderGlassLoc) = False Then
-                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}ShaderGlass Files needs to be located at {ShaderGlassLoc}")
+                MessageBox.Show($"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files needs to be located at {ShaderGlassLoc}")
+                My.logger.Logger.LogInfo("Missing ShaderGlass")
                 OpenURL("https://github.com/mausimus/ShaderGlass/releases")
                 Form1.QuitApplication()
             End If
@@ -76,6 +85,7 @@ Namespace My.Managers
             My.logger.Logger.LogInfo("Checking for Java 8")
             If IsJava8Update152Installed() = False Then
                 MessageBox.Show("Missing JAVA 8... Download is required")
+                My.logger.Logger.LogInfo("Missing JAVA 8")
                 OpenURL("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
                 Form1.QuitApplication()
             End If
@@ -84,15 +94,16 @@ Namespace My.Managers
             My.logger.Logger.LogInfo("Checking for C++ Runtimes")
             If IsVCRuntime2022Installed() = False Then
                 MessageBox.Show("Unable to Detect C++ Runtimes... To ensure comptability, we recommend you install this Runtime AIO Package.")
+                My.logger.Logger.LogInfo("Missing C++ Runtimes")
                 OpenURL("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
                 Form1.QuitApplication()
             End If
         End Sub
         Shared Function IsJava8Update152Installed() As Boolean
             Dim javaVersions As String() = {
-        "SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_152",
-        "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8.0_152"
-    }
+                "SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_152",
+                "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8.0_152"
+            }
 
             For Each regPath In javaVersions
                 Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
@@ -106,9 +117,9 @@ Namespace My.Managers
         End Function
         Shared Function IsVCRuntime2022Installed() As Boolean
             Dim vcPaths As String() = {
-        "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64", ' 64-bit
-        "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86"  ' 32-bit
-    }
+                "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64", ' 64-bit
+                "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86"  ' 32-bit
+            }
 
             For Each regPath In vcPaths
                 Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
@@ -126,13 +137,15 @@ Namespace My.Managers
         Shared Sub OpenURL(url As String)
             Try
                 Process.Start(New ProcessStartInfo With {
-            .FileName = url,
-            .UseShellExecute = True
-        })
+                    .FileName = url,
+                    .UseShellExecute = True
+                })
             Catch ex As Exception
                 MessageBox.Show("Failed to open the URL: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+
+        'MISC
         Public Shared Function IsDpiScalingSet(exePath As String) As Boolean
             Try
                 Dim regPath As String = "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
@@ -211,7 +224,7 @@ Namespace My.Managers
 
                 process.WaitForExit() ' Wait for completion
                 logger.Logger.LogWarning("Registry file imported successfully!: " & regFilePath)
-                MessageBox.Show("Setup Process Complete.. You can now launch KWL as non-admin if desired.", "Info", MessageBoxButtons.OK)
+                MessageBox.Show("Setup process complete! You can now launch KWL without administrator privileges if desired.", "Info", MessageBoxButtons.OK)
             Catch ex As Exception
                 logger.Logger.LogWarning("Error importing registry file: " & ex.Message)
                 MessageBox.Show("Error importing registry file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -227,6 +240,25 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
+        Public Shared Sub DeleteLogIfTooLarge(logFilePath As String)
+            Try
+                ' Ensure the file exists before checking
+                If File.Exists(logFilePath) Then
+                    ' Get the file size in bytes
+                    Dim fileInfo As New FileInfo(logFilePath)
+                    Dim fileSizeInMB As Double = fileInfo.Length / (1024 * 1024) ' Convert bytes to MB
+
+                    ' Check if the file size exceeds 10MB
+                    If fileSizeInMB >= 10 Then
+                        File.Delete(logFilePath)
+                        'MessageBox.Show("Log file deleted as it exceeded 10MB.", "Log Cleanup", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    End If
+                End If
+
+            Catch ex As Exception
+                MessageBox.Show("Error cleaning up log file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
 
         'Check for APP Updates
         Shared Sub CheckForUpdates(latestVersionUrl As String)
@@ -381,7 +413,6 @@ Namespace My.Managers
             End If
         End Sub
 
-
         'Launch App
         Public Function IsProcessRunning(processName As String) As Boolean
             ' Get the list of all processes with the given name
@@ -422,9 +453,9 @@ Namespace My.Managers
             End If
         End Function
         Shared Function CheckAndCloseStar()
-            ' Check if doja.exe is currently running
-            Dim dojaProcesses = Process.GetProcessesByName("star")
-            If dojaProcesses.Length > 0 Then
+            ' Check if star.exe is currently running
+            Dim starProcesses = Process.GetProcessesByName("star")
+            If starProcesses.Length > 0 Then
                 ' Prompt the user to confirm closing the application
                 Dim result = MessageBox.Show("star.exe is currently running. Do you want to close it?",
                                      "Confirm Close",
@@ -435,7 +466,7 @@ Namespace My.Managers
                         CheckAndCloseShaderGlass()
 
                         ' Close each instance of star.exe
-                        For Each process As Process In dojaProcesses
+                        For Each process As Process In starProcesses
                             process.Kill()
                             process.WaitForExit() ' Ensure the process has exited
                         Next
@@ -453,26 +484,24 @@ Namespace My.Managers
             End If
         End Function
         Shared Function CheckAndCloseShaderGlass()
-            ' Check if doja.exe is currently running
+            ' Check if shaderglass.exe is currently running
             Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
 
             If shaderglassProcesses.Length > 0 Then
                 Try
-                    ' Close each instance of star.exe
+                    ' Close each instance of shaderglass.exe
                     For Each process As Process In shaderglassProcesses
                         process.Kill()
                         process.WaitForExit() ' Ensure the process has exited
                     Next
                     Return False
-                    'MessageBox.Show("star.exe has been closed successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 Catch ex As Exception
-                    MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
+                    MessageBox.Show("An error occurred while trying to close shaderglass.exe: " & ex.Message,
                             "Error",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Error)
                 End Try
             Else
-                'MessageBox.Show("star.exe is not currently running.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
             End If
         End Function
         Public Async Sub LaunchCustomDOJAGameCommand(DOJAPATH As String, DOJAEXELocation As String, GameJAM As String)
@@ -486,6 +515,8 @@ Namespace My.Managers
 
                 ' Update device settings based on user selections
                 If UpdateDOJADeviceSkin(DOJAPATH, Form1.chkbxHidePhoneUI.Checked) = False Then
+                    MessageBox.Show("Failed to Update DOJA Skins.")
+                    logger.Logger.LogError($"Failed to Update DOJA Skins.")
                     Exit Sub
                 End If
 
@@ -523,14 +554,17 @@ Namespace My.Managers
                 If process IsNot Nothing Then
                     process.WaitForInputIdle()
                 Else
-                    MessageBox.Show("Failed to start process.")
+                    MessageBox.Show("Failed to start DOJA process.")
+                    logger.Logger.LogWarning($"Failed to start DOJA process.")
                 End If
 
                 ' Launch ShaderGlass if enabled
                 If Form1.chkbxShaderGlass.Checked Then
                     If Await WaitForDojaToStart() Then
                         LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                        logger.Logger.LogInfo($"Shaderglass launched successfully")
                     Else
+                        logger.Logger.LogError($"Failed to detect DOJA running.")
                         MessageBox.Show("Failed to detect DOJA running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     End If
                 End If
@@ -555,7 +589,11 @@ Namespace My.Managers
 
                 ' Update device launch settings
                 Dim hideUI As Boolean = Form1.chkbxHidePhoneUI.Checked
-                If Not UpdateSTARDeviceSkin(STARPATH, hideUI) Then Exit Sub
+                If Not UpdateSTARDeviceSkin(STARPATH, hideUI) Then
+                    MessageBox.Show("Failed to Update STAR Skins.")
+                    logger.Logger.LogError($"Failed to Update STAR Skins.")
+                    Exit Sub
+                End If
 
                 ' Update device draw size
                 Dim JAMDrawArea = ExtractSTARWidthHeight(jamPath)
@@ -582,6 +620,8 @@ Namespace My.Managers
                     If process IsNot Nothing Then
                         process.WaitForInputIdle()
                     Else
+                        MessageBox.Show("Failed to start STAR process.")
+                        logger.Logger.LogWarning($"Failed to start STAR process.")
                         Throw New Exception("Failed to start process.")
                     End If
                 End Using
@@ -590,7 +630,9 @@ Namespace My.Managers
                 If Form1.chkbxShaderGlass.Checked Then
                     If Await WaitForSTARToStart() Then
                         LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                        logger.Logger.LogInfo($"Shaderglass launched successfully")
                     Else
+                        logger.Logger.LogError($"Failed to detect STAR running.")
                         MessageBox.Show("Failed to detect STAR running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     End If
                 End If
@@ -662,7 +704,7 @@ Namespace My.Managers
             File.WriteAllLines(filePath, lines)
         End Sub
 
-        ' Asynchronous method to wait for the "doja/star" process to start
+        'Asynchronous method to wait for the "doja/star" process to start
         Private Async Function WaitForDojaToStart(Optional timeoutMilliseconds As Integer = 10000) As Task(Of Boolean)
             Dim startTime As DateTime = DateTime.Now
 
