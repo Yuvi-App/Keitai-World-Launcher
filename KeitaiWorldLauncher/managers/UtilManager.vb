@@ -562,6 +562,7 @@ Namespace My.Managers
                 If Form1.chkbxShaderGlass.Checked Then
                     If Await WaitForDojaToStart() Then
                         LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                        ProcessManager.StartMonitoring()
                         logger.Logger.LogInfo($"Shaderglass launched successfully")
                     Else
                         logger.Logger.LogError($"Failed to detect DOJA running.")
@@ -630,6 +631,7 @@ Namespace My.Managers
                 If Form1.chkbxShaderGlass.Checked Then
                     If Await WaitForSTARToStart() Then
                         LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                        ProcessManager.StartMonitoring()
                         logger.Logger.LogInfo($"Shaderglass launched successfully")
                     Else
                         logger.Logger.LogError($"Failed to detect STAR running.")
@@ -674,7 +676,7 @@ Namespace My.Managers
             End Try
         End Sub
         Public Sub LaunchShaderGlass(AppName As String)
-            Thread.Sleep(1500)
+            Thread.Sleep(2000)
             Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\ShaderGlass.exe"
             Dim arguments As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\keitai.sgp"
             ModifyCaptureWindow(arguments, AppName)
