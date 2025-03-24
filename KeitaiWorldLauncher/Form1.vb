@@ -779,16 +779,16 @@ Public Class Form1
             Me.Padding = New Padding(0, adjustedPadding, 0, 3)
 
             ' Adjust TabControl position
-            If TabControl1 IsNot Nothing Then
-                TabControl1.Top = Me.MainMenuStrip.Bottom + 5 ' Adjust this value if needed
+            If MaterialTabControl1 IsNot Nothing Then
+                MaterialTabControl1.Top = Me.MainMenuStrip.Bottom + 5
+                MaterialTabControl1.Left = Me.Padding.Left
 
-                ' Ensure the form's height is 5 pixels below the TabControl
-                Dim newHeight As Integer = TabControl1.Bottom + 5
+                ' Now, adjust the form's client size so that MaterialTabControl1 has 3 pixels of space on the right and bottom.
+                Dim newClientWidth As Integer = MaterialTabControl1.Left + MaterialTabControl1.Width + 3
+                Dim newClientHeight As Integer = MaterialTabControl1.Top + MaterialTabControl1.Height - 20
 
-                ' Apply the new form height
-                Me.Height = newHeight
+                Me.ClientSize = New Size(newClientWidth, newClientHeight)
             End If
-
         Catch ex As Exception
             MessageBox.Show("Error adjusting form padding: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try

@@ -53,11 +53,9 @@ Partial Class Form1
         OpenFileDialog1 = New OpenFileDialog()
         selectionTimer = New Timer(components)
         FolderBrowserDialog1 = New FolderBrowserDialog()
-        tpMachiChara = New TabPage()
         btnMachiCharaLaunch = New Button()
         GroupBox2 = New GroupBox()
         lbxMachiCharaList = New ListBox()
-        tpGames = New TabPage()
         lblAudioWarning = New Label()
         Label4 = New Label()
         Label3 = New Label()
@@ -78,15 +76,17 @@ Partial Class Form1
         panelDynamic = New Panel()
         pbGameDL = New ProgressBar()
         btnLaunchGame = New Button()
-        TabControl1 = New TabControl()
+        MaterialTabControl1 = New ReaLTaiizor.Controls.MaterialTabControl()
+        TabPage1 = New TabPage()
+        TabPage2 = New TabPage()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
-        tpMachiChara.SuspendLayout()
         GroupBox2.SuspendLayout()
-        tpGames.SuspendLayout()
         GroupBox1.SuspendLayout()
         gbxGameInfo.SuspendLayout()
-        TabControl1.SuspendLayout()
+        MaterialTabControl1.SuspendLayout()
+        TabPage1.SuspendLayout()
+        TabPage2.SuspendLayout()
         SuspendLayout()
         ' 
         ' ImageListGames
@@ -135,7 +135,7 @@ Partial Class Form1
         MenuStrip1.Location = New Point(0, 65)
         MenuStrip1.Name = "MenuStrip1"
         MenuStrip1.Padding = New Padding(5, 2, 0, 2)
-        MenuStrip1.Size = New Size(920, 27)
+        MenuStrip1.Size = New Size(923, 27)
         MenuStrip1.TabIndex = 5
         MenuStrip1.Text = "MenuStrip1"
         ' 
@@ -280,23 +280,10 @@ Partial Class Form1
         ' 
         selectionTimer.Interval = 200
         ' 
-        ' tpMachiChara
-        ' 
-        tpMachiChara.BackColor = Color.WhiteSmoke
-        tpMachiChara.Controls.Add(btnMachiCharaLaunch)
-        tpMachiChara.Controls.Add(GroupBox2)
-        tpMachiChara.Location = New Point(4, 28)
-        tpMachiChara.Margin = New Padding(2)
-        tpMachiChara.Name = "tpMachiChara"
-        tpMachiChara.Padding = New Padding(2)
-        tpMachiChara.Size = New Size(911, 575)
-        tpMachiChara.TabIndex = 1
-        tpMachiChara.Text = "Machi Chara"
-        ' 
         ' btnMachiCharaLaunch
         ' 
         btnMachiCharaLaunch.Enabled = False
-        btnMachiCharaLaunch.Location = New Point(254, 30)
+        btnMachiCharaLaunch.Location = New Point(257, 28)
         btnMachiCharaLaunch.Margin = New Padding(2)
         btnMachiCharaLaunch.Name = "btnMachiCharaLaunch"
         btnMachiCharaLaunch.Size = New Size(110, 54)
@@ -307,7 +294,7 @@ Partial Class Form1
         ' GroupBox2
         ' 
         GroupBox2.Controls.Add(lbxMachiCharaList)
-        GroupBox2.Location = New Point(9, 10)
+        GroupBox2.Location = New Point(12, 8)
         GroupBox2.Margin = New Padding(2)
         GroupBox2.Name = "GroupBox2"
         GroupBox2.Padding = New Padding(2)
@@ -320,42 +307,19 @@ Partial Class Form1
         ' 
         lbxMachiCharaList.Enabled = False
         lbxMachiCharaList.FormattingEnabled = True
-        lbxMachiCharaList.ItemHeight = 19
+        lbxMachiCharaList.ItemHeight = 15
         lbxMachiCharaList.Location = New Point(5, 22)
         lbxMachiCharaList.Margin = New Padding(2)
         lbxMachiCharaList.Name = "lbxMachiCharaList"
-        lbxMachiCharaList.Size = New Size(230, 422)
+        lbxMachiCharaList.Size = New Size(230, 409)
         lbxMachiCharaList.TabIndex = 0
-        ' 
-        ' tpGames
-        ' 
-        tpGames.BackColor = Color.WhiteSmoke
-        tpGames.Controls.Add(lblAudioWarning)
-        tpGames.Controls.Add(Label4)
-        tpGames.Controls.Add(Label3)
-        tpGames.Controls.Add(cbxStarSDK)
-        tpGames.Controls.Add(cbxDojaSDK)
-        tpGames.Controls.Add(chkbxShaderGlass)
-        tpGames.Controls.Add(Label1)
-        tpGames.Controls.Add(cobxAudioType)
-        tpGames.Controls.Add(GroupBox1)
-        tpGames.Controls.Add(chkbxHidePhoneUI)
-        tpGames.Controls.Add(gbxGameInfo)
-        tpGames.Controls.Add(btnLaunchGame)
-        tpGames.Location = New Point(4, 28)
-        tpGames.Margin = New Padding(2)
-        tpGames.Name = "tpGames"
-        tpGames.Padding = New Padding(2)
-        tpGames.Size = New Size(911, 575)
-        tpGames.TabIndex = 0
-        tpGames.Text = "Games"
         ' 
         ' lblAudioWarning
         ' 
         lblAudioWarning.FlatStyle = FlatStyle.Flat
-        lblAudioWarning.Font = New Font("Segoe UI", 9.0F)
+        lblAudioWarning.Font = New Font("Segoe UI", 9F)
         lblAudioWarning.ForeColor = Color.Firebrick
-        lblAudioWarning.Location = New Point(600, 519)
+        lblAudioWarning.Location = New Point(601, 520)
         lblAudioWarning.Margin = New Padding(2, 0, 2, 0)
         lblAudioWarning.Name = "lblAudioWarning"
         lblAudioWarning.Size = New Size(145, 50)
@@ -367,8 +331,8 @@ Partial Class Form1
         ' Label4
         ' 
         Label4.FlatStyle = FlatStyle.Flat
-        Label4.Font = New Font("Segoe UI", 9.0F)
-        Label4.Location = New Point(767, 522)
+        Label4.Font = New Font("Segoe UI", 9F)
+        Label4.Location = New Point(768, 523)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
         Label4.Size = New Size(51, 23)
@@ -379,8 +343,8 @@ Partial Class Form1
         ' Label3
         ' 
         Label3.FlatStyle = FlatStyle.Flat
-        Label3.Font = New Font("Segoe UI", 9.0F)
-        Label3.Location = New Point(763, 494)
+        Label3.Font = New Font("Segoe UI", 9F)
+        Label3.Location = New Point(764, 495)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
         Label3.Size = New Size(55, 23)
@@ -392,9 +356,9 @@ Partial Class Form1
         ' 
         cbxStarSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxStarSDK.FlatStyle = FlatStyle.Flat
-        cbxStarSDK.Font = New Font("Segoe UI", 9.0F)
+        cbxStarSDK.Font = New Font("Segoe UI", 9F)
         cbxStarSDK.FormattingEnabled = True
-        cbxStarSDK.Location = New Point(822, 523)
+        cbxStarSDK.Location = New Point(823, 524)
         cbxStarSDK.Margin = New Padding(2)
         cbxStarSDK.Name = "cbxStarSDK"
         cbxStarSDK.Size = New Size(85, 23)
@@ -404,9 +368,9 @@ Partial Class Form1
         ' 
         cbxDojaSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxDojaSDK.FlatStyle = FlatStyle.Flat
-        cbxDojaSDK.Font = New Font("Segoe UI", 9.0F)
+        cbxDojaSDK.Font = New Font("Segoe UI", 9F)
         cbxDojaSDK.FormattingEnabled = True
-        cbxDojaSDK.Location = New Point(822, 494)
+        cbxDojaSDK.Location = New Point(823, 495)
         cbxDojaSDK.Margin = New Padding(2)
         cbxDojaSDK.Name = "cbxDojaSDK"
         cbxDojaSDK.Size = New Size(85, 23)
@@ -417,8 +381,8 @@ Partial Class Form1
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.FlatStyle = FlatStyle.Flat
-        chkbxShaderGlass.Font = New Font("Segoe UI", 9.0F)
-        chkbxShaderGlass.Location = New Point(470, 509)
+        chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
+        chkbxShaderGlass.Location = New Point(471, 510)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
         chkbxShaderGlass.Size = New Size(86, 19)
@@ -429,8 +393,8 @@ Partial Class Form1
         ' Label1
         ' 
         Label1.FlatStyle = FlatStyle.Flat
-        Label1.Font = New Font("Segoe UI", 9.0F)
-        Label1.Location = New Point(600, 494)
+        Label1.Font = New Font("Segoe UI", 9F)
+        Label1.Location = New Point(601, 495)
         Label1.Margin = New Padding(2, 0, 2, 0)
         Label1.Name = "Label1"
         Label1.Size = New Size(67, 23)
@@ -443,10 +407,10 @@ Partial Class Form1
         cobxAudioType.DropDownStyle = ComboBoxStyle.DropDownList
         cobxAudioType.Enabled = False
         cobxAudioType.FlatStyle = FlatStyle.Flat
-        cobxAudioType.Font = New Font("Segoe UI", 9.0F)
+        cobxAudioType.Font = New Font("Segoe UI", 9F)
         cobxAudioType.FormattingEnabled = True
         cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
-        cobxAudioType.Location = New Point(671, 494)
+        cobxAudioType.Location = New Point(672, 495)
         cobxAudioType.Margin = New Padding(2)
         cobxAudioType.Name = "cobxAudioType"
         cobxAudioType.Size = New Size(74, 23)
@@ -461,7 +425,7 @@ Partial Class Form1
         GroupBox1.Controls.Add(ListViewGames)
         GroupBox1.Controls.Add(lblTotalGameCount)
         GroupBox1.FlatStyle = FlatStyle.Flat
-        GroupBox1.Location = New Point(5, 4)
+        GroupBox1.Location = New Point(6, 5)
         GroupBox1.Margin = New Padding(2)
         GroupBox1.Name = "GroupBox1"
         GroupBox1.Padding = New Padding(2)
@@ -501,7 +465,7 @@ Partial Class Form1
         cbxFilterType.Location = New Point(241, 19)
         cbxFilterType.Margin = New Padding(2)
         cbxFilterType.Name = "cbxFilterType"
-        cbxFilterType.Size = New Size(101, 27)
+        cbxFilterType.Size = New Size(101, 23)
         cbxFilterType.TabIndex = 9
         ' 
         ' txtLVSearch
@@ -511,7 +475,7 @@ Partial Class Form1
         txtLVSearch.Margin = New Padding(2)
         txtLVSearch.Name = "txtLVSearch"
         txtLVSearch.PlaceholderText = "Search"
-        txtLVSearch.Size = New Size(232, 26)
+        txtLVSearch.Size = New Size(232, 23)
         txtLVSearch.TabIndex = 7
         ' 
         ' ListViewGames
@@ -542,8 +506,8 @@ Partial Class Form1
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.Enabled = False
         chkbxHidePhoneUI.FlatStyle = FlatStyle.Flat
-        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9.0F)
-        chkbxHidePhoneUI.Location = New Point(470, 490)
+        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9F)
+        chkbxHidePhoneUI.Location = New Point(471, 491)
         chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
         chkbxHidePhoneUI.Size = New Size(99, 19)
@@ -556,7 +520,7 @@ Partial Class Form1
         gbxGameInfo.Controls.Add(panelDynamic)
         gbxGameInfo.Controls.Add(pbGameDL)
         gbxGameInfo.FlatStyle = FlatStyle.Flat
-        gbxGameInfo.Location = New Point(356, 4)
+        gbxGameInfo.Location = New Point(357, 5)
         gbxGameInfo.Margin = New Padding(2)
         gbxGameInfo.Name = "gbxGameInfo"
         gbxGameInfo.Padding = New Padding(2)
@@ -569,9 +533,9 @@ Partial Class Form1
         ' 
         panelDynamic.AutoScroll = True
         panelDynamic.Dock = DockStyle.Fill
-        panelDynamic.Location = New Point(2, 21)
+        panelDynamic.Location = New Point(2, 18)
         panelDynamic.Name = "panelDynamic"
-        panelDynamic.Size = New Size(549, 458)
+        panelDynamic.Size = New Size(549, 461)
         panelDynamic.TabIndex = 2
         ' 
         ' pbGameDL
@@ -587,8 +551,8 @@ Partial Class Form1
         ' 
         btnLaunchGame.Enabled = False
         btnLaunchGame.FlatStyle = FlatStyle.Flat
-        btnLaunchGame.Font = New Font("Segoe UI", 9.0F)
-        btnLaunchGame.Location = New Point(356, 494)
+        btnLaunchGame.Font = New Font("Segoe UI", 9F)
+        btnLaunchGame.Location = New Point(357, 495)
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
         btnLaunchGame.Size = New Size(110, 77)
@@ -596,41 +560,79 @@ Partial Class Form1
         btnLaunchGame.Text = "Launch"
         btnLaunchGame.UseVisualStyleBackColor = True
         ' 
-        ' TabControl1
+        ' MaterialTabControl1
         ' 
-        TabControl1.Controls.Add(tpGames)
-        TabControl1.Controls.Add(tpMachiChara)
-        TabControl1.Font = New Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        TabControl1.Location = New Point(0, 94)
-        TabControl1.Margin = New Padding(2)
-        TabControl1.Name = "TabControl1"
-        TabControl1.SelectedIndex = 0
-        TabControl1.Size = New Size(919, 607)
-        TabControl1.TabIndex = 4
+        MaterialTabControl1.Controls.Add(TabPage1)
+        MaterialTabControl1.Controls.Add(TabPage2)
+        MaterialTabControl1.Depth = 0
+        MaterialTabControl1.Location = New Point(3, 96)
+        MaterialTabControl1.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
+        MaterialTabControl1.Multiline = True
+        MaterialTabControl1.Name = "MaterialTabControl1"
+        MaterialTabControl1.SelectedIndex = 0
+        MaterialTabControl1.Size = New Size(917, 609)
+        MaterialTabControl1.TabIndex = 6
+        ' 
+        ' TabPage1
+        ' 
+        TabPage1.Controls.Add(lblAudioWarning)
+        TabPage1.Controls.Add(gbxGameInfo)
+        TabPage1.Controls.Add(Label4)
+        TabPage1.Controls.Add(btnLaunchGame)
+        TabPage1.Controls.Add(Label3)
+        TabPage1.Controls.Add(chkbxHidePhoneUI)
+        TabPage1.Controls.Add(cbxStarSDK)
+        TabPage1.Controls.Add(GroupBox1)
+        TabPage1.Controls.Add(cbxDojaSDK)
+        TabPage1.Controls.Add(cobxAudioType)
+        TabPage1.Controls.Add(chkbxShaderGlass)
+        TabPage1.Controls.Add(Label1)
+        TabPage1.Location = New Point(4, 24)
+        TabPage1.Name = "TabPage1"
+        TabPage1.Padding = New Padding(3)
+        TabPage1.Size = New Size(909, 581)
+        TabPage1.TabIndex = 0
+        TabPage1.Text = "Games"
+        TabPage1.UseVisualStyleBackColor = True
+        ' 
+        ' TabPage2
+        ' 
+        TabPage2.Controls.Add(btnMachiCharaLaunch)
+        TabPage2.Controls.Add(GroupBox2)
+        TabPage2.Location = New Point(4, 24)
+        TabPage2.Name = "TabPage2"
+        TabPage2.Padding = New Padding(3)
+        TabPage2.Size = New Size(921, 581)
+        TabPage2.TabIndex = 1
+        TabPage2.Text = "MachiChara"
+        TabPage2.UseVisualStyleBackColor = True
         ' 
         ' Form1
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
         AutoScaleMode = AutoScaleMode.Dpi
-        ClientSize = New Size(920, 700)
-        Controls.Add(TabControl1)
+        ClientSize = New Size(923, 709)
+        Controls.Add(MaterialTabControl1)
         Controls.Add(MenuStrip1)
+        DrawerTabControl = MaterialTabControl1
         MainMenuStrip = MenuStrip1
         Margin = New Padding(2)
+        MaximizeBox = False
         Name = "Form1"
         Padding = New Padding(0, 65, 0, 3)
+        Sizable = False
         Text = "Keitai World Launcher"
         cmsGameLV.ResumeLayout(False)
         MenuStrip1.ResumeLayout(False)
         MenuStrip1.PerformLayout()
-        tpMachiChara.ResumeLayout(False)
         GroupBox2.ResumeLayout(False)
-        tpGames.ResumeLayout(False)
-        tpGames.PerformLayout()
         GroupBox1.ResumeLayout(False)
         GroupBox1.PerformLayout()
         gbxGameInfo.ResumeLayout(False)
-        TabControl1.ResumeLayout(False)
+        MaterialTabControl1.ResumeLayout(False)
+        TabPage1.ResumeLayout(False)
+        TabPage1.PerformLayout()
+        TabPage2.ResumeLayout(False)
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -663,11 +665,9 @@ Partial Class Form1
     Friend WithEvents NetworkUIDConfigToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents AddGamesToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents FolderBrowserDialog1 As FolderBrowserDialog
-    Friend WithEvents tpMachiChara As TabPage
     Friend WithEvents btnMachiCharaLaunch As Button
     Friend WithEvents GroupBox2 As GroupBox
     Friend WithEvents lbxMachiCharaList As ListBox
-    Friend WithEvents tpGames As TabPage
     Friend WithEvents Label4 As Label
     Friend WithEvents Label3 As Label
     Friend WithEvents cbxStarSDK As ComboBox
@@ -684,10 +684,12 @@ Partial Class Form1
     Friend WithEvents gbxGameInfo As GroupBox
     Friend WithEvents pbGameDL As ProgressBar
     Friend WithEvents btnLaunchGame As Button
-    Friend WithEvents TabControl1 As TabControl
     Friend WithEvents ControlsToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents lblAudioWarning As Label
     Friend WithEvents txtLVSearch As TextBox
     Friend WithEvents lblFilteredGameCount As Label
     Friend WithEvents panelDynamic As Panel
+    Friend WithEvents MaterialTabControl1 As ReaLTaiizor.Controls.MaterialTabControl
+    Friend WithEvents TabPage1 As TabPage
+    Friend WithEvents TabPage2 As TabPage
 End Class
