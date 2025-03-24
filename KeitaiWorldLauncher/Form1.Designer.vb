@@ -77,16 +77,16 @@ Partial Class Form1
         pbGameDL = New ProgressBar()
         btnLaunchGame = New Button()
         MaterialTabControl1 = New ReaLTaiizor.Controls.MaterialTabControl()
-        TabPage1 = New TabPage()
-        TabPage2 = New TabPage()
+        tpGames = New TabPage()
+        tpMachiChara = New TabPage()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
         GroupBox2.SuspendLayout()
         GroupBox1.SuspendLayout()
         gbxGameInfo.SuspendLayout()
         MaterialTabControl1.SuspendLayout()
-        TabPage1.SuspendLayout()
-        TabPage2.SuspendLayout()
+        tpGames.SuspendLayout()
+        tpMachiChara.SuspendLayout()
         SuspendLayout()
         ' 
         ' ImageListGames
@@ -317,7 +317,7 @@ Partial Class Form1
         ' lblAudioWarning
         ' 
         lblAudioWarning.FlatStyle = FlatStyle.Flat
-        lblAudioWarning.Font = New Font("Segoe UI", 9F)
+        lblAudioWarning.Font = New Font("Segoe UI", 9.0F)
         lblAudioWarning.ForeColor = Color.Firebrick
         lblAudioWarning.Location = New Point(601, 520)
         lblAudioWarning.Margin = New Padding(2, 0, 2, 0)
@@ -331,7 +331,7 @@ Partial Class Form1
         ' Label4
         ' 
         Label4.FlatStyle = FlatStyle.Flat
-        Label4.Font = New Font("Segoe UI", 9F)
+        Label4.Font = New Font("Segoe UI", 9.0F)
         Label4.Location = New Point(768, 523)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
@@ -343,7 +343,7 @@ Partial Class Form1
         ' Label3
         ' 
         Label3.FlatStyle = FlatStyle.Flat
-        Label3.Font = New Font("Segoe UI", 9F)
+        Label3.Font = New Font("Segoe UI", 9.0F)
         Label3.Location = New Point(764, 495)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
@@ -356,7 +356,7 @@ Partial Class Form1
         ' 
         cbxStarSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxStarSDK.FlatStyle = FlatStyle.Flat
-        cbxStarSDK.Font = New Font("Segoe UI", 9F)
+        cbxStarSDK.Font = New Font("Segoe UI", 9.0F)
         cbxStarSDK.FormattingEnabled = True
         cbxStarSDK.Location = New Point(823, 524)
         cbxStarSDK.Margin = New Padding(2)
@@ -368,7 +368,7 @@ Partial Class Form1
         ' 
         cbxDojaSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxDojaSDK.FlatStyle = FlatStyle.Flat
-        cbxDojaSDK.Font = New Font("Segoe UI", 9F)
+        cbxDojaSDK.Font = New Font("Segoe UI", 9.0F)
         cbxDojaSDK.FormattingEnabled = True
         cbxDojaSDK.Location = New Point(823, 495)
         cbxDojaSDK.Margin = New Padding(2)
@@ -381,7 +381,7 @@ Partial Class Form1
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.FlatStyle = FlatStyle.Flat
-        chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
+        chkbxShaderGlass.Font = New Font("Segoe UI", 9.0F)
         chkbxShaderGlass.Location = New Point(471, 510)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
@@ -393,7 +393,7 @@ Partial Class Form1
         ' Label1
         ' 
         Label1.FlatStyle = FlatStyle.Flat
-        Label1.Font = New Font("Segoe UI", 9F)
+        Label1.Font = New Font("Segoe UI", 9.0F)
         Label1.Location = New Point(601, 495)
         Label1.Margin = New Padding(2, 0, 2, 0)
         Label1.Name = "Label1"
@@ -407,7 +407,7 @@ Partial Class Form1
         cobxAudioType.DropDownStyle = ComboBoxStyle.DropDownList
         cobxAudioType.Enabled = False
         cobxAudioType.FlatStyle = FlatStyle.Flat
-        cobxAudioType.Font = New Font("Segoe UI", 9F)
+        cobxAudioType.Font = New Font("Segoe UI", 9.0F)
         cobxAudioType.FormattingEnabled = True
         cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
         cobxAudioType.Location = New Point(672, 495)
@@ -506,7 +506,7 @@ Partial Class Form1
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.Enabled = False
         chkbxHidePhoneUI.FlatStyle = FlatStyle.Flat
-        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9F)
+        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9.0F)
         chkbxHidePhoneUI.Location = New Point(471, 491)
         chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
@@ -551,7 +551,7 @@ Partial Class Form1
         ' 
         btnLaunchGame.Enabled = False
         btnLaunchGame.FlatStyle = FlatStyle.Flat
-        btnLaunchGame.Font = New Font("Segoe UI", 9F)
+        btnLaunchGame.Font = New Font("Segoe UI", 9.0F)
         btnLaunchGame.Location = New Point(357, 495)
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
@@ -562,8 +562,8 @@ Partial Class Form1
         ' 
         ' MaterialTabControl1
         ' 
-        MaterialTabControl1.Controls.Add(TabPage1)
-        MaterialTabControl1.Controls.Add(TabPage2)
+        MaterialTabControl1.Controls.Add(tpGames)
+        MaterialTabControl1.Controls.Add(tpMachiChara)
         MaterialTabControl1.Depth = 0
         MaterialTabControl1.Location = New Point(3, 96)
         MaterialTabControl1.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
@@ -573,43 +573,43 @@ Partial Class Form1
         MaterialTabControl1.Size = New Size(917, 609)
         MaterialTabControl1.TabIndex = 6
         ' 
-        ' TabPage1
+        ' tpGames
         ' 
-        TabPage1.Controls.Add(lblAudioWarning)
-        TabPage1.Controls.Add(gbxGameInfo)
-        TabPage1.Controls.Add(Label4)
-        TabPage1.Controls.Add(btnLaunchGame)
-        TabPage1.Controls.Add(Label3)
-        TabPage1.Controls.Add(chkbxHidePhoneUI)
-        TabPage1.Controls.Add(cbxStarSDK)
-        TabPage1.Controls.Add(GroupBox1)
-        TabPage1.Controls.Add(cbxDojaSDK)
-        TabPage1.Controls.Add(cobxAudioType)
-        TabPage1.Controls.Add(chkbxShaderGlass)
-        TabPage1.Controls.Add(Label1)
-        TabPage1.Location = New Point(4, 24)
-        TabPage1.Name = "TabPage1"
-        TabPage1.Padding = New Padding(3)
-        TabPage1.Size = New Size(909, 581)
-        TabPage1.TabIndex = 0
-        TabPage1.Text = "Games"
-        TabPage1.UseVisualStyleBackColor = True
+        tpGames.Controls.Add(lblAudioWarning)
+        tpGames.Controls.Add(gbxGameInfo)
+        tpGames.Controls.Add(Label4)
+        tpGames.Controls.Add(btnLaunchGame)
+        tpGames.Controls.Add(Label3)
+        tpGames.Controls.Add(chkbxHidePhoneUI)
+        tpGames.Controls.Add(cbxStarSDK)
+        tpGames.Controls.Add(GroupBox1)
+        tpGames.Controls.Add(cbxDojaSDK)
+        tpGames.Controls.Add(cobxAudioType)
+        tpGames.Controls.Add(chkbxShaderGlass)
+        tpGames.Controls.Add(Label1)
+        tpGames.Location = New Point(4, 24)
+        tpGames.Name = "tpGames"
+        tpGames.Padding = New Padding(3)
+        tpGames.Size = New Size(909, 581)
+        tpGames.TabIndex = 0
+        tpGames.Text = "Games"
+        tpGames.UseVisualStyleBackColor = True
         ' 
-        ' TabPage2
+        ' tpMachiChara
         ' 
-        TabPage2.Controls.Add(btnMachiCharaLaunch)
-        TabPage2.Controls.Add(GroupBox2)
-        TabPage2.Location = New Point(4, 24)
-        TabPage2.Name = "TabPage2"
-        TabPage2.Padding = New Padding(3)
-        TabPage2.Size = New Size(921, 581)
-        TabPage2.TabIndex = 1
-        TabPage2.Text = "MachiChara"
-        TabPage2.UseVisualStyleBackColor = True
+        tpMachiChara.Controls.Add(btnMachiCharaLaunch)
+        tpMachiChara.Controls.Add(GroupBox2)
+        tpMachiChara.Location = New Point(4, 24)
+        tpMachiChara.Name = "tpMachiChara"
+        tpMachiChara.Padding = New Padding(3)
+        tpMachiChara.Size = New Size(909, 581)
+        tpMachiChara.TabIndex = 1
+        tpMachiChara.Text = "MachiChara"
+        tpMachiChara.UseVisualStyleBackColor = True
         ' 
         ' Form1
         ' 
-        AutoScaleDimensions = New SizeF(96F, 96F)
+        AutoScaleDimensions = New SizeF(96.0F, 96.0F)
         AutoScaleMode = AutoScaleMode.Dpi
         ClientSize = New Size(923, 709)
         Controls.Add(MaterialTabControl1)
@@ -630,9 +630,9 @@ Partial Class Form1
         GroupBox1.PerformLayout()
         gbxGameInfo.ResumeLayout(False)
         MaterialTabControl1.ResumeLayout(False)
-        TabPage1.ResumeLayout(False)
-        TabPage1.PerformLayout()
-        TabPage2.ResumeLayout(False)
+        tpGames.ResumeLayout(False)
+        tpGames.PerformLayout()
+        tpMachiChara.ResumeLayout(False)
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -690,6 +690,6 @@ Partial Class Form1
     Friend WithEvents lblFilteredGameCount As Label
     Friend WithEvents panelDynamic As Panel
     Friend WithEvents MaterialTabControl1 As ReaLTaiizor.Controls.MaterialTabControl
-    Friend WithEvents TabPage1 As TabPage
-    Friend WithEvents TabPage2 As TabPage
+    Friend WithEvents tpGames As TabPage
+    Friend WithEvents tpMachiChara As TabPage
 End Class
