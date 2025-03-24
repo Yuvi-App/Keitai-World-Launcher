@@ -259,6 +259,20 @@ Namespace My.Managers
                 MessageBox.Show("Error cleaning up log file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+        Public Function IsInternetAvailable(InputUrl As String, Optional timeout As Integer = 3000) As Boolean
+            Try
+                Dim request As Net.HttpWebRequest = CType(Net.WebRequest.Create(InputUrl), Net.HttpWebRequest)
+                request.Timeout = timeout ' Timeout in milliseconds
+                request.ReadWriteTimeout = timeout
+                request.Method = "HEAD" ' Faster than GET or reading the stream
+
+                Using response As Net.HttpWebResponse = CType(request.GetResponse(), Net.HttpWebResponse)
+                    Return True
+                End Using
+            Catch
+                Return False
+            End Try
+        End Function
 
         'Check for APP Updates
         Shared Sub CheckForUpdates(latestVersionUrl As String)
@@ -284,18 +298,25 @@ Namespace My.Managers
         End Sub
 
         'Generate Controls
-        Public Shared Sub GenerateDynamicControlsFromLines(JAMFile As String, groupBox As GroupBox)
+        Public Shared Sub GenerateDynamicControlsFromLines(JAMFile As String, container As Panel)
             Try
-                ' Clear any existing controls in the GroupBox
-                groupBox.Controls.Clear()
+                ' Clear any existing controls in the container (Panel)
+                container.Controls.Clear()
 
-                ' Start position for dynamic controls
-                Dim startY As Integer = 25
-                Dim spacing As Integer = 30
+                ' Create and configure a TableLayoutPanel
+                Dim tableLayout As New TableLayoutPanel() With {
+            .ColumnCount = 2,
+            .AutoSize = True,
+            .Dock = DockStyle.Top
+        }
+                ' Define the column widths: first fixed, second fills remaining space
+                tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 100))
+                tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100))
 
+                ' Read the file lines (using the proper encoding)
                 Dim lines = File.ReadAllLines(JAMFile, Encoding.GetEncoding(932))
+                Dim rowIndex As Integer = 0
 
-                ' Loop through each line
                 For Each line As String In lines
                     ' Skip empty lines
                     If String.IsNullOrWhiteSpace(line) Then Continue For
@@ -308,28 +329,36 @@ Namespace My.Managers
                     Dim value As String = parts(1).Trim()
 
                     ' Create a label for the key
-                    Dim lbl As New Label()
-                    lbl.Text = key
-                    lbl.AutoSize = True
-                    lbl.Location = New Point(5, startY)
+                    Dim lbl As New Label() With {
+                .Text = key,
+                .AutoSize = True,
+                .Anchor = AnchorStyles.Left
+            }
 
                     ' Create a textbox for the value
-                    Dim txt As New TextBox()
-                    txt.Text = value
-                    txt.Width = groupBox.Width - 50 ' Adjust width to fit within the group box
-                    txt.Location = New Point(120, startY)
+                    Dim txt As New TextBox() With {
+                .Text = value,
+                .Dock = DockStyle.Fill,
+                .ReadOnly = True
+            }
 
-                    ' Add controls to the group box
-                    groupBox.Controls.Add(lbl)
-                    groupBox.Controls.Add(txt)
+                    ' Increase row count and add a new row style for each row
+                    tableLayout.RowCount = rowIndex + 1
+                    tableLayout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
 
-                    ' Move to the next row
-                    startY += spacing
+                    ' Add controls to the tableLayoutPanel
+                    tableLayout.Controls.Add(lbl, 0, rowIndex)
+                    tableLayout.Controls.Add(txt, 1, rowIndex)
+                    rowIndex += 1
                 Next
+
+                ' Add the TableLayoutPanel to the container (Panel)
+                container.Controls.Add(tableLayout)
             Catch ex As Exception
                 MessageBox.Show($"Error generating controls for JAM: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+
 
         'Get App Icons
         Public Sub ExtractAndResizeAppIcon(jarFilePath As String, jamFilePath As String, SelectedGame As Game)

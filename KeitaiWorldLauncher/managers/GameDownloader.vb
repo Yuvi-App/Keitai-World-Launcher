@@ -95,7 +95,7 @@ Namespace My.Managers
 
                         ' Delete the ZIP file after extraction
                         File.Delete(downloadFilePath)
-                        UtilManager.GenerateDynamicControlsFromLines(ReadJam, Form1.gbxGameInfo)
+                        UtilManager.GenerateDynamicControlsFromLines(ReadJam, Form1.panelDynamic)
                     Catch ex As Exception
                         MessageBox.Show($"Failed to extract the game: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     End Try

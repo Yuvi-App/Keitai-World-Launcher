@@ -78,6 +78,7 @@ Partial Class Form1
         pbGameDL = New ProgressBar()
         btnLaunchGame = New Button()
         TabControl1 = New TabControl()
+        panelDynamic = New Panel()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
         tpMachiChara.SuspendLayout()
@@ -552,6 +553,7 @@ Partial Class Form1
         ' 
         ' gbxGameInfo
         ' 
+        gbxGameInfo.Controls.Add(panelDynamic)
         gbxGameInfo.Controls.Add(pbGameDL)
         gbxGameInfo.FlatStyle = FlatStyle.Flat
         gbxGameInfo.Location = New Point(356, 4)
@@ -596,6 +598,15 @@ Partial Class Form1
         TabControl1.SelectedIndex = 0
         TabControl1.Size = New Size(919, 607)
         TabControl1.TabIndex = 4
+        ' 
+        ' panelDynamic
+        ' 
+        panelDynamic.AutoScroll = True
+        panelDynamic.Dock = DockStyle.Fill
+        panelDynamic.Location = New Point(2, 21)
+        panelDynamic.Name = "panelDynamic"
+        panelDynamic.Size = New Size(549, 458)
+        panelDynamic.TabIndex = 2
         ' 
         ' Form1
         ' 
@@ -678,4 +689,5 @@ Partial Class Form1
     Friend WithEvents lblAudioWarning As Label
     Friend WithEvents txtLVSearch As TextBox
     Friend WithEvents lblFilteredGameCount As Label
+    Friend WithEvents panelDynamic As Panel
 End Class

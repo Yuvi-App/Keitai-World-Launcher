@@ -23,10 +23,16 @@ Namespace My.Managers
         ' Load games from XML
         Public Function LoadMachiChara() As List(Of MachiChara)
             If File.Exists(MachiCharaListPath) Then
-                Dim serializer As New XmlSerializer(GetType(List(Of MachiChara)), New XmlRootAttribute("MachiCharalist"))
-                Using reader As New StreamReader(MachiCharaListPath, Encoding.GetEncoding("Shift-JIS"))
-                    Return CType(serializer.Deserialize(reader), List(Of MachiChara))
-                End Using
+                Try
+                    Dim serializer As New XmlSerializer(GetType(List(Of MachiChara)), New XmlRootAttribute("MachiCharalist"))
+                    Using reader As New StreamReader(MachiCharaListPath, Encoding.GetEncoding("Shift-JIS"))
+                        Return CType(serializer.Deserialize(reader), List(Of MachiChara))
+                    End Using
+                Catch ex As Exception
+                    logger.Logger.LogError("Failed to load MachiCharaList.XML...")
+                    MessageBox.Show("Failed to load MachiCharaList.XML...")
+                End Try
+
             Else
                 ' Return an empty list if the file doesn't exist
                 Return New List(Of MachiChara)()
@@ -34,18 +40,18 @@ Namespace My.Managers
         End Function
 
         ' Save games to XML with Shift-JIS encoding
-        Public Sub SaveGames(games As List(Of MachiChara))
+        Public Sub SaveMachiChara(MCs As List(Of MachiChara))
             Dim serializer As New XmlSerializer(GetType(List(Of MachiChara)), New XmlRootAttribute("MachiCharalist"))
             Using writer As New StreamWriter(MachiCharaListPath, False, Encoding.GetEncoding("Shift-JIS"))
-                serializer.Serialize(writer, games)
+                serializer.Serialize(writer, MCs)
             End Using
         End Sub
 
-        ' Add a new game to the list
-        Public Sub AddGame(game As MachiChara)
-            Dim games = LoadMachiChara()
-            games.Add(game)
-            SaveGames(games)
+        ' Add a new MachiChara to the list
+        Public Sub AddMachiChara(MC As MachiChara)
+            Dim MCs = LoadMachiChara()
+            MCs.Add(MC)
+            SaveMachiChara(MCs)
         End Sub
 
     End Class

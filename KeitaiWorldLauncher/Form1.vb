@@ -115,22 +115,31 @@ Public Class Form1
         UtilManager.CheckforPreReq()
         Logger.LogInfo("PreReq All Good")
 
-        ' Check for App update
-        Logger.LogInfo("Getting App Update")
-        If autoUpdate = True Then
-            UtilManager.CheckForUpdates(versionCheckUrl)
-        End If
 
-        ' Get Updated Game List  
-        Logger.LogInfo("Getting Gamelist.xml")
-        If autoUpdateGameList = True Then
-            GameListManager.DownloadGameList(gameListUrl)
-        End If
+        'Needs Internet If none we skip and use local file
+        Dim uri As New Uri(versionCheckUrl)
+        Dim domainOnly As String = Uri.Scheme & "://" & Uri.Host
+        Logger.LogInfo("Checking internet connectivity...")
+        If utilManager.IsInternetAvailable(domainOnly) Then
+            ' Check for App update
+            Logger.LogInfo("Getting App Update")
+            If autoUpdate = True Then
+                UtilManager.CheckForUpdates(versionCheckUrl)
+            End If
 
-        ' Get Updated MachiChara List  
-        Logger.LogInfo("Getting Machichara.xml")
-        If autoUpdatemachicharaList = True Then
-            MachiCharaListManager.DownloadMachiCharaList(machicharaListUrl)
+            ' Get Updated Game List  
+            Logger.LogInfo("Getting Gamelist.xml")
+            If autoUpdateGameList = True Then
+                GameListManager.DownloadGameList(gameListUrl)
+            End If
+
+            ' Get Updated MachiChara List  
+            Logger.LogInfo("Getting Machichara.xml")
+            If autoUpdatemachicharaList = True Then
+                MachiCharaListManager.DownloadMachiCharaList(machicharaListUrl)
+            End If
+        Else
+            Logger.LogWarning($"No internet connection to Domain {domainOnly}. Skipping online checks.")
         End If
 
         ' Load Custom Games
@@ -143,9 +152,11 @@ Public Class Form1
         Logger.LogInfo("Processing machichara.xml")
         Try
             machicharas = machicharaListManager.LoadMachiChara()
-            For Each mc In machicharas
-                lbxMachiCharaList.Items.Add(mc.ENTitle)
-            Next
+            If machicharas IsNot Nothing Then
+                For Each mc In machicharas
+                    lbxMachiCharaList.Items.Add(mc.ENTitle)
+                Next
+            End If
         Catch ex As Exception
             MessageBox.Show($"Failed to Load MachiChara List:{vbCrLf}{ex}")
             Logger.LogError("Failed to Load MachiChara List", ex)
@@ -483,7 +494,7 @@ Public Class Form1
             End If
 
             ' Load JAM controls
-            UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, gbxGameInfo)
+            UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
         Else
             If selectedGame.ZIPName = String.Empty Or selectedGame.ZIPName Is Nothing Then
                 Logger.LogError($"{selectedGame.ENTitle} has invalid gamelist values, unable to download.")
