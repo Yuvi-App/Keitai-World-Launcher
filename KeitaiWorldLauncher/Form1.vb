@@ -15,6 +15,7 @@ Imports ReaLTaiizor.[Enum].Poison
 Public Class Form1
     'Global Vars
     Dim isDebug As Boolean = False
+    Dim isOnline As Boolean = False
     Dim configManager As New ConfigManager()
     Dim utilManager As New UtilManager
     Dim gameListManager As New GameListManager()
@@ -62,6 +63,11 @@ Public Class Form1
         UtilManager.CheckAndCloseStar()
     End Sub
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Application.EnableVisualStyles()
+
+        ' Adjust Form
+        AdjustFormPadding()
+
         ' Check if Debug
 #If DEBUG Then
         isDebug = True
@@ -72,8 +78,6 @@ Public Class Form1
         XMLCreationToolStripMenuItem.Enabled = True
         BatchDownloadToolStripMenuItem.Enabled = True
 #End If
-        ' Adjust Form
-        AdjustFormPadding()
 
         ' Setup SJIS 
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
@@ -118,9 +122,12 @@ Public Class Form1
 
         'Needs Internet If none we skip and use local file
         Dim uri As New Uri(versionCheckUrl)
-        Dim domainOnly As String = Uri.Scheme & "://" & Uri.Host
+        Dim domainOnly As String = uri.Scheme & "://" & uri.Host
         Logger.LogInfo("Checking internet connectivity...")
         If utilManager.IsInternetAvailable(domainOnly) Then
+            'Set the User to online
+            isOnline = True
+
             ' Check for App update
             Logger.LogInfo("Getting App Update")
             If autoUpdate = True Then
@@ -139,6 +146,8 @@ Public Class Form1
                 MachiCharaListManager.DownloadMachiCharaList(machicharaListUrl)
             End If
         Else
+            isOnline = False
+            Me.Text = "Keitai World Launcher - Offline"
             Logger.LogWarning($"No internet connection to Domain {domainOnly}. Skipping online checks.")
         End If
 
@@ -434,6 +443,7 @@ Public Class Form1
         Next
     End Sub
     Private Sub DownloadGames(ContextDownload As Boolean)
+
         ' Get the selected game title from the ListViewGames
         Dim selectedGameTitle As String
         Dim selectedGame As Game
@@ -477,8 +487,11 @@ Public Class Form1
             CurrentSelectedGameJAR = $"{gameBasePath}\{GameVariantsSplit(0)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
         End If
 
-        Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
         ' Check if the game is already downloaded
+        'If isOnline = False Then
+        '    Exit Sub
+        'End If
+        Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
         If File.Exists(CurrentSelectedGameJAR) Then
             If ContextDownload Then
                 Dim result As DialogResult = MessageBox.Show(
@@ -740,7 +753,6 @@ Public Class Form1
     End Sub
     Private Sub AdjustFormPadding()
         Try
-
             ' Get the system DPI scaling factor
             Dim g As Graphics = Me.CreateGraphics()
             Dim dpiScale As Single = g.DpiX / 96.0F ' 96 DPI is default (100%)
@@ -937,7 +949,6 @@ Public Class Form1
                 If selectedGame.ENTitle.Contains("Dirge of Cerberus") Then
                     gameManager.FF7_DOCLE_Setup(Dojapath, GameDirectory)
                 End If
-
 
                 'Start Launching Game
                 Select Case CorrectedEmulator.ToLower()

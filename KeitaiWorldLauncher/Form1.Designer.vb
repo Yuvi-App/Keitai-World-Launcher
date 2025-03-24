@@ -75,10 +75,10 @@ Partial Class Form1
         lblTotalGameCount = New Label()
         chkbxHidePhoneUI = New CheckBox()
         gbxGameInfo = New GroupBox()
+        panelDynamic = New Panel()
         pbGameDL = New ProgressBar()
         btnLaunchGame = New Button()
         TabControl1 = New TabControl()
-        panelDynamic = New Panel()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
         tpMachiChara.SuspendLayout()
@@ -353,7 +353,7 @@ Partial Class Form1
         ' lblAudioWarning
         ' 
         lblAudioWarning.FlatStyle = FlatStyle.Flat
-        lblAudioWarning.Font = New Font("Segoe UI", 9F)
+        lblAudioWarning.Font = New Font("Segoe UI", 9.0F)
         lblAudioWarning.ForeColor = Color.Firebrick
         lblAudioWarning.Location = New Point(600, 519)
         lblAudioWarning.Margin = New Padding(2, 0, 2, 0)
@@ -367,7 +367,7 @@ Partial Class Form1
         ' Label4
         ' 
         Label4.FlatStyle = FlatStyle.Flat
-        Label4.Font = New Font("Segoe UI", 9F)
+        Label4.Font = New Font("Segoe UI", 9.0F)
         Label4.Location = New Point(767, 522)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
@@ -379,7 +379,7 @@ Partial Class Form1
         ' Label3
         ' 
         Label3.FlatStyle = FlatStyle.Flat
-        Label3.Font = New Font("Segoe UI", 9F)
+        Label3.Font = New Font("Segoe UI", 9.0F)
         Label3.Location = New Point(763, 494)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
@@ -392,7 +392,7 @@ Partial Class Form1
         ' 
         cbxStarSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxStarSDK.FlatStyle = FlatStyle.Flat
-        cbxStarSDK.Font = New Font("Segoe UI", 9F)
+        cbxStarSDK.Font = New Font("Segoe UI", 9.0F)
         cbxStarSDK.FormattingEnabled = True
         cbxStarSDK.Location = New Point(822, 523)
         cbxStarSDK.Margin = New Padding(2)
@@ -404,7 +404,7 @@ Partial Class Form1
         ' 
         cbxDojaSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxDojaSDK.FlatStyle = FlatStyle.Flat
-        cbxDojaSDK.Font = New Font("Segoe UI", 9F)
+        cbxDojaSDK.Font = New Font("Segoe UI", 9.0F)
         cbxDojaSDK.FormattingEnabled = True
         cbxDojaSDK.Location = New Point(822, 494)
         cbxDojaSDK.Margin = New Padding(2)
@@ -417,7 +417,7 @@ Partial Class Form1
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.FlatStyle = FlatStyle.Flat
-        chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
+        chkbxShaderGlass.Font = New Font("Segoe UI", 9.0F)
         chkbxShaderGlass.Location = New Point(470, 509)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
@@ -429,7 +429,7 @@ Partial Class Form1
         ' Label1
         ' 
         Label1.FlatStyle = FlatStyle.Flat
-        Label1.Font = New Font("Segoe UI", 9F)
+        Label1.Font = New Font("Segoe UI", 9.0F)
         Label1.Location = New Point(600, 494)
         Label1.Margin = New Padding(2, 0, 2, 0)
         Label1.Name = "Label1"
@@ -443,7 +443,7 @@ Partial Class Form1
         cobxAudioType.DropDownStyle = ComboBoxStyle.DropDownList
         cobxAudioType.Enabled = False
         cobxAudioType.FlatStyle = FlatStyle.Flat
-        cobxAudioType.Font = New Font("Segoe UI", 9F)
+        cobxAudioType.Font = New Font("Segoe UI", 9.0F)
         cobxAudioType.FormattingEnabled = True
         cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
         cobxAudioType.Location = New Point(671, 494)
@@ -542,7 +542,7 @@ Partial Class Form1
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.Enabled = False
         chkbxHidePhoneUI.FlatStyle = FlatStyle.Flat
-        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9F)
+        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9.0F)
         chkbxHidePhoneUI.Location = New Point(470, 490)
         chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
@@ -565,6 +565,15 @@ Partial Class Form1
         gbxGameInfo.TabStop = False
         gbxGameInfo.Text = "Game Info"
         ' 
+        ' panelDynamic
+        ' 
+        panelDynamic.AutoScroll = True
+        panelDynamic.Dock = DockStyle.Fill
+        panelDynamic.Location = New Point(2, 21)
+        panelDynamic.Name = "panelDynamic"
+        panelDynamic.Size = New Size(549, 458)
+        panelDynamic.TabIndex = 2
+        ' 
         ' pbGameDL
         ' 
         pbGameDL.Location = New Point(4, 424)
@@ -578,7 +587,7 @@ Partial Class Form1
         ' 
         btnLaunchGame.Enabled = False
         btnLaunchGame.FlatStyle = FlatStyle.Flat
-        btnLaunchGame.Font = New Font("Segoe UI", 9F)
+        btnLaunchGame.Font = New Font("Segoe UI", 9.0F)
         btnLaunchGame.Location = New Point(356, 494)
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
@@ -598,15 +607,6 @@ Partial Class Form1
         TabControl1.SelectedIndex = 0
         TabControl1.Size = New Size(919, 607)
         TabControl1.TabIndex = 4
-        ' 
-        ' panelDynamic
-        ' 
-        panelDynamic.AutoScroll = True
-        panelDynamic.Dock = DockStyle.Fill
-        panelDynamic.Location = New Point(2, 21)
-        panelDynamic.Name = "panelDynamic"
-        panelDynamic.Size = New Size(549, 458)
-        panelDynamic.TabIndex = 2
         ' 
         ' Form1
         ' 

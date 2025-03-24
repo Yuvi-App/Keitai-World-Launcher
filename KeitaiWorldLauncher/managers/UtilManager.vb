@@ -705,18 +705,30 @@ Namespace My.Managers
             End Try
         End Sub
         Public Sub LaunchShaderGlass(AppName As String)
-            Thread.Sleep(2000)
-            Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\ShaderGlass.exe"
-            Dim arguments As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\shaderglass\keitai.sgp"
-            ModifyCaptureWindow(arguments, AppName)
-            Dim startInfo As New ProcessStartInfo()
-            startInfo.FileName = appPath
-            startInfo.Arguments = arguments
-            startInfo.UseShellExecute = True
-            startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
-
-            ' Start the process
-            Dim process As Process = Process.Start(startInfo)
+            Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
+            Dim appPath As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "ShaderGlass.exe")
+            Dim argumentFile As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "keitai.sgp")
+            If Not File.Exists(appPath) Then
+                MessageBox.Show("ShaderGlass executable not found at: " & appPath, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Return
+            End If
+            If Not File.Exists(argumentFile) Then
+                MessageBox.Show("Argument file not found at: " & argumentFile, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Return
+            End If
+            ModifyCaptureWindow(argumentFile, AppName)
+            Dim startInfo As New ProcessStartInfo() With {
+                .FileName = appPath,
+                .Arguments = argumentFile,
+                .UseShellExecute = True,
+                .WorkingDirectory = baseDir
+            }
+            Thread.Sleep(1000)
+            Try
+                Process.Start(startInfo)
+            Catch ex As Exception
+                MessageBox.Show("Failed to launch ShaderGlass: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
         End Sub
         Public Sub ModifyCaptureWindow(filePath As String, AppName As String)
             ' Read all lines from the file

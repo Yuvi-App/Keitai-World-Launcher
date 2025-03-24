@@ -4,10 +4,13 @@ Imports KeitaiWorldLauncher.My.logger
 
 Namespace My.Managers
     Public Class ProcessManager
-        Private Shared monitorThread As Thread
-        Private Shared monitoring As Boolean = True
+        Private Shared monitorThread As Thread = Nothing
+        Private Shared monitoring As Boolean = False
         Public Shared Sub StartMonitoring()
-            Thread.Sleep(10000)
+            ' If already monitoring, or the thread is still alive, don't start another one
+            If monitoring OrElse (monitorThread IsNot Nothing AndAlso monitorThread.IsAlive) Then Exit Sub
+
+            monitoring = True
             monitorThread = New Thread(AddressOf MonitorProcesses)
             monitorThread.IsBackground = True
             monitorThread.Start()
@@ -16,24 +19,34 @@ Namespace My.Managers
         Private Shared Sub MonitorProcesses()
             Try
                 While monitoring
-                    ' Check if doja.exe and star.exe are running
                     Dim dojaRunning As Boolean = Process.GetProcessesByName("doja").Length > 0
                     Dim starRunning As Boolean = Process.GetProcessesByName("star").Length > 0
 
-                    ' If BOTH are NOT running, close shaderglass.exe
+                    ' Only close shaderglass.exe if both processes are NOT running
                     If Not dojaRunning AndAlso Not starRunning Then
                         CloseProcess("shaderglass")
-                        monitoring = False ' Stop monitoring
+                        monitoring = False
                         Exit While
                     End If
 
                     Thread.Sleep(2000) ' Check every 2 seconds
                 End While
             Catch ex As Exception
-                MessageBox.Show("Error monitoring processes: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                ' Optionally, log the error
+                logger.Logger.LogError($"Failed to Close Shaderglass via processmanger {ex}")
             Finally
-                monitoring = False ' Ensure flag is reset
+                ' Reset monitoring state so the monitor can be restarted later
+                monitoring = False
+                monitorThread = Nothing
             End Try
+        End Sub
+
+        Public Shared Sub StopMonitoring()
+            monitoring = False
+            If monitorThread IsNot Nothing AndAlso monitorThread.IsAlive Then
+                monitorThread.Join()
+                monitorThread = Nothing
+            End If
         End Sub
 
         Private Shared Sub CloseProcess(processName As String)
