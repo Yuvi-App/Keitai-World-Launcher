@@ -1,4 +1,6 @@
 ﻿Imports System.IO
+Imports ReaLTaiizor.Controls
+Imports ReaLTaiizor.Forms
 
 Namespace My.Managers
     Public Class GameManager
@@ -28,7 +30,7 @@ Namespace My.Managers
                     File.Copy(Fi, Path.Combine(myPictureFolder, Path.GetFileName(Fi)))
                 Next
                 logger.Logger.LogInfo($"Completed FF7_DOCLE Helper Function")
-                MessageBox.Show($"FF7_DOCKLE will ask you to select images. Once it does you will need to select the images from the File explorer that will pop up.{vbCrLf}For Example: Select Image File 1 = Image00000001.gif{vbCrLf}Select Image File 10 = Image0000000A.gif")
+                MessageBox.Show($"FF7_DOCLE will ask you to select images. Once it does you will need to select the images from the File explorer that will pop up.{vbCrLf}For Example: Select Image File 1 = Image00000001.gif{vbCrLf}Select Image File 10 = Image0000000A.gif")
                 Return True
             Catch ex As Exception
                 logger.Logger.LogError($"Error FF7_DOCLE Helper Function{vbCrLf}{ex}")

@@ -10,7 +10,9 @@ Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.VisualBasic.FileIO
+Imports ReaLTaiizor.Controls
 Imports ReaLTaiizor.[Enum].Poison
+Imports ReaLTaiizor.Forms
 
 Public Class Form1
     'Global Vars
@@ -884,7 +886,7 @@ Public Class Form1
     Private Sub cmsGameLV_Delete_Click(sender As Object, e As EventArgs) Handles cmsGameLV_Delete.Click
         DeleteGames()
     End Sub
-    Private Sub FavoriteToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles FavoriteToolStripMenuItem.Click
+    Private Sub cmsGameLV_Favorite_Click(sender As Object, e As EventArgs) Handles cmsGameLV_Favorite.Click
         If ListViewGames.SelectedItems.Count = 0 Then Return
 
         Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
@@ -892,16 +894,25 @@ Public Class Form1
 
         If favoritesManager.IsGameFavorited(selectedGameTitle) Then
             favoritesManager.RemoveFromFavorites(selectedGameTitle)
-            MessageBox.Show($"{selectedGameTitle} has been removed from favorites.", "Favorite Removed", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            utilManager.ShowSnackBar($"'{selectedGameTitle}' has been removed from favorites.")
         Else
             favoritesManager.AddToFavorites(selectedGameTitle)
-            MessageBox.Show($"{selectedGameTitle} has been added to favorites.", "Favorite Added", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            utilManager.ShowSnackBar($"'{selectedGameTitle}' has been added to favorites.")
         End If
 
         ' Optionally refresh the UI to indicate favorite status
         RefreshGameHighlighting()
     End Sub
-
+    Private Sub cmsGameLV_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsGameLV.Opening
+        If ListViewGames.SelectedItems.Count = 0 Then Return
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim favoritesManager As New FavoritesManager()
+        If FavoritesManager.IsGameFavorited(selectedGameTitle) Then
+            cmsGameLV_Favorite.Text = "Unfavorite"
+        Else
+            cmsGameLV_Favorite.Text = "Favorite"
+        End If
+    End Sub
     'Launch Game
     Private Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         Try
@@ -951,6 +962,7 @@ Public Class Form1
                 End If
 
                 'Start Launching Game
+                utilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
                 Select Case CorrectedEmulator.ToLower()
                     Case "doja"
                         Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
@@ -1270,7 +1282,6 @@ Public Class Form1
         keybinds.AppendLine("Top Right Button   → S")
         keybinds.AppendLine("Center Button      → Enter")
         keybinds.AppendLine("123456789*#        → 123456789*#")
-
         MessageBox.Show(keybinds.ToString(), "Keybinds", MessageBoxButtons.OK, MessageBoxIcon.Information)
     End Sub
 End Class

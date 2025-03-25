@@ -23,12 +23,13 @@ Partial Class Form1
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Form1))
         ImageListGames = New ImageList(components)
         cmsGameLV = New ContextMenuStrip(components)
         cmsGameLV_Launch = New ToolStripMenuItem()
         cmsGameLV_Download = New ToolStripMenuItem()
         cmsGameLV_Delete = New ToolStripMenuItem()
-        FavoriteToolStripMenuItem = New ToolStripMenuItem()
+        cmsGameLV_Favorite = New ToolStripMenuItem()
         MenuStrip1 = New MenuStrip()
         FileToolStripMenuItem = New ToolStripMenuItem()
         RefreshToolStripMenuItem = New ToolStripMenuItem()
@@ -98,33 +99,33 @@ Partial Class Form1
         ' cmsGameLV
         ' 
         cmsGameLV.ImageScalingSize = New Size(20, 20)
-        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, FavoriteToolStripMenuItem})
+        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite})
         cmsGameLV.Name = "cmsGameLV"
-        cmsGameLV.Size = New Size(129, 92)
+        cmsGameLV.Size = New Size(181, 114)
         ' 
         ' cmsGameLV_Launch
         ' 
         cmsGameLV_Launch.Name = "cmsGameLV_Launch"
-        cmsGameLV_Launch.Size = New Size(128, 22)
+        cmsGameLV_Launch.Size = New Size(180, 22)
         cmsGameLV_Launch.Text = "Launch"
         ' 
         ' cmsGameLV_Download
         ' 
         cmsGameLV_Download.Name = "cmsGameLV_Download"
-        cmsGameLV_Download.Size = New Size(128, 22)
+        cmsGameLV_Download.Size = New Size(180, 22)
         cmsGameLV_Download.Text = "Download"
         ' 
         ' cmsGameLV_Delete
         ' 
         cmsGameLV_Delete.Name = "cmsGameLV_Delete"
-        cmsGameLV_Delete.Size = New Size(128, 22)
+        cmsGameLV_Delete.Size = New Size(180, 22)
         cmsGameLV_Delete.Text = "Delete"
         ' 
-        ' FavoriteToolStripMenuItem
+        ' cmsGameLV_Favorite
         ' 
-        FavoriteToolStripMenuItem.Name = "FavoriteToolStripMenuItem"
-        FavoriteToolStripMenuItem.Size = New Size(128, 22)
-        FavoriteToolStripMenuItem.Text = "Favorite"
+        cmsGameLV_Favorite.Name = "cmsGameLV_Favorite"
+        cmsGameLV_Favorite.Size = New Size(180, 22)
+        cmsGameLV_Favorite.Text = "Favorite"
         ' 
         ' MenuStrip1
         ' 
@@ -317,7 +318,7 @@ Partial Class Form1
         ' lblAudioWarning
         ' 
         lblAudioWarning.FlatStyle = FlatStyle.Flat
-        lblAudioWarning.Font = New Font("Segoe UI", 9.0F)
+        lblAudioWarning.Font = New Font("Segoe UI", 9F)
         lblAudioWarning.ForeColor = Color.Firebrick
         lblAudioWarning.Location = New Point(601, 520)
         lblAudioWarning.Margin = New Padding(2, 0, 2, 0)
@@ -331,7 +332,7 @@ Partial Class Form1
         ' Label4
         ' 
         Label4.FlatStyle = FlatStyle.Flat
-        Label4.Font = New Font("Segoe UI", 9.0F)
+        Label4.Font = New Font("Segoe UI", 9F)
         Label4.Location = New Point(768, 523)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
@@ -343,7 +344,7 @@ Partial Class Form1
         ' Label3
         ' 
         Label3.FlatStyle = FlatStyle.Flat
-        Label3.Font = New Font("Segoe UI", 9.0F)
+        Label3.Font = New Font("Segoe UI", 9F)
         Label3.Location = New Point(764, 495)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
@@ -356,7 +357,7 @@ Partial Class Form1
         ' 
         cbxStarSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxStarSDK.FlatStyle = FlatStyle.Flat
-        cbxStarSDK.Font = New Font("Segoe UI", 9.0F)
+        cbxStarSDK.Font = New Font("Segoe UI", 9F)
         cbxStarSDK.FormattingEnabled = True
         cbxStarSDK.Location = New Point(823, 524)
         cbxStarSDK.Margin = New Padding(2)
@@ -368,7 +369,7 @@ Partial Class Form1
         ' 
         cbxDojaSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxDojaSDK.FlatStyle = FlatStyle.Flat
-        cbxDojaSDK.Font = New Font("Segoe UI", 9.0F)
+        cbxDojaSDK.Font = New Font("Segoe UI", 9F)
         cbxDojaSDK.FormattingEnabled = True
         cbxDojaSDK.Location = New Point(823, 495)
         cbxDojaSDK.Margin = New Padding(2)
@@ -381,7 +382,7 @@ Partial Class Form1
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.FlatStyle = FlatStyle.Flat
-        chkbxShaderGlass.Font = New Font("Segoe UI", 9.0F)
+        chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
         chkbxShaderGlass.Location = New Point(471, 510)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
@@ -393,7 +394,7 @@ Partial Class Form1
         ' Label1
         ' 
         Label1.FlatStyle = FlatStyle.Flat
-        Label1.Font = New Font("Segoe UI", 9.0F)
+        Label1.Font = New Font("Segoe UI", 9F)
         Label1.Location = New Point(601, 495)
         Label1.Margin = New Padding(2, 0, 2, 0)
         Label1.Name = "Label1"
@@ -407,7 +408,7 @@ Partial Class Form1
         cobxAudioType.DropDownStyle = ComboBoxStyle.DropDownList
         cobxAudioType.Enabled = False
         cobxAudioType.FlatStyle = FlatStyle.Flat
-        cobxAudioType.Font = New Font("Segoe UI", 9.0F)
+        cobxAudioType.Font = New Font("Segoe UI", 9F)
         cobxAudioType.FormattingEnabled = True
         cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
         cobxAudioType.Location = New Point(672, 495)
@@ -506,7 +507,7 @@ Partial Class Form1
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.Enabled = False
         chkbxHidePhoneUI.FlatStyle = FlatStyle.Flat
-        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9.0F)
+        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9F)
         chkbxHidePhoneUI.Location = New Point(471, 491)
         chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
@@ -551,7 +552,7 @@ Partial Class Form1
         ' 
         btnLaunchGame.Enabled = False
         btnLaunchGame.FlatStyle = FlatStyle.Flat
-        btnLaunchGame.Font = New Font("Segoe UI", 9.0F)
+        btnLaunchGame.Font = New Font("Segoe UI", 9F)
         btnLaunchGame.Location = New Point(357, 495)
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
@@ -609,12 +610,13 @@ Partial Class Form1
         ' 
         ' Form1
         ' 
-        AutoScaleDimensions = New SizeF(96.0F, 96.0F)
+        AutoScaleDimensions = New SizeF(96F, 96F)
         AutoScaleMode = AutoScaleMode.Dpi
         ClientSize = New Size(923, 709)
         Controls.Add(MaterialTabControl1)
         Controls.Add(MenuStrip1)
         DrawerTabControl = MaterialTabControl1
+        Icon = CType(resources.GetObject("$this.Icon"), Icon)
         MainMenuStrip = MenuStrip1
         Margin = New Padding(2)
         MaximizeBox = False
@@ -660,7 +662,7 @@ Partial Class Form1
     Friend WithEvents XMLUpdateToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents AddGameToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ShaderGlassConfigToolStripMenuItem As ToolStripMenuItem
-    Friend WithEvents FavoriteToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents cmsGameLV_Favorite As ToolStripMenuItem
     Friend WithEvents selectionTimer As Timer
     Friend WithEvents NetworkUIDConfigToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents AddGamesToolStripMenuItem As ToolStripMenuItem

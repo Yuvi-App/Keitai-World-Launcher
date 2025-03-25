@@ -273,6 +273,10 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
+        Public Sub ShowSnackBar(InputString)
+            Dim SnackBarMessage As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
+            SnackBarMessage.Show(Form1)
+        End Sub
 
         'Check for APP Updates
         Shared Sub CheckForUpdates(latestVersionUrl As String)
