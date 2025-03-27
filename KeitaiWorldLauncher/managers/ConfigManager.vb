@@ -9,6 +9,7 @@ Namespace My.Managers
         Private ReadOnly DefaultConfig As New Dictionary(Of String, String) From {
         {"VersionCheckURL", "latest_version.txt"},
         {"AutoUpdate", "true"},
+        {"FirstRun", "true"},
         {"GamelistURL", "gamelist.xml"},
         {"AutoUpdateGameList", "true"},
         {"MachiCharalistURL", "machicharalist.xml"},
@@ -118,6 +119,22 @@ Namespace My.Managers
             Catch ex As Exception
                 MessageBox.Show($"Failed to update the NetworkUID setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 logger.Logger.LogError($"Failed to update the NetworkUID setting: {ex.Message}")
+            End Try
+        End Sub
+        Public Sub UpdateFirstRunSetting(FirstRun As String)
+            Try
+                ' Load the XML document
+                Dim doc As New XmlDocument()
+                doc.Load(ConfigFilePath)
+                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='FirstRun']")
+                If settingNode IsNot Nothing Then
+                    settingNode.InnerText = FirstRun
+                    doc.Save(ConfigFilePath)
+                Else
+                End If
+            Catch ex As Exception
+                MessageBox.Show($"Failed to update the FirstRun setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"Failed to update the FirstRun setting: {ex.Message}")
             End Try
         End Sub
         Public Sub UpdateDOJASoundSetting(SoundType As String)

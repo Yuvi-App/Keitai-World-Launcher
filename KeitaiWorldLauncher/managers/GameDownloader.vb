@@ -6,6 +6,7 @@ Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
 Imports System.Security.Policy
 Imports System.Text
+Imports ReaLTaiizor.Controls
 
 Namespace My.Managers
     Public Class GameDownloader
@@ -21,6 +22,13 @@ Namespace My.Managers
         Private Isthisbatchdownload As Boolean
         Private SelectedGame As Game
         Private SDCardDownloadFile As String
+        Dim overlay As New Panel With {
+                    .Dock = DockStyle.Fill,
+                    .BackColor = Color.LightGray
+                }
+        Private expectClient2Download As Boolean = False
+        Private client1Completed As Boolean = False
+        Private client2Completed As Boolean = False
 
         Public Sub New(progressBarControl As ProgressBar)
             client1 = New WebClient()
@@ -30,7 +38,9 @@ Namespace My.Managers
 
         Public Async Function DownloadGameAsync(url As String, savePath As String, extractTo As String, Inputgame As Game, JAMLocation As String, JARLocation As String, BatchDownload As Boolean) As Task
             Try
-                ' Set paths for use in completion event
+                logger.Logger.LogInfo($"[Download] Starting download for: {Inputgame.ENTitle} from {url}")
+
+                ' Set global vars for later use
                 downloadFilePath = savePath
                 extractFolderPath = extractTo
                 ReadJam = JAMLocation
@@ -38,10 +48,15 @@ Namespace My.Managers
                 Isthisbatchdownload = BatchDownload
                 SelectedGame = Inputgame
 
-                ' Reset and show the progress bar
+                ' Show progress bar overlay
+                Form1.Controls.Add(overlay)
+                overlay.BringToFront()
+                progressBar.Left = (Form1.ClientSize.Width - progressBar.Width) \ 2
+                progressBar.Top = (Form1.ClientSize.Height - progressBar.Height) \ 2
+                Form1.Controls.Add(progressBar)
+                progressBar.BringToFront()
                 progressBar.Value = 0
                 progressBar.Visible = True
-                progressBar.BringToFront()
 
                 ' Attach event handlers
                 AddHandler client1.DownloadProgressChanged, AddressOf DownloadProgressChanged
@@ -49,27 +64,51 @@ Namespace My.Managers
                 AddHandler client2.DownloadProgressChanged, AddressOf DownloadProgressChanged
                 AddHandler client2.DownloadFileCompleted, AddressOf DownloadFileCompleted
 
-                ' Start downloading the file asynchronously
+                client1Completed = False
+                client2Completed = False
+                expectClient2Download = Not String.IsNullOrWhiteSpace(SelectedGame.SDCardDataURL)
+
+                ' Download main file
                 Await client1.DownloadFileTaskAsync(New Uri(url), savePath)
-                If SelectedGame.SDCardDataURL <> "" Then
+                logger.Logger.LogInfo($"[Download] Main file downloaded to: {savePath}")
+
+                ' Check if SD card data is included
+                If Not String.IsNullOrWhiteSpace(SelectedGame.SDCardDataURL) Then
                     SDCardDownloadFile = $"data\downloads\{Path.GetFileName(SelectedGame.SDCardDataURL)}"
+                    logger.Logger.LogInfo($"[Download] Downloading SD Card Data from: {SelectedGame.SDCardDataURL}")
+
                     Await client2.DownloadFileTaskAsync(New Uri(SelectedGame.SDCardDataURL), SDCardDownloadFile)
-                    'If SD Card Data Process it
+
                     Try
-                        'MessageBox.Show($"{SelectedGame.ENTitle} Needs SD Card Data, we will attempt to set it up automatically. The EMU will launch itself to process the data.")
-                        If SelectedGame.Emulator.ToLower = "doja" Then
-                            ZipFile.ExtractToDirectory(SDCardDownloadFile, $"{Form1.Dojapath}\lib\storagedevice\ext0\SD_BIND", Encoding.GetEncoding(932), True)
-                        ElseIf SelectedGame.Emulator.ToLower = "star" Then
-                            ZipFile.ExtractToDirectory(SDCardDownloadFile, $"{Form1.Starpath}\lib\storagedevice\ext0\SD_BIND", Encoding.GetEncoding(932), True)
+                        Dim destinationPath As String = ""
+                        Dim SDCardDataFolderName = $"SVC0000{Path.GetFileName(ReadJam)}"
+                        Select Case SelectedGame.Emulator.ToLower()
+                            Case "doja"
+                                destinationPath = $"{Form1.Dojapath}\lib\storagedevice\ext0\SD_BIND\{SDCardDataFolderName}"
+                            Case "star"
+                                destinationPath = $"{Form1.Starpath}\lib\storagedevice\ext0\SD_BIND\{SDCardDataFolderName}"
+                            Case Else
+                                logger.Logger.LogWarning("[Download] Unknown emulator type when handling SD Card data.")
+                        End Select
+
+                        If Not String.IsNullOrEmpty(destinationPath) Then
+                            ZipFile.ExtractToDirectory(SDCardDownloadFile, destinationPath, Encoding.GetEncoding(932), True)
+                            logger.Logger.LogInfo($"[Download] SD Card data extracted to: {destinationPath}")
+                            File.Delete(SDCardDownloadFile)
+                            logger.Logger.LogInfo($"[Download] SD Card zip file deleted: {SDCardDownloadFile}")
                         End If
-                        File.Delete(SDCardDownloadFile)
+
                     Catch ex As Exception
-                        logger.Logger.LogError($"Failed to Handle SD Card Data: {vbCrLf}{ex}")
-                        MessageBox.Show($"Failed to Handle SD Card Data: {vbCrLf}{ex}")
+                        logger.Logger.LogError($"[Download] Failed to handle SD Card data:{vbCrLf}{ex}")
+                        MessageBox.Show($"Failed to handle SD Card data:{vbCrLf}{ex}", "SD Card Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        progressBar.Visible = False
                     End Try
                 Else
+                    logger.Logger.LogInfo("[Download] No SD Card Data to download.")
                 End If
+
             Catch ex As Exception
+                logger.Logger.LogError($"[Download] Exception occurred during download:{vbCrLf}{ex}")
                 MessageBox.Show($"Failed to start download: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 progressBar.Visible = False
             End Try
@@ -79,42 +118,42 @@ Namespace My.Managers
             progressBar.Value = e.ProgressPercentage
         End Sub
         Private Sub DownloadFileCompleted(sender As Object, e As System.ComponentModel.AsyncCompletedEventArgs)
-            ' Hide the progress bar
+            If sender Is client1 Then
+                client1Completed = True
+            ElseIf sender Is client2 Then
+                client2Completed = True
+            End If
+
+            ' If client2 is expected, wait for both. Otherwise, just wait for client1.
+            If Not client1Completed OrElse (expectClient2Download AndAlso Not client2Completed) Then
+                Exit Sub
+            End If
+
+            ' Hide overlay
             progressBar.Visible = False
+            Form1.Controls.Remove(overlay)
 
             If e.Error IsNot Nothing Then
                 MessageBox.Show($"Failed to download the game: {e.Error.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Else
-                If Isthisbatchdownload = False Then
-                    'MessageBox.Show("Game downloaded successfully!", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                    ' Extract the downloaded file
-                    Try
-                        Thread.Sleep(100) ' Optional: Wait briefly to ensure the file is fully written
-                        ZipFile.ExtractToDirectory(downloadFilePath, extractFolderPath, True)
-                        'MessageBox.Show("Game extracted successfully!", "Extraction Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                Try
+                    Thread.Sleep(100)
+                    ZipFile.ExtractToDirectory(downloadFilePath, extractFolderPath, True)
+                    File.Delete(downloadFilePath)
 
-                        ' Delete the ZIP file after extraction
-                        File.Delete(downloadFilePath)
+                    If Isthisbatchdownload = False Then
                         UtilManager.GenerateDynamicControlsFromLines(ReadJam, Form1.panelDynamic)
-                    Catch ex As Exception
-                        MessageBox.Show($"Failed to extract the game: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End Try
-                ElseIf Isthisbatchdownload = True Then
-                    ' Extract the downloaded file
-                    Try
-                        Thread.Sleep(100) ' Optional: Wait briefly to ensure the file is fully written
-                        ZipFile.ExtractToDirectory(downloadFilePath, extractFolderPath, True)
-                        ' Delete the ZIP file after extraction
-                        File.Delete(downloadFilePath)
-                    Catch ex As Exception
-                        MessageBox.Show($"Failed to extract the game: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End Try
-                End If
-                Form1.RefreshGameHighlighting()
-                utilManager.ExtractAndResizeAppIcon(ReadJar, ReadJam, SelectedGame)
+                    End If
+
+                    Form1.RefreshGameHighlighting()
+                    utilManager.ExtractAndResizeAppIcon(ReadJar, ReadJam, SelectedGame)
+
+                Catch ex As Exception
+                    MessageBox.Show($"Failed to extract the game: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Try
             End If
 
-            ' Detach event handlers to avoid memory leaks
+            ' Detach event handlers
             RemoveHandler client1.DownloadProgressChanged, AddressOf DownloadProgressChanged
             RemoveHandler client1.DownloadFileCompleted, AddressOf DownloadFileCompleted
             RemoveHandler client2.DownloadProgressChanged, AddressOf DownloadProgressChanged

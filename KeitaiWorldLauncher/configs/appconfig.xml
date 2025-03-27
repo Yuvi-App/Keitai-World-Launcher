@@ -2,6 +2,7 @@
 <Config>
   <Setting name="VersionCheckURL">latest_version.txt</Setting>
   <Setting name="AutoUpdate">true</Setting>
+  <Setting name="FirstRun">true</Setting>
   <Setting name="GamelistURL">gamelist.xml</Setting>
   <Setting name="AutoUpdateGameList">true</Setting>
   <Setting name="MachiCharaURL">machicharalist.xml</Setting>

@@ -38,12 +38,51 @@ Namespace My.Managers
         End Sub
 
         'PreReq Check
-        Shared Sub CheckforPreReq()
+        Public Shared Function CheckforPreReq()
             Dim DOJAEmulator = Form1.DojaEXE
             Dim StarEmulator = Form1.StarEXE
             Dim localeEmuLoc = "data\tools\locale_emulator\LEProc.exe"
             Dim ShaderGlassLoc = "data\tools\shaderglass\ShaderGlass.exe"
 
+            If IsRunningAsAdmin() = False Then
+                MessageBox.Show("For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
+                "Please restart the application as an Administrator by right-clicking the executable and selecting 'Run as administrator'.",
+               "Administrator Privileges Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                Form1.QuitApplication()
+            End If
+
+            ' Setup DOJA and STAR Reg
+            ' Ensure Registry is set
+            ' Set DPI Awareness for DoJa SDKs
+            Dim toolDojaDirs = Directory.GetDirectories(Form1.ToolsFolder, "idkDoja*")
+            For Each dir As String In toolDojaDirs
+                Dim regFile As String = Path.Combine(dir, "doja.reg")
+                Dim dojaExe As String = Path.Combine(dir, "bin", "doja.exe")
+                If File.Exists(regFile) Then
+                    UtilManager.ImportRegFile(regFile)
+                Else
+                    Continue For ' Skip if .reg file doesn't exist
+                End If
+                If File.Exists(dojaExe) Then
+                    If UtilManager.IsDpiScalingSet(dojaExe) Then Continue For
+                    UtilManager.SetDpiScaling(dojaExe)
+                End If
+            Next
+            ' Set DPI Awareness for Star SDKs
+            Dim toolStarDirs = Directory.GetDirectories(Form1.ToolsFolder, "idkStar*")
+            For Each dir As String In toolStarDirs
+                Dim regFile As String = Path.Combine(dir, "star.reg")
+                Dim starExe As String = Path.Combine(dir, "bin", "star.exe")
+                If File.Exists(regFile) Then
+                    UtilManager.ImportRegFile(regFile)
+                Else
+                    Continue For ' Skip if .reg file doesn't exist
+                End If
+                If File.Exists(starExe) Then
+                    If UtilManager.IsDpiScalingSet(starExe) Then Continue For
+                    UtilManager.SetDpiScaling(starExe)
+                End If
+            Next
 
             'Check for DOJA
             My.logger.Logger.LogInfo("Checking for DOJA Emu")
@@ -98,7 +137,9 @@ Namespace My.Managers
                 OpenURL("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
                 Form1.QuitApplication()
             End If
-        End Sub
+
+            Return True
+        End Function
         Shared Function IsJava8Update152Installed() As Boolean
             Dim javaVersions As String() = {
                 "SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_152",
@@ -160,14 +201,13 @@ Namespace My.Managers
                         End If
                     End If
                 End Using
-
             Catch ex As Exception
                 MessageBox.Show("Error reading registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
 
             Return False ' DPI Scaling override is not set
         End Function
-        Public Sub SetDpiScaling(exePath As String)
+        Public Shared Sub SetDpiScaling(exePath As String)
             Try
                 ' Define the registry path
                 Dim regPath As String = "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
@@ -186,49 +226,26 @@ Namespace My.Managers
                 End Using
 
                 'MessageBox.Show("DPI Scaling override set successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-
+                logger.Logger.LogInfo($"Set DPIAware: {exePath}")
             Catch ex As Exception
+                logger.Logger.LogInfo($"Failed to Set DPIAware: {exePath}")
                 MessageBox.Show("Error modifying registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Shared Sub ImportRegFileIfMissing(regKeyPath As String, regFilePath As String)
-            Try
-                ' Check if the registry key exists
-                Using key As RegistryKey = Registry.CurrentUser.OpenSubKey(regKeyPath, False)
-                    If key IsNot Nothing Then
-                        Exit Sub
-                    End If
-                End Using
-
-                If IsRunningAsAdmin() = False Then
-                    MessageBox.Show("For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
-                "Please restart the application as an Administrator by right-clicking the executable and selecting 'Run as administrator'.",
-                "Administrator Privileges Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                    Form1.QuitApplication()
-                End If
-
-                ' Ensure the .reg file exists before executing
-                If Not IO.File.Exists(regFilePath) Then
-                    logger.Logger.LogWarning("Registry file not found: " & regFilePath)
-                    MessageBox.Show("Registry file not found: " & regFilePath, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    Exit Sub
-                End If
-
-                ' Run the regedit command silently
-                Dim process As New Process()
-                process.StartInfo.FileName = "regedit.exe"
-                process.StartInfo.Arguments = "/s """ & regFilePath & """"
-                process.StartInfo.UseShellExecute = False
-                process.StartInfo.CreateNoWindow = True
-                process.Start()
-
-                process.WaitForExit() ' Wait for completion
-                logger.Logger.LogWarning("Registry file imported successfully!: " & regFilePath)
-                MessageBox.Show("Setup process complete! You can now launch KWL without administrator privileges if desired.", "Info", MessageBoxButtons.OK)
-            Catch ex As Exception
-                logger.Logger.LogWarning("Error importing registry file: " & ex.Message)
-                MessageBox.Show("Error importing registry file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
+        Public Shared Sub ImportRegFile(filePath As String)
+            If IO.File.Exists(filePath) Then
+                logger.Logger.LogInfo($"Importing Reg: {filePath}")
+                Dim proc As New Process()
+                proc.StartInfo.FileName = "regedit.exe"
+                proc.StartInfo.Arguments = "/s """ & filePath & """"
+                proc.StartInfo.UseShellExecute = True
+                proc.StartInfo.Verb = "runas" ' Runs as administrator
+                proc.Start()
+                proc.WaitForExit()
+            Else
+                logger.Logger.LogInfo($"Failed to Find Reg: {filePath}")
+                Throw New IO.FileNotFoundException("Registry file not found: " & filePath)
+            End If
         End Sub
         Public Shared Function IsRunningAsAdmin() As Boolean
             Try
@@ -259,7 +276,7 @@ Namespace My.Managers
                 MessageBox.Show("Error cleaning up log file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Function IsInternetAvailable(InputUrl As String, Optional timeout As Integer = 3000) As Boolean
+        Public Shared Function IsInternetAvailable(InputUrl As String, Optional timeout As Integer = 3000) As Boolean
             Try
                 Dim request As Net.HttpWebRequest = CType(Net.WebRequest.Create(InputUrl), Net.HttpWebRequest)
                 request.Timeout = timeout ' Timeout in milliseconds
@@ -273,7 +290,7 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
-        Public Sub ShowSnackBar(InputString)
+        Public Shared Sub ShowSnackBar(InputString)
             Dim SnackBarMessage As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
             SnackBarMessage.Show(Form1)
         End Sub
@@ -454,127 +471,168 @@ Namespace My.Managers
             ' Return true if any matching process is found, otherwise false
             Return runningProcesses.Length > 0
         End Function
-        Shared Function CheckAndCloseDoja()
-            ' Check if doja.exe is currently running
+        Shared Function CheckAndCloseDoja() As Boolean
             Dim dojaProcesses = Process.GetProcessesByName("doja")
 
-            If dojaProcesses.Length > 0 Then
-                ' Prompt the user to confirm closing the application
-                Dim result = MessageBox.Show("doja.exe is currently running. Do you want to close it?",
-                                     "Confirm Close",
-                                     MessageBoxButtons.YesNo,
-                                     MessageBoxIcon.Question)
-                If result = DialogResult.Yes Then
-                    Try
-                        CheckAndCloseShaderGlass()
-                        ' Close each instance of doja.exe
-                        For Each process As Process In dojaProcesses
-                            process.Kill()
-                            process.WaitForExit() ' Ensure the process has exited
-                        Next
-                        Return False
-                    Catch ex As Exception
-                        MessageBox.Show("An error occurred while trying to close doja.exe: " & ex.Message,
-                                "Error",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Error)
-                    End Try
-                Else
-                    Return True
-                End If
-            Else
+            If dojaProcesses.Length = 0 Then
+                logger.Logger.LogInfo("doja.exe is not currently running.")
+                Return False
             End If
-        End Function
-        Shared Function CheckAndCloseStar()
-            ' Check if star.exe is currently running
-            Dim starProcesses = Process.GetProcessesByName("star")
-            If starProcesses.Length > 0 Then
-                ' Prompt the user to confirm closing the application
-                Dim result = MessageBox.Show("star.exe is currently running. Do you want to close it?",
-                                     "Confirm Close",
-                                     MessageBoxButtons.YesNo,
-                                     MessageBoxIcon.Question)
-                If result = DialogResult.Yes Then
-                    Try
-                        CheckAndCloseShaderGlass()
 
-                        ' Close each instance of star.exe
-                        For Each process As Process In starProcesses
-                            process.Kill()
-                            process.WaitForExit() ' Ensure the process has exited
-                        Next
-                        Return False
-                    Catch ex As Exception
-                        MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
-                                "Error",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Error)
-                    End Try
-                Else
-                    Return True
-                End If
-            Else
-            End If
-        End Function
-        Shared Function CheckAndCloseShaderGlass()
-            ' Check if shaderglass.exe is currently running
-            Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
+            logger.Logger.LogWarning($"Found {dojaProcesses.Length} instance(s) of doja.exe running.")
+            Dim result = MessageBox.Show("doja.exe is currently running. Do you want to close it?",
+                                 "Confirm Close",
+                                 MessageBoxButtons.YesNo,
+                                 MessageBoxIcon.Question)
 
-            If shaderglassProcesses.Length > 0 Then
+            If result = DialogResult.Yes Then
                 Try
-                    ' Close each instance of shaderglass.exe
-                    For Each process As Process In shaderglassProcesses
+                    logger.Logger.LogInfo("User agreed to close doja.exe.")
+                    CheckAndCloseShaderGlass()
+
+                    For Each process As Process In dojaProcesses
+                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
                         process.Kill()
-                        process.WaitForExit() ' Ensure the process has exited
+                        process.WaitForExit()
                     Next
-                    Return False
+
+                    logger.Logger.LogInfo("All doja.exe processes closed successfully.")
+                    Return False ' No longer running
                 Catch ex As Exception
-                    MessageBox.Show("An error occurred while trying to close shaderglass.exe: " & ex.Message,
+                    logger.Logger.LogError("Error while closing doja.exe: " & ex.ToString())
+                    MessageBox.Show("An error occurred while trying to close doja.exe: " & ex.Message,
                             "Error",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Error)
+                    Return True ' Still running
                 End Try
             Else
+                logger.Logger.LogInfo("User chose not to close doja.exe.")
+                Return True ' Still running
             End If
+        End Function
+        Shared Function CheckAndCloseStar() As Boolean
+            Dim starProcesses = Process.GetProcessesByName("star")
+
+            If starProcesses.Length = 0 Then
+                logger.Logger.LogInfo("star.exe is not currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {starProcesses.Length} instance(s) of star.exe running.")
+            Dim result = MessageBox.Show("star.exe is currently running. Do you want to close it?",
+                                 "Confirm Close",
+                                 MessageBoxButtons.YesNo,
+                                 MessageBoxIcon.Question)
+
+            If result = DialogResult.Yes Then
+                Try
+                    logger.Logger.LogInfo("User agreed to close star.exe.")
+                    CheckAndCloseShaderGlass()
+
+                    For Each process As Process In starProcesses
+                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
+                        process.Kill()
+                        process.WaitForExit()
+                    Next
+
+                    logger.Logger.LogInfo("All star.exe processes closed successfully.")
+                    Return False ' No longer running
+                Catch ex As Exception
+                    logger.Logger.LogError("Error while closing star.exe: " & ex.ToString())
+                    MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
+                            "Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                    Return True ' Still running
+                End Try
+            Else
+                logger.Logger.LogInfo("User chose not to close star.exe.")
+                Return True ' Still running
+            End If
+        End Function
+        Shared Function CheckAndCloseShaderGlass() As Boolean
+            Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
+
+            If shaderglassProcesses.Length = 0 Then
+                logger.Logger.LogInfo("shaderglass.exe is not currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {shaderglassProcesses.Length} instance(s) of shaderglass.exe running.")
+
+            Try
+                For Each process As Process In shaderglassProcesses
+                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
+                    process.Kill()
+                    process.WaitForExit()
+                Next
+
+                logger.Logger.LogInfo("All shaderglass.exe processes closed successfully.")
+                Return False ' No longer running
+            Catch ex As Exception
+                logger.Logger.LogError("Error while closing shaderglass.exe: " & ex.ToString())
+                MessageBox.Show("An error occurred while trying to close shaderglass.exe: " & ex.Message,
+                        "Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error)
+                Return True ' Still running
+            End Try
         End Function
         Public Async Sub LaunchCustomDOJAGameCommand(DOJAPATH As String, DOJAEXELocation As String, GameJAM As String)
             Try
-                ' Paths and arguments
-                Dim appPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "locale_emulator", "LEProc.exe").Trim
-                Dim dojaExePath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DOJAEXELocation).Trim
-                Dim jamPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GameJAM).Trim
+                ' Construct all paths
+                Dim appPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "locale_emulator", "LEProc.exe").Trim()
+                Dim dojaExePath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, DOJAEXELocation).Trim()
+                Dim jamPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GameJAM).Trim()
+
+                ' Warn about long JAM paths
+                If jamPath.Length > 220 Then
+                    logger.Logger.LogWarning($"[Launch] Potentially long JAM path: {jamPath}")
+                    MessageBox.Show("The file path length exceeds 220 characters. You may experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                ' Form arguments
                 Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
                 Dim arguments As String = $"{guidArg} ""{dojaExePath}"" -i ""{jamPath}"" -s device1"
 
-                ' Update device settings based on user selections
-                If UpdateDOJADeviceSkin(DOJAPATH, Form1.chkbxHidePhoneUI.Checked) = False Then
-                    MessageBox.Show("Failed to Update DOJA Skins.")
-                    logger.Logger.LogError($"Failed to Update DOJA Skins.")
+                logger.Logger.LogInfo($"[Launch] DOJA Arguments: {arguments}")
+
+                ' Update UI skin
+                If Not UpdateDOJADeviceSkin(DOJAPATH, Form1.chkbxHidePhoneUI.Checked) Then
+                    logger.Logger.LogError("[Launch] Failed to update DOJA skins.")
+                    MessageBox.Show("Failed to update DOJA skins.", "Skin Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Exit Sub
                 End If
 
-                ' Update device screen size
-                Dim VerIndex As Integer = DOJAPATH.LastIndexOf("\iDKDoJa")
+                ' Get DOJA version
+                Dim VerIndex As Integer = DOJAPATH.LastIndexOf("\iDKDoJa", StringComparison.OrdinalIgnoreCase)
                 Dim DOJAVER As Integer = DOJAPATH.Substring(VerIndex + 8, 1)
+
+                ' Update draw size for DOJA5
                 If DOJAVER = 5 Then
                     Dim dimensions = ExtractDOJAWidthHeight(jamPath)
                     Dim width As Integer = dimensions.Item1
                     Dim height As Integer = dimensions.Item2
                     UpdatedDOJADrawSize(DOJAPATH, width, height)
+                    logger.Logger.LogInfo($"[Launch] Updated DOJA draw size to {width}x{height}")
                 End If
 
-                ' Update sound configuration
+                ' Update sound config
                 UpdateDOJASoundConf(DOJAPATH, Form1.cobxAudioType.SelectedItem.ToString())
+                logger.Logger.LogInfo($"[Launch] Updated DOJA sound config to {Form1.cobxAudioType.SelectedItem}")
 
-                'Update App Config
+                ' Update app config and JAM entries
                 UpdateDOJAAppconfig(DOJAPATH, jamPath)
-                If DOJAVER <> 3 Then
-                    EnsureDOJAJamFileEntries(jamPath)
-                ElseIf DOJAVER = 3 Then
+                If DOJAVER = 3 Then
                     RemoveDOJAJamFileEntries(jamPath)
+                    logger.Logger.LogInfo("[Launch] Removed DOJA3 jam entries")
+                Else
+                    EnsureDOJAJamFileEntries(jamPath)
+                    logger.Logger.LogInfo("[Launch] Ensured DOJA jam entries")
                 End If
 
-                ' Set up process start info
+                ' Launch the emulator using Locale Emulator
                 Dim startInfo As New ProcessStartInfo With {
                     .FileName = appPath,
                     .Arguments = arguments,
@@ -586,61 +644,76 @@ Namespace My.Managers
                 Dim process As Process = Process.Start(startInfo)
                 If process IsNot Nothing Then
                     process.WaitForInputIdle()
+                    logger.Logger.LogInfo("[Launch] DOJA process started successfully.")
                 Else
-                    MessageBox.Show("Failed to start DOJA process.")
-                    logger.Logger.LogWarning($"Failed to start DOJA process.")
+                    logger.Logger.LogWarning("[Launch] Failed to start DOJA process.")
+                    MessageBox.Show("Failed to start DOJA process.", "Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    Exit Sub
                 End If
 
                 ' Launch ShaderGlass if enabled
                 If Form1.chkbxShaderGlass.Checked Then
+                    logger.Logger.LogInfo("[ShaderGlass] Waiting for DOJA to become idle...")
                     If Await WaitForDojaToStart() Then
                         LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
                         ProcessManager.StartMonitoring()
-                        logger.Logger.LogInfo($"Shaderglass launched successfully")
+                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                     Else
-                        logger.Logger.LogError($"Failed to detect DOJA running.")
-                        MessageBox.Show("Failed to detect DOJA running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        logger.Logger.LogError("[ShaderGlass] Failed to detect DOJA running.")
+                        MessageBox.Show("Failed to detect DOJA running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     End If
                 End If
 
             Catch ex As Exception
-                logger.Logger.LogError($"Failed to launch the command: {ex.Message}")
-                MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
+                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
         Public Async Sub LaunchCustomSTARGameCommand(STARPATH As String, STAREXELocation As String, GameJAM As String)
             Try
+                logger.Logger.LogInfo("[Launch] Starting STAR game launch sequence...")
+
                 ' Validate inputs
                 If String.IsNullOrWhiteSpace(STARPATH) OrElse String.IsNullOrWhiteSpace(STAREXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
                     Throw New ArgumentException("One or more required parameters are missing.")
                 End If
 
-                ' Paths and arguments
-                Dim appPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data\tools\locale_emulator\LEProc.exe")
+                ' Build and clean paths
+                Dim appPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "locale_emulator", "LEProc.exe").Trim()
+                Dim jamPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GameJAM).Trim()
+                Dim exePath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, STAREXELocation).Trim()
                 Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
-                Dim jamPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GameJAM)
-                Dim arguments As String = $"{guidArg} ""{STAREXELocation}"" -i ""{jamPath}"""
+                Dim arguments As String = $"{guidArg} ""{exePath}"" -i ""{jamPath}"""
 
-                ' Update device launch settings
+                If jamPath.Length > 220 Then
+                    logger.Logger.LogWarning($"[Launch] JAM file path exceeds 220 characters: {jamPath}")
+                    MessageBox.Show("The file path length exceeds 220 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                logger.Logger.LogInfo($"[Launch] Arguments prepared: {arguments}")
+
+                ' Update STAR UI skin
                 Dim hideUI As Boolean = Form1.chkbxHidePhoneUI.Checked
                 If Not UpdateSTARDeviceSkin(STARPATH, hideUI) Then
-                    MessageBox.Show("Failed to Update STAR Skins.")
-                    logger.Logger.LogError($"Failed to Update STAR Skins.")
+                    logger.Logger.LogError("[Launch] Failed to update STAR skins.")
+                    MessageBox.Show("Failed to update STAR skins.", "Skin Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Exit Sub
                 End If
 
-                ' Update device draw size
-                Dim JAMDrawArea = ExtractSTARWidthHeight(jamPath)
-                UpdatedSTARDrawSize(STARPATH, JAMDrawArea.Item1, JAMDrawArea.Item2)
+                ' Update screen size
+                Dim dimensions = ExtractSTARWidthHeight(jamPath)
+                UpdatedSTARDrawSize(STARPATH, dimensions.Item1, dimensions.Item2)
+                logger.Logger.LogInfo($"[Launch] STAR draw size set to {dimensions.Item1}x{dimensions.Item2}")
 
-                ' Update sound configuration
+                ' Update sound and app config
                 UpdateSTARSoundConf(STARPATH, Form1.cobxAudioType.SelectedItem.ToString())
+                logger.Logger.LogInfo($"[Launch] STAR sound config set to {Form1.cobxAudioType.SelectedItem}")
 
-                ' Update app configuration
                 UpdateSTARAppconfig(STARPATH, GameJAM)
                 EnsureSTARJamFileEntries(GameJAM)
+                logger.Logger.LogInfo("[Launch] STAR app configuration and JAM entries updated.")
 
-                ' Set up process start info
+                ' Launch emulator via Locale Emulator
                 Dim startInfo As New ProcessStartInfo With {
                     .FileName = appPath,
                     .Arguments = arguments,
@@ -649,35 +722,37 @@ Namespace My.Managers
                     .WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
                 }
 
-                ' Launch process
                 Using process As Process = Process.Start(startInfo)
                     If process IsNot Nothing Then
                         process.WaitForInputIdle()
+                        logger.Logger.LogInfo("[Launch] STAR process started successfully.")
                     Else
-                        MessageBox.Show("Failed to start STAR process.")
-                        logger.Logger.LogWarning($"Failed to start STAR process.")
-                        Throw New Exception("Failed to start process.")
+                        logger.Logger.LogWarning("[Launch] Failed to start STAR process.")
+                        MessageBox.Show("Failed to start STAR process.", "Process Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                        Throw New Exception("Process.Start returned null.")
                     End If
                 End Using
 
-                ' Launch ShaderGlass if selected
+                ' Launch ShaderGlass if enabled
                 If Form1.chkbxShaderGlass.Checked Then
+                    logger.Logger.LogInfo("[ShaderGlass] Waiting for STAR to become idle...")
                     If Await WaitForSTARToStart() Then
                         LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
                         ProcessManager.StartMonitoring()
-                        logger.Logger.LogInfo($"Shaderglass launched successfully")
+                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                     Else
-                        logger.Logger.LogError($"Failed to detect STAR running.")
-                        MessageBox.Show("Failed to detect STAR running.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        logger.Logger.LogError("[ShaderGlass] Failed to detect STAR running.")
+                        MessageBox.Show("Failed to detect STAR running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     End If
                 End If
 
             Catch ex As ArgumentException
-                logger.Logger.LogError($"Invalid input: {ex.Message}")
+                logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
                 MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+
             Catch ex As Exception
-                logger.Logger.LogError($"Failed to launch the command: {ex.Message}")
-                MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
+                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
         Public Sub LaunchCustomMachiCharaCommand(MachiCharaEXE, CFDFile)
@@ -709,6 +784,7 @@ Namespace My.Managers
             End Try
         End Sub
         Public Sub LaunchShaderGlass(AppName As String)
+            Thread.Sleep(1000)
             Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
             Dim appPath As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "ShaderGlass.exe")
             Dim argumentFile As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "keitai.sgp")
@@ -1123,11 +1199,13 @@ Namespace My.Managers
             End If
 
             ' Process each folder in the extracted directory
+            Dim BadFolders As New List(Of String)
             Try
                 For Each rootFolderPath As String In Directory.GetDirectories(extractedFolder, "*", SearchOption.TopDirectoryOnly)
                     Dim enTitle As String = Path.GetFileName(rootFolderPath)
                     Dim variants As New List(Of String)
                     Dim zipFileName As String = Nothing
+                    Dim zipSDFileName As String = Nothing
                     Dim emulator As String = "doja"
 
                     ' Determine if the root folder contains files directly or multiple subfolders
@@ -1142,16 +1220,24 @@ Namespace My.Managers
                         zipFileName = ProcessSingleVarient(subFolders(0), enTitle, inputZipPath, tempFolder, emulator)
 
                         ' Case 2: Files directly in the root folder
-                    ElseIf subFolders.Length = 0 Then
+                    ElseIf subFolders.Length = 0 AndAlso jamFiles.Length = 1 AndAlso jarFiles.Length = 1 Then
                         zipFileName = ProcessSingleVarient(rootFolderPath, enTitle, inputZipPath, tempFolder, emulator)
 
                         ' Case 3: Multiple subfolders, treat them as variants
-                    Else
+                    ElseIf subFolders.Length > 1 AndAlso jamFiles.Length = 0 AndAlso jarFiles.Length = 0 Then
                         For Each variantFolder In subFolders
                             Dim variantName As String = Path.GetFileName(variantFolder).Replace(" ", "_")
-                            variants.Add(variantName)
+                            If variantName.ToLower <> "sdcarddata" Then
+                                variants.Add(variantName)
+                            End If
                         Next
-                        zipFileName = ProcessMultipleVarient(rootFolderPath, enTitle, variants, inputZipPath, tempFolder, emulator)
+                        Dim zipFileNamesTuple = ProcessMultipleVarient(rootFolderPath, enTitle, variants, inputZipPath, tempFolder, emulator)
+                        zipFileName = zipFileNamesTuple.Item1
+                        If zipFileNamesTuple.Item2 <> Nothing Then
+                            zipSDFileName = zipFileNamesTuple.Item2
+                        End If
+                    Else
+                        BadFolders.Add(Path.GetFileName(rootFolderPath))
                     End If
 
                     ' Add the game entry to the XML
@@ -1171,16 +1257,23 @@ Namespace My.Managers
                     gameElement.AppendChild(zipNameElement)
 
                     Dim downloadUrlElement As XmlElement = xmlDoc.CreateElement("DownloadURL")
-                    downloadUrlElement.InnerText = $"https://s3.inferia.world/launcher/games/{zipFileName}"
+                    downloadUrlElement.InnerText = $"iappli/{zipFileName}"
                     gameElement.AppendChild(downloadUrlElement)
 
                     Dim customAppIconURLElement As XmlElement = xmlDoc.CreateElement("CustomAppIconURL")
                     customAppIconURLElement.InnerText = ""
                     gameElement.AppendChild(customAppIconURLElement)
 
-                    Dim sdCardDataURLElement As XmlElement = xmlDoc.CreateElement("SDCardDataURL")
-                    sdCardDataURLElement.InnerText = ""
-                    gameElement.AppendChild(sdCardDataURLElement)
+                    If zipSDFileName <> Nothing Then
+                        Dim sdCardDataURLElement As XmlElement = xmlDoc.CreateElement("SDCardDataURL")
+                        sdCardDataURLElement.InnerText = $"iappli/sdcarddata/{zipSDFileName}"
+                        gameElement.AppendChild(sdCardDataURLElement)
+                    Else
+                        Dim sdCardDataURLElement As XmlElement = xmlDoc.CreateElement("SDCardDataURL")
+                        sdCardDataURLElement.InnerText = $""
+                        gameElement.AppendChild(sdCardDataURLElement)
+                    End If
+
 
                     Dim emulatorElement As XmlElement = xmlDoc.CreateElement("Emulator")
                     emulatorElement.InnerText = emulator
@@ -1203,7 +1296,16 @@ Namespace My.Managers
             End Using
             ' Clean up temp folder
             Directory.Delete(tempFolder, True)
-            MessageBox.Show("Completed XML Creation")
+            If BadFolders.Count > 0 Then
+                Dim OutputString = $"Completed XML Creation with Bad {BadFolders.Count} Folders {vbCrLf}"
+                For Each f In BadFolders
+                    OutputString += $"{f}{vbCrLf}"
+                Next
+                MessageBox.Show(OutputString)
+
+            Else
+                MessageBox.Show($"Completed XML Creation with no Errors")
+            End If
         End Sub
         Private Function ProcessSingleVarient(folderPath As String, inputENTitle As String, inputZipPath As String, tempFolder As String, ByRef emulator As String) As String
             ' Rename
@@ -1256,46 +1358,61 @@ Namespace My.Managers
             Directory.Delete(spFolder, True)
             Return zipFileName
         End Function
-        Private Function ProcessMultipleVarient(folderPath As String, RootFolderName As String, variants As List(Of String), inputZipPath As String, tempFolder As String, ByRef emulator As String) As String
+        Private Function ProcessMultipleVarient(folderPath As String, RootFolderName As String, variants As List(Of String), inputZipPath As String, tempFolder As String, ByRef emulator As String) As Tuple(Of String, String)
             Dim MasterJarName As String = ""
+            Dim FoundSDCardData As Boolean = False
+            Dim zipSDFileName As String = Nothing
             ' Setup DIRS
             Dim combinedZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), RootFolderName & ".zip")
             Dim tempCombinedZipFolder As String = Path.Combine(tempFolder, "CombinedZip")
             Directory.CreateDirectory(tempCombinedZipFolder)
 
             For Each VariantFolder In Directory.GetDirectories(folderPath)
-                Dim variantName As String = Path.GetFileName(VariantFolder).Replace(" ", "_")
-                Dim tempCombinedZipVariantFolder As String = Path.Combine(tempCombinedZipFolder, variantName)
-                Directory.CreateDirectory(tempCombinedZipVariantFolder)
+                'If SDCARDDATA Folder then we get sdcarddata and zip it.
+                If Path.GetFileName(VariantFolder).Replace(" ", "_").ToLower = "sdcarddata" Then
+                    Dim ExportSDCardDataFolder = Path.Combine(Path.GetDirectoryName(inputZipPath), "sdcarddata")
+                    Directory.CreateDirectory(ExportSDCardDataFolder)
+                    zipSDFileName = RootFolderName.Replace(" ", "_") & "_" & Path.GetFileName(VariantFolder).Replace(" ", "_") & ".zip"
+                    Dim outputSDZipPath As String = Path.Combine(ExportSDCardDataFolder, zipSDFileName)
+                    If File.Exists(outputSDZipPath) Then File.Delete(outputSDZipPath)
+                    ZipFile.CreateFromDirectory(VariantFolder, outputSDZipPath)
+                    FoundSDCardData = True
 
-                ' Locate .jam, .jar, and .sp files
-                Dim jamFile As String = Directory.GetFiles(VariantFolder, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
-                Dim jarFile As String = Directory.GetFiles(VariantFolder, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
-                Dim spFile As String = Directory.GetFiles(VariantFolder, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
-                Dim scrFile As String = Directory.GetFiles(VariantFolder, "*.scr", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                    'Else follow normal path
+                Else
+                    Dim variantName As String = Path.GetFileName(VariantFolder).Replace(" ", "_")
+                    Dim tempCombinedZipVariantFolder As String = Path.Combine(tempCombinedZipFolder, variantName)
+                    Directory.CreateDirectory(tempCombinedZipVariantFolder)
 
-                ' Skip if no files are found
-                If String.IsNullOrEmpty(jarFile) Then Return Nothing
-                MasterJarName = Path.GetFileNameWithoutExtension(jarFile)
-                ' Extract emulator and app details from the .jam file
-                If Not String.IsNullOrEmpty(jamFile) Then
-                    Dim jamLines As String() = File.ReadAllLines(jamFile, Encoding.GetEncoding("shift-jis"))
-                    Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
-                    If Not String.IsNullOrEmpty(appTypeLine) Then
-                        emulator = "star"
+                    ' Locate .jam, .jar, and .sp files
+                    Dim jamFile As String = Directory.GetFiles(VariantFolder, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                    Dim jarFile As String = Directory.GetFiles(VariantFolder, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                    Dim spFile As String = Directory.GetFiles(VariantFolder, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
+                    Dim scrFile As String = Directory.GetFiles(VariantFolder, "*.scr", SearchOption.TopDirectoryOnly).FirstOrDefault()
+
+                    ' Skip if no files are found
+                    If String.IsNullOrEmpty(jarFile) Then Return Nothing
+                    MasterJarName = Path.GetFileNameWithoutExtension(jarFile)
+                    ' Extract emulator and app details from the .jam file
+                    If Not String.IsNullOrEmpty(jamFile) Then
+                        Dim jamLines As String() = File.ReadAllLines(jamFile, Encoding.GetEncoding("shift-jis"))
+                        Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
+                        If Not String.IsNullOrEmpty(appTypeLine) Then
+                            emulator = "star"
+                        End If
                     End If
-                End If
-                ' Create bin and sp folders
-                Dim binFolder As String = Path.Combine(tempCombinedZipVariantFolder, "bin")
-                Dim spFolder As String = Path.Combine(tempCombinedZipVariantFolder, "sp")
-                Directory.CreateDirectory(binFolder)
-                Directory.CreateDirectory(spFolder)
+                    ' Create bin and sp folders
+                    Dim binFolder As String = Path.Combine(tempCombinedZipVariantFolder, "bin")
+                    Dim spFolder As String = Path.Combine(tempCombinedZipVariantFolder, "sp")
+                    Directory.CreateDirectory(binFolder)
+                    Directory.CreateDirectory(spFolder)
 
-                ' Move files to bin and sp folders
-                If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
-                If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
-                If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
-                If Not String.IsNullOrEmpty(scrFile) Then File.Move(scrFile, Path.Combine(spFolder, Path.GetFileName(scrFile)), True)
+                    ' Move files to bin and sp folders
+                    If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
+                    If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
+                    If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
+                    If Not String.IsNullOrEmpty(scrFile) Then File.Move(scrFile, Path.Combine(spFolder, Path.GetFileName(scrFile)), True)
+                End If
             Next
 
             ' Create the ZIP file
@@ -1310,7 +1427,8 @@ Namespace My.Managers
             ZipFile.CreateFromDirectory(tempCombinedZipFolder, outputZipPath)
             Directory.Delete(tempCombinedZipFolder, True)
             zipFileName = Path.GetFileName(outputZipPath)
-            Return zipFileName
+
+            Return Tuple.Create(zipFileName, zipSDFileName)
         End Function
         Private Sub DirectoryCopy(sourceDirName As String, destDirName As String, copySubDirs As Boolean)
             Dim dir As DirectoryInfo = New DirectoryInfo(sourceDirName)

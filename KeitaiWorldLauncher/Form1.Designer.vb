@@ -85,6 +85,7 @@ Partial Class Form1
         GroupBox2.SuspendLayout()
         GroupBox1.SuspendLayout()
         gbxGameInfo.SuspendLayout()
+        panelDynamic.SuspendLayout()
         MaterialTabControl1.SuspendLayout()
         tpGames.SuspendLayout()
         tpMachiChara.SuspendLayout()
@@ -101,30 +102,30 @@ Partial Class Form1
         cmsGameLV.ImageScalingSize = New Size(20, 20)
         cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite})
         cmsGameLV.Name = "cmsGameLV"
-        cmsGameLV.Size = New Size(181, 114)
+        cmsGameLV.Size = New Size(129, 92)
         ' 
         ' cmsGameLV_Launch
         ' 
         cmsGameLV_Launch.Name = "cmsGameLV_Launch"
-        cmsGameLV_Launch.Size = New Size(180, 22)
+        cmsGameLV_Launch.Size = New Size(128, 22)
         cmsGameLV_Launch.Text = "Launch"
         ' 
         ' cmsGameLV_Download
         ' 
         cmsGameLV_Download.Name = "cmsGameLV_Download"
-        cmsGameLV_Download.Size = New Size(180, 22)
+        cmsGameLV_Download.Size = New Size(128, 22)
         cmsGameLV_Download.Text = "Download"
         ' 
         ' cmsGameLV_Delete
         ' 
         cmsGameLV_Delete.Name = "cmsGameLV_Delete"
-        cmsGameLV_Delete.Size = New Size(180, 22)
+        cmsGameLV_Delete.Size = New Size(128, 22)
         cmsGameLV_Delete.Text = "Delete"
         ' 
         ' cmsGameLV_Favorite
         ' 
         cmsGameLV_Favorite.Name = "cmsGameLV_Favorite"
-        cmsGameLV_Favorite.Size = New Size(180, 22)
+        cmsGameLV_Favorite.Size = New Size(128, 22)
         cmsGameLV_Favorite.Text = "Favorite"
         ' 
         ' MenuStrip1
@@ -519,7 +520,6 @@ Partial Class Form1
         ' gbxGameInfo
         ' 
         gbxGameInfo.Controls.Add(panelDynamic)
-        gbxGameInfo.Controls.Add(pbGameDL)
         gbxGameInfo.FlatStyle = FlatStyle.Flat
         gbxGameInfo.Location = New Point(357, 5)
         gbxGameInfo.Margin = New Padding(2)
@@ -533,6 +533,7 @@ Partial Class Form1
         ' panelDynamic
         ' 
         panelDynamic.AutoScroll = True
+        panelDynamic.Controls.Add(pbGameDL)
         panelDynamic.Dock = DockStyle.Fill
         panelDynamic.Location = New Point(2, 18)
         panelDynamic.Name = "panelDynamic"
@@ -541,10 +542,10 @@ Partial Class Form1
         ' 
         ' pbGameDL
         ' 
-        pbGameDL.Location = New Point(4, 424)
+        pbGameDL.Location = New Point(2, 194)
         pbGameDL.Margin = New Padding(2)
         pbGameDL.Name = "pbGameDL"
-        pbGameDL.Size = New Size(545, 46)
+        pbGameDL.Size = New Size(543, 65)
         pbGameDL.TabIndex = 1
         pbGameDL.Visible = False
         ' 
@@ -631,6 +632,7 @@ Partial Class Form1
         GroupBox1.ResumeLayout(False)
         GroupBox1.PerformLayout()
         gbxGameInfo.ResumeLayout(False)
+        panelDynamic.ResumeLayout(False)
         MaterialTabControl1.ResumeLayout(False)
         tpGames.ResumeLayout(False)
         tpGames.PerformLayout()
@@ -690,8 +692,8 @@ Partial Class Form1
     Friend WithEvents lblAudioWarning As Label
     Friend WithEvents txtLVSearch As TextBox
     Friend WithEvents lblFilteredGameCount As Label
-    Friend WithEvents panelDynamic As Panel
     Friend WithEvents MaterialTabControl1 As ReaLTaiizor.Controls.MaterialTabControl
     Friend WithEvents tpGames As TabPage
     Friend WithEvents tpMachiChara As TabPage
+    Friend WithEvents panelDynamic As Panel
 End Class

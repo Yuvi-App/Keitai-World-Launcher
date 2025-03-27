@@ -1,4 +1,5 @@
-﻿Imports System.Formats.Tar
+﻿Imports System.Diagnostics.Eventing.Reader
+Imports System.Formats.Tar
 Imports System.IO
 Imports System.Net.Security
 Imports System.Runtime.InteropServices
@@ -29,10 +30,10 @@ Public Class Form1
     Dim machicharas As List(Of MachiChara)
 
     'Directory Var
-    Dim DownloadsFolder As String = "data\downloads"
-    Dim ToolsFolder As String = "data\tools"
-    Dim ConfigsFolder As String = "configs"
-    Dim LogFolder As String = "logs"
+    Public DownloadsFolder As String = "data\downloads"
+    Public ToolsFolder As String = "data\tools"
+    Public ConfigsFolder As String = "configs"
+    Public LogFolder As String = "logs"
 
     'Index Vars Can Change
     Dim CurrentSelectedGameJAM As String
@@ -42,6 +43,7 @@ Public Class Form1
     'Config Vars
     Dim versionCheckUrl As String
     Dim autoUpdate As Boolean
+    Dim FirstRun As Boolean
     Dim gameListUrl As String
     Dim autoUpdateGameList As Boolean
     Dim machicharaListUrl As String
@@ -99,6 +101,7 @@ Public Class Form1
         ' Access Config settings
         versionCheckUrl = config("VersionCheckURL")
         autoUpdate = Boolean.Parse(config("AutoUpdate"))
+        FirstRun = Boolean.Parse(config("FirstRun"))
         gameListUrl = config("GamelistURL")
         autoUpdateGameList = Boolean.Parse(config("AutoUpdateGameList"))
         machicharaListUrl = config("MachiCharalistURL")
@@ -116,11 +119,22 @@ Public Class Form1
         MachiCharapath = config("MachiCharaPath")
         MachiCharaExe = config("MachiCharaEXEPath")
 
-        ' Check PreREQs
-        Logger.LogInfo("Starting PreReq Check")
-        UtilManager.CheckforPreReq()
-        Logger.LogInfo("PreReq All Good")
-
+        ' Check PreREQs if First Run
+        If FirstRun = True Then
+            Logger.LogInfo("Detected First Run - Checking for Admin")
+            Logger.LogInfo("Starting PreReq Check")
+            Dim AllGood = UtilManager.CheckforPreReq()
+            If AllGood = True Then
+                Logger.LogInfo("PreReq All Good")
+                configManager.UpdateFirstRunSetting("false")
+            End If
+        ElseIf FirstRun = False Then
+            Logger.LogInfo("Starting app Normally")
+        Else
+            Logger.LogInfo("Invalid FirstStart Parameter in Config")
+            MessageBox.Show("Invalid FirstStart paramete in AppConfig.xml, Please set to true and relaunch app.")
+            Form1.QuitApplication()
+        End If
 
         'Needs Internet If none we skip and use local file
         Dim uri As New Uri(versionCheckUrl)
@@ -211,24 +225,6 @@ Public Class Form1
                 End If
             End If
         Next
-
-        ' Set DPI Awareness for DoJa SDKs
-        For Each item As Object In cbxDojaSDK.Items
-            Dim sdkFolder As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ToolsFolder, item.ToString(), "bin", "doja.exe")
-            If UtilManager.IsDpiScalingSet(sdkFolder) Then Exit For
-            utilManager.SetDpiScaling(sdkFolder)
-        Next
-
-        ' Set DPI Awareness for Star SDKs
-        For Each item As Object In cbxStarSDK.Items
-            Dim sdkFolder As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ToolsFolder, item.ToString(), "bin", "star.exe")
-            If UtilManager.IsDpiScalingSet(sdkFolder) Then Exit For
-            utilManager.SetDpiScaling(sdkFolder)
-        Next
-
-        ' Ensure Registry is set
-        UtilManager.ImportRegFileIfMissing("Software\NTTDoCoMo\Emulator\DoJa5.1\system", Path.Combine(ToolsFolder, dojaDefault, "doja.reg"))
-        UtilManager.ImportRegFileIfMissing("Software\NTTDoCoMo\Emulator\Star2.0\system", Path.Combine(ToolsFolder, starDefault, "star.reg"))
 
         ' Set the defaults if found
         If starFound Then
@@ -490,9 +486,9 @@ Public Class Form1
         End If
 
         ' Check if the game is already downloaded
-        'If isOnline = False Then
-        '    Exit Sub
-        'End If
+        If isOnline = False Then
+            Exit Sub
+        End If
         Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
         If File.Exists(CurrentSelectedGameJAR) Then
             If ContextDownload Then
@@ -913,23 +909,28 @@ Public Class Form1
             cmsGameLV_Favorite.Text = "Favorite"
         End If
     End Sub
+
     'Launch Game
     Private Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         Try
+            Logger.LogInfo("Attempting to launch game...")
 
             ' Ensure a game is selected
             If ListViewGames.SelectedItems.Count = 0 Then
+                Logger.LogWarning("Launch failed: No game selected.")
                 MessageBox.Show("Please select a game before launching.")
                 Return
             End If
 
             ' Ensure the SDKs are selected
             If cbxDojaSDK.SelectedItem Is Nothing Then
+                Logger.LogWarning("Launch failed: No Doja SDK selected.")
                 MessageBox.Show("Please select a Doja SDK before launching.")
                 Return
             End If
 
             If cbxStarSDK.SelectedItem Is Nothing Then
+                Logger.LogWarning("Launch failed: No Star SDK selected.")
                 MessageBox.Show("Please select a Star SDK before launching.")
                 Return
             End If
@@ -937,53 +938,80 @@ Public Class Form1
             ' Store selected SDKs in variables
             Dim selectedDojaSDK As String = cbxDojaSDK.SelectedItem.ToString()
             Dim selectedStarSDK As String = cbxStarSDK.SelectedItem.ToString()
+            Logger.LogInfo($"Selected Doja SDK: {selectedDojaSDK}")
+            Logger.LogInfo($"Selected Star SDK: {selectedStarSDK}")
 
             ' Verify the game is downloaded
-            If VerifyGameDownloaded() = True Then
-                ' Get the selected game
-                Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-                Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-
-                'Lets Ensure we got the right Emulator
-                Dim CorrectedEmulator = VerifyEmulatorType(CurrentSelectedGameJAM)
-
-                'Get GameDirPath
-                Dim GameDirectory As String
-                Dim binIndex As Integer = CurrentSelectedGameJAM.LastIndexOf("\bin")
-                If binIndex <> -1 Then
-                    GameDirectory = CurrentSelectedGameJAM.Substring(0, binIndex)
-                Else
-                    Console.WriteLine("'\bin' not found in path.")
-                End If
-
-                'Check for Helper Scripts
-                If selectedGame.ENTitle.Contains("Dirge of Cerberus") Then
-                    gameManager.FF7_DOCLE_Setup(Dojapath, GameDirectory)
-                End If
-
-                'Start Launching Game
-                utilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
-                Select Case CorrectedEmulator.ToLower()
-                    Case "doja"
-                        Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
-                        Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
-                        If Not isDojaRunning AndAlso Not isStarRunning Then
-                            utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
-                            Logger.LogInfo($"Loading Game using: {Dojapath} | {DojaEXE} | {CurrentSelectedGameJAM}")
-                        End If
-
-                    Case "star"
-                        Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
-                        Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
-                        If Not isStarRunning AndAlso Not isDojaRunning Then
-                            utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
-                            Logger.LogInfo($"Loading Game using: {Starpath} | {StarEXE} | {CurrentSelectedGameJAM}")
-                        End If
-                End Select
+            If Not VerifyGameDownloaded() Then
+                Logger.LogWarning("Game launch aborted: Game not downloaded.")
+                Return
             End If
+
+            ' Get the selected game
+            Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+            Logger.LogInfo($"Selected Game: {selectedGameTitle}")
+
+            Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+            If selectedGame Is Nothing Then
+                Logger.LogError("Game not found in the games list.")
+                MessageBox.Show("Game not found.")
+                Return
+            End If
+
+            ' Determine correct emulator
+            Dim CorrectedEmulator = VerifyEmulatorType(CurrentSelectedGameJAM)
+            Logger.LogInfo($"Detected emulator type: {CorrectedEmulator}")
+
+            ' Get Game Directory Path
+            Dim GameDirectory As String = ""
+            Dim binIndex As Integer = CurrentSelectedGameJAM.LastIndexOf("\bin")
+            If binIndex <> -1 Then
+                GameDirectory = CurrentSelectedGameJAM.Substring(0, binIndex)
+                Logger.LogInfo($"Game directory resolved to: {GameDirectory}")
+            Else
+                Logger.LogWarning("Could not determine GameDirectory: '\bin' not found in CurrentSelectedGameJAM path.")
+            End If
+
+            ' Check for Helper Scripts
+            If selectedGame.ENTitle.Contains("Dirge of Cerberus") Then
+                Logger.LogInfo("Setting up FF7 Doja Helper Script...")
+                gameManager.FF7_DOCLE_Setup(Dojapath, GameDirectory)
+            End If
+
+            ' Start Launching Game
+            UtilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
+
+            Select Case CorrectedEmulator.ToLower()
+                Case "doja"
+                    Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
+                    Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
+                    If Not isDojaRunning AndAlso Not isStarRunning Then
+                        Logger.LogInfo("Launching game using DOJA emulator.")
+                        utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
+                        Logger.LogInfo($"Launched with: DojaPath={Dojapath}, DojaEXE={DojaEXE}, GamePath={CurrentSelectedGameJAM}")
+                    Else
+                        Logger.LogWarning("DOJA emulator or STAR emulator is already running. Skipping launch.")
+                    End If
+
+                Case "star"
+                    Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
+                    Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
+                    If Not isStarRunning AndAlso Not isDojaRunning Then
+                        Logger.LogInfo("Launching game using STAR emulator.")
+                        utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
+                        Logger.LogInfo($"Launched with: StarPath={Starpath}, StarEXE={StarEXE}, GamePath={CurrentSelectedGameJAM}")
+                    Else
+                        Logger.LogWarning("STAR emulator or DOJA emulator is already running. Skipping launch.")
+                    End If
+
+                Case Else
+                    Logger.LogError($"Unknown emulator type: '{CorrectedEmulator}'. Aborting launch.")
+                    MessageBox.Show("Unknown emulator type detected. Cannot launch the game.")
+            End Select
+
         Catch ex As Exception
             Logger.LogError($"Error Launching Game:{vbCrLf}{ex}")
-            MessageBox.Show($"Error Launching Game:{vbCrLf}{ex}")
+            MessageBox.Show($"Error Launching Game:{vbCrLf}{ex.Message}")
         End Try
     End Sub
     Private Sub btnMachiCharaLaunch_Click(sender As Object, e As EventArgs) Handles btnMachiCharaLaunch.Click, lbxMachiCharaList.DoubleClick
@@ -992,6 +1020,7 @@ Public Class Form1
         Dim selectedMachiChara As MachiChara = machicharas.FirstOrDefault(Function(g) g.ENTitle = selectedMachiCharaTitle)
         utilManager.LaunchCustomMachiCharaCommand(MachiCharaExe, CurrentSelectedMachiCharaCFD)
     End Sub
+
 
     'Menu Strip Items
     Private Async Sub GamesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GamesToolStripMenuItem.Click
