@@ -72,6 +72,7 @@ Public Class Form1
         ' Adjust Form
         AdjustFormPadding()
 
+
         ' Check if Debug
 #If DEBUG Then
         isDebug = True
@@ -196,6 +197,7 @@ Public Class Form1
         cobxAudioType.SelectedIndex = atindex
         chkbxShaderGlass.Checked = UseShaderGlass
         cbxFilterType.SelectedIndex = 0
+        cbxShaderGlassScaling.SelectedIndex = 2
     End Sub
 
     ' General Other Function
@@ -339,6 +341,7 @@ Public Class Form1
         chkbxHidePhoneUI.Enabled = True
         cobxAudioType.Enabled = True
         chkbxShaderGlass.Enabled = True
+        cbxShaderGlassScaling.Enabled = True
     End Sub
     Private Sub FilterAndHighlightGames()
         ' Get the selected filter and search term
@@ -412,7 +415,7 @@ Public Class Form1
         lblFilteredGameCount.Text = $"Filtered: {ListViewGames.Items.Count}"
 
         ' Load game variants
-        LoadGameVariants()
+        'LoadGameVariants()
     End Sub
     Private Sub LoadGameVariants()
         ' Ensure the ListView view mode is set to Details
@@ -440,7 +443,7 @@ Public Class Form1
             ListViewGamesVariants.Items.Add(New ListViewItem(va.Trim()))
         Next
     End Sub
-    Private Sub DownloadGames(ContextDownload As Boolean)
+    Private Async Sub DownloadGames(ContextDownload As Boolean)
 
         ' Get the selected game title from the ListViewGames
         Dim selectedGameTitle As String
@@ -498,13 +501,17 @@ Public Class Form1
                     "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 
                 If result = DialogResult.Yes Then
-                    StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
+                    Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
                     Logger.LogInfo($"Starting redownload for {selectedGame.DownloadURL}")
                     MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
+                If File.Exists(CurrentSelectedGameJAM) Then
+                    UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+                    ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
+                Else
+                    Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
+                End If
             End If
-
-            ' Load JAM controls
             UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
         Else
             If selectedGame.ZIPName = String.Empty Or selectedGame.ZIPName Is Nothing Then
@@ -519,19 +526,39 @@ Public Class Form1
 
             If result = DialogResult.Yes Then
                 Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
-                StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
+                Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
+                If File.Exists(CurrentSelectedGameJAM) Then
+                    UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+                    ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
+                Else
+                    Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
+                End If
             End If
         End If
     End Sub
-    Private Sub StartGameDownload(selectedGame As Game, downloadFileZipPath As String, extractFolder As String, jamFilePath As String, jarFilePath As String)
+    Private Async Function StartGameDownload(
+        selectedGame As Game,
+        downloadFileZipPath As String,
+        extractFolder As String,
+        jamFilePath As String,
+        jarFilePath As String
+    ) As Task
         Try
             Dim gameDownloader As New GameDownloader(pbGameDL)
-            gameDownloader.DownloadGameAsync(selectedGame.DownloadURL, downloadFileZipPath, extractFolder, selectedGame, jamFilePath, jarFilePath, False)
+            Await gameDownloader.DownloadGameAsync(
+            selectedGame.DownloadURL,
+            downloadFileZipPath,
+            extractFolder,
+            selectedGame,
+            jamFilePath,
+            jarFilePath,
+            False
+        )
         Catch ex As Exception
             Logger.LogError($"Failed to download or extract game '{selectedGame.ENTitle}': {ex.Message}")
             MessageBox.Show($"An error occurred while downloading '{selectedGame.ENTitle}'. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
-    End Sub
+    End Function
     Private Sub DownloadMachiChara()
         ' Get the selected game
         Dim selectedMachiCharaTitle As String = lbxMachiCharaList.SelectedItem.ToString()
@@ -869,6 +896,7 @@ Public Class Form1
             End If
         End If
     End Sub
+
 
     'Textbox Changes
     Private Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged

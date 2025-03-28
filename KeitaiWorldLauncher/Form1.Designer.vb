@@ -79,6 +79,8 @@ Partial Class Form1
         btnLaunchGame = New Button()
         MaterialTabControl1 = New ReaLTaiizor.Controls.MaterialTabControl()
         tpGames = New TabPage()
+        cbxShaderGlassScaling = New ComboBox()
+        chkbxLocalEmulator = New CheckBox()
         tpMachiChara = New TabPage()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
@@ -577,6 +579,8 @@ Partial Class Form1
         ' 
         ' tpGames
         ' 
+        tpGames.Controls.Add(cbxShaderGlassScaling)
+        tpGames.Controls.Add(chkbxLocalEmulator)
         tpGames.Controls.Add(lblAudioWarning)
         tpGames.Controls.Add(gbxGameInfo)
         tpGames.Controls.Add(Label4)
@@ -596,6 +600,27 @@ Partial Class Form1
         tpGames.TabIndex = 0
         tpGames.Text = "Games"
         tpGames.UseVisualStyleBackColor = True
+        ' 
+        ' cbxShaderGlassScaling
+        ' 
+        cbxShaderGlassScaling.Enabled = False
+        cbxShaderGlassScaling.FormattingEnabled = True
+        cbxShaderGlassScaling.Items.AddRange(New Object() {"1x", "1.5x", "2x", "2.5x", "3x", "3.5x", "4x"})
+        cbxShaderGlassScaling.Location = New Point(472, 534)
+        cbxShaderGlassScaling.Name = "cbxShaderGlassScaling"
+        cbxShaderGlassScaling.Size = New Size(47, 23)
+        cbxShaderGlassScaling.TabIndex = 13
+        ' 
+        ' chkbxLocalEmulator
+        ' 
+        chkbxLocalEmulator.Checked = True
+        chkbxLocalEmulator.CheckState = CheckState.Checked
+        chkbxLocalEmulator.Location = New Point(768, 553)
+        chkbxLocalEmulator.Name = "chkbxLocalEmulator"
+        chkbxLocalEmulator.Size = New Size(136, 24)
+        chkbxLocalEmulator.TabIndex = 12
+        chkbxLocalEmulator.Text = "Locale Emulator"
+        chkbxLocalEmulator.UseVisualStyleBackColor = True
         ' 
         ' tpMachiChara
         ' 
@@ -696,4 +721,7 @@ Partial Class Form1
     Friend WithEvents tpGames As TabPage
     Friend WithEvents tpMachiChara As TabPage
     Friend WithEvents panelDynamic As Panel
+    Friend WithEvents chkbxLocalEmulator As CheckBox
+    Friend WithEvents cbxShaderGlassScaling As ComboBox
+    Friend WithEvents Label2 As Label
 End Class

@@ -36,11 +36,19 @@ Namespace My.Managers
             progressBar = progressBarControl
         End Sub
 
-        Public Async Function DownloadGameAsync(url As String, savePath As String, extractTo As String, Inputgame As Game, JAMLocation As String, JARLocation As String, BatchDownload As Boolean) As Task
+        Public Async Function DownloadGameAsync(
+            url As String,
+            savePath As String,
+            extractTo As String,
+            Inputgame As Game,
+            JAMLocation As String,
+            JARLocation As String,
+            BatchDownload As Boolean
+        ) As Task
             Try
                 logger.Logger.LogInfo($"[Download] Starting download for: {Inputgame.ENTitle} from {url}")
 
-                ' Set global vars for later use
+                ' Set global vars
                 downloadFilePath = savePath
                 extractFolderPath = extractTo
                 ReadJam = JAMLocation
@@ -48,7 +56,7 @@ Namespace My.Managers
                 Isthisbatchdownload = BatchDownload
                 SelectedGame = Inputgame
 
-                ' Show progress bar overlay
+                ' Show progress UI
                 Form1.Controls.Add(overlay)
                 overlay.BringToFront()
                 progressBar.Left = (Form1.ClientSize.Width - progressBar.Width) \ 2
@@ -58,31 +66,28 @@ Namespace My.Managers
                 progressBar.Value = 0
                 progressBar.Visible = True
 
-                ' Attach event handlers
-                AddHandler client1.DownloadProgressChanged, AddressOf DownloadProgressChanged
-                AddHandler client1.DownloadFileCompleted, AddressOf DownloadFileCompleted
-                AddHandler client2.DownloadProgressChanged, AddressOf DownloadProgressChanged
-                AddHandler client2.DownloadFileCompleted, AddressOf DownloadFileCompleted
-
-                client1Completed = False
-                client2Completed = False
-                expectClient2Download = Not String.IsNullOrWhiteSpace(SelectedGame.SDCardDataURL)
-
-                ' Download main file
+                ' Download main ZIP
                 Await client1.DownloadFileTaskAsync(New Uri(url), savePath)
                 logger.Logger.LogInfo($"[Download] Main file downloaded to: {savePath}")
 
-                ' Check if SD card data is included
-                If Not String.IsNullOrWhiteSpace(SelectedGame.SDCardDataURL) Then
-                    SDCardDownloadFile = $"data\downloads\{Path.GetFileName(SelectedGame.SDCardDataURL)}"
-                    logger.Logger.LogInfo($"[Download] Downloading SD Card Data from: {SelectedGame.SDCardDataURL}")
+                ' Extract game ZIP
+                ZipFile.ExtractToDirectory(savePath, extractTo, Encoding.GetEncoding(932), True)
+                logger.Logger.LogInfo($"[Download] Game ZIP extracted to: {extractTo}")
+                File.Delete(savePath)
+                logger.Logger.LogInfo($"[Download] Game ZIP deleted: {savePath}")
 
-                    Await client2.DownloadFileTaskAsync(New Uri(SelectedGame.SDCardDataURL), SDCardDownloadFile)
+                ' Handle optional SD Card data
+                If Not String.IsNullOrWhiteSpace(Inputgame.SDCardDataURL) Then
+                    SDCardDownloadFile = $"data\downloads\{Path.GetFileName(Inputgame.SDCardDataURL)}"
+                    logger.Logger.LogInfo($"[Download] Downloading SD Card Data from: {Inputgame.SDCardDataURL}")
+
+                    Await client2.DownloadFileTaskAsync(New Uri(Inputgame.SDCardDataURL), SDCardDownloadFile)
 
                     Try
                         Dim destinationPath As String = ""
                         Dim SDCardDataFolderName = $"SVC0000{Path.GetFileName(ReadJam)}"
-                        Select Case SelectedGame.Emulator.ToLower()
+
+                        Select Case Inputgame.Emulator.ToLower()
                             Case "doja"
                                 destinationPath = $"{Form1.Dojapath}\lib\storagedevice\ext0\SD_BIND\{SDCardDataFolderName}"
                             Case "star"
@@ -97,11 +102,9 @@ Namespace My.Managers
                             File.Delete(SDCardDownloadFile)
                             logger.Logger.LogInfo($"[Download] SD Card zip file deleted: {SDCardDownloadFile}")
                         End If
-
                     Catch ex As Exception
                         logger.Logger.LogError($"[Download] Failed to handle SD Card data:{vbCrLf}{ex}")
                         MessageBox.Show($"Failed to handle SD Card data:{vbCrLf}{ex}", "SD Card Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                        progressBar.Visible = False
                     End Try
                 Else
                     logger.Logger.LogInfo("[Download] No SD Card Data to download.")
@@ -110,7 +113,10 @@ Namespace My.Managers
             Catch ex As Exception
                 logger.Logger.LogError($"[Download] Exception occurred during download:{vbCrLf}{ex}")
                 MessageBox.Show($"Failed to start download: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Finally
                 progressBar.Visible = False
+                Form1.Controls.Remove(overlay)
+                Form1.Controls.Remove(progressBar)
             End Try
         End Function
         Private Sub DownloadProgressChanged(sender As Object, e As DownloadProgressChangedEventArgs)
