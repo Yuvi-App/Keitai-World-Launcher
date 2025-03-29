@@ -72,7 +72,6 @@ Public Class Form1
         ' Adjust Form
         AdjustFormPadding()
 
-
         ' Check if Debug
 #If DEBUG Then
         isDebug = True
@@ -121,6 +120,7 @@ Public Class Form1
         MachiCharaExe = config("MachiCharaEXEPath")
 
         ' Check PreREQs if First Run
+        UtilManager.CheckForSpacesInPath()
         If FirstRun = True Then
             Logger.LogInfo("Detected First Run - Checking for Admin")
             Logger.LogInfo("Starting PreReq Check")

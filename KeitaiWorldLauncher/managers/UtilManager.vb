@@ -13,6 +13,7 @@ Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.Win32
 Imports System.Security.Principal
+Imports System.Reflection
 
 Namespace My.Managers
     Public Class UtilManager
@@ -41,101 +42,96 @@ Namespace My.Managers
         End Sub
 
         'PreReq Check
-        Public Shared Function CheckforPreReq()
+        Public Shared Function CheckforPreReq() As Boolean
+            ' Check for administrator privileges before continuing
+            If Not IsRunningAsAdmin() Then
+                MessageBox.Show("For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
+                        "Please restart the application as an Administrator by right-clicking the executable and selecting 'Run as administrator'.",
+                        "Administrator Privileges Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                Form1.QuitApplication()
+                Return False
+            End If
+
+            ' === Begin pre-req checks ===
             Dim DOJAEmulator = Form1.DojaEXE
             Dim StarEmulator = Form1.StarEXE
             Dim localeEmuLoc = "data\tools\locale_emulator\LEProc.exe"
             Dim ShaderGlassLoc = "data\tools\shaderglass\ShaderGlass.exe"
 
-            If IsRunningAsAdmin() = False Then
-                MessageBox.Show("For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
-                "Please restart the application as an Administrator by right-clicking the executable and selecting 'Run as administrator'.",
-               "Administrator Privileges Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                Form1.QuitApplication()
-            End If
-
             ' Setup DOJA and STAR Reg
-            ' Ensure Registry is set
-            ' Set DPI Awareness for DoJa SDKs
             Dim toolDojaDirs = Directory.GetDirectories(Form1.ToolsFolder, "idkDoja*")
             For Each dir As String In toolDojaDirs
                 Dim regFile As String = Path.Combine(dir, "doja.reg")
                 Dim dojaExe As String = Path.Combine(dir, "bin", "doja.exe")
                 If File.Exists(regFile) Then
                     UtilManager.ImportRegFile(regFile)
-                Else
-                    Continue For ' Skip if .reg file doesn't exist
                 End If
-                If File.Exists(dojaExe) Then
-                    If UtilManager.IsDpiScalingSet(dojaExe) Then Continue For
+                If File.Exists(dojaExe) AndAlso Not UtilManager.IsDpiScalingSet(dojaExe) Then
                     UtilManager.SetDpiScaling(dojaExe)
                 End If
             Next
-            ' Set DPI Awareness for Star SDKs
+
             Dim toolStarDirs = Directory.GetDirectories(Form1.ToolsFolder, "idkStar*")
             For Each dir As String In toolStarDirs
                 Dim regFile As String = Path.Combine(dir, "star.reg")
                 Dim starExe As String = Path.Combine(dir, "bin", "star.exe")
                 If File.Exists(regFile) Then
                     UtilManager.ImportRegFile(regFile)
-                Else
-                    Continue For ' Skip if .reg file doesn't exist
                 End If
-                If File.Exists(starExe) Then
-                    If UtilManager.IsDpiScalingSet(starExe) Then Continue For
+                If File.Exists(starExe) AndAlso Not UtilManager.IsDpiScalingSet(starExe) Then
                     UtilManager.SetDpiScaling(starExe)
                 End If
             Next
 
-            'Check for DOJA
+            ' Check for DOJA Emulator
             My.logger.Logger.LogInfo("Checking for DOJA Emu")
-            If File.Exists(DOJAEmulator) = False Then
-                MessageBox.Show($"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files needs to be located at {DOJAEmulator}")
+            If Not File.Exists(DOJAEmulator) Then
+                MessageBox.Show($"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {DOJAEmulator}")
                 My.logger.Logger.LogInfo("Missing DOJA 5.1 Emulator")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
                 Form1.QuitApplication()
             End If
 
-            'Check for STAR
+            ' Check for STAR Emulator
             My.logger.Logger.LogInfo("Checking for STAR Emu")
-            If File.Exists(StarEmulator) = False Then
-                MessageBox.Show($"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files needs to be located at {StarEmulator}")
+            If Not File.Exists(StarEmulator) Then
+                MessageBox.Show($"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {StarEmulator}")
                 My.logger.Logger.LogInfo("Missing STAR 2.0 Emulator")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
                 Form1.QuitApplication()
             End If
 
-            'Check for LEProc
+            ' Check for Locale Emulator
             My.logger.Logger.LogInfo("Checking for LEPROC")
-            If File.Exists(localeEmuLoc) = False Then
-                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files needs to be located at {localeEmuLoc}")
+            If Not File.Exists(localeEmuLoc) Then
+                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files need to be located at {localeEmuLoc}")
                 My.logger.Logger.LogInfo("Missing Locale Emulator")
                 OpenURL("https://github.com/xupefei/Locale-Emulator/releases")
                 Form1.QuitApplication()
             End If
 
-            'Check for ShaderGlass
+            ' Check for ShaderGlass
             My.logger.Logger.LogInfo("Checking for ShaderGlass")
-            If File.Exists(ShaderGlassLoc) = False Then
-                MessageBox.Show($"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files needs to be located at {ShaderGlassLoc}")
+            If Not File.Exists(ShaderGlassLoc) Then
+                MessageBox.Show($"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files need to be located at {ShaderGlassLoc}")
                 My.logger.Logger.LogInfo("Missing ShaderGlass")
                 OpenURL("https://github.com/mausimus/ShaderGlass/releases")
                 Form1.QuitApplication()
             End If
 
-            'Check for Java 8 
+            ' Check for Java 8
             My.logger.Logger.LogInfo("Checking for Java 8")
-            If IsJava8Update152Installed() = False Then
+            If Not IsJava8Update152Installed() Then
                 MessageBox.Show("Missing JAVA 8... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
                 OpenURL("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
                 Form1.QuitApplication()
             End If
 
-            'Check for Visual C++ Runtimes.
+            ' Check for Visual C++ Runtimes
             My.logger.Logger.LogInfo("Checking for C++ Runtimes")
-            If IsVCRuntime2022Installed() = False Then
-                MessageBox.Show("Unable to Detect C++ Runtimes... To ensure comptability, we recommend you install this Runtime AIO Package.")
+            If Not IsVCRuntime2022Installed() Then
+                MessageBox.Show("Unable to Detect C++ Runtimes... To ensure compatibility, we recommend you install this Runtime AIO Package.")
                 My.logger.Logger.LogInfo("Missing C++ Runtimes")
                 OpenURL("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
                 Form1.QuitApplication()
@@ -187,6 +183,19 @@ Namespace My.Managers
             Catch ex As Exception
                 MessageBox.Show("Failed to open the URL: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
+        End Sub
+        Public Shared Sub CheckForSpacesInPath()
+            Dim exePath As String = Assembly.GetExecutingAssembly().Location
+            Dim invalidChars As Char() = {" "c, "("c, ")"c, "{"c, "}"c}
+
+            If exePath.IndexOfAny(invalidChars) <> -1 Then
+                MessageBox.Show("The path to the KeitaiWikiLauncher contains invalid characters:" & Environment.NewLine &
+                                """" & exePath & """" & Environment.NewLine &
+                                "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
+                                "Warning - Invalid Path Characters",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Warning)
+            End If
         End Sub
 
         'MISC
@@ -279,17 +288,26 @@ Namespace My.Managers
                 MessageBox.Show("Error cleaning up log file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Shared Function IsInternetAvailable(InputUrl As String, Optional timeout As Integer = 3000) As Boolean
+        Public Shared Function IsInternetAvailable(InputUrl As String, Optional timeout As Integer = 60000) As Boolean
             Try
                 Dim request As Net.HttpWebRequest = CType(Net.WebRequest.Create(InputUrl), Net.HttpWebRequest)
-                request.Timeout = timeout ' Timeout in milliseconds
+                request.Timeout = timeout
                 request.ReadWriteTimeout = timeout
-                request.Method = "HEAD" ' Faster than GET or reading the stream
+                request.Method = "GET"
+                request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" ' Common User-Agent
+                request.AllowAutoRedirect = True
 
                 Using response As Net.HttpWebResponse = CType(request.GetResponse(), Net.HttpWebResponse)
-                    Return True
+                    Dim code As Integer = CInt(response.StatusCode)
+                    If code >= 200 AndAlso code < 300 Then
+                        Return True
+                    Else
+                        My.logger.Logger.LogWarning($"Internet check failed: Status code {code} from {InputUrl}")
+                        Return False
+                    End If
                 End Using
-            Catch
+            Catch ex As Exception
+                My.logger.Logger.LogError($"Internet check exception for {InputUrl}: {ex.Message}")
                 Return False
             End Try
         End Function

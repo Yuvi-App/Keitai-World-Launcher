@@ -70,11 +70,25 @@ Namespace My.Managers
                 Await client1.DownloadFileTaskAsync(New Uri(url), savePath)
                 logger.Logger.LogInfo($"[Download] Main file downloaded to: {savePath}")
 
-                ' Extract game ZIP
-                ZipFile.ExtractToDirectory(savePath, extractTo, Encoding.GetEncoding(932), True)
-                logger.Logger.LogInfo($"[Download] Game ZIP extracted to: {extractTo}")
-                File.Delete(savePath)
-                logger.Logger.LogInfo($"[Download] Game ZIP deleted: {savePath}")
+                ' Extract game ZIP and Get Icons
+                Try
+                    logger.Logger.LogInfo($"[Download] Extracting ZIP to: {extractTo}")
+                    ZipFile.ExtractToDirectory(savePath, extractTo, True)
+                    logger.Logger.LogInfo($"[Download] Extraction complete. Deleting ZIP: {savePath}")
+                    File.Delete(savePath)
+                    If Not BatchDownload Then
+                        logger.Logger.LogInfo($"[Download] Generating dynamic controls from: {JAMLocation}")
+                        UtilManager.GenerateDynamicControlsFromLines(JAMLocation, Form1.panelDynamic)
+                    End If
+                    logger.Logger.LogInfo("[Download] Refreshing game highlighting.")
+                    Form1.RefreshGameHighlighting()
+                    logger.Logger.LogInfo("[Download] Extracting and resizing app icon.")
+                    utilManager.ExtractAndResizeAppIcon(JARLocation, JAMLocation, Inputgame)
+
+                Catch ex As Exception
+                    logger.Logger.LogError($"[Download] Failed to extract or process game files: {ex}")
+                    MessageBox.Show($"Failed to extract the game: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Try
 
                 ' Handle optional SD Card data
                 If Not String.IsNullOrWhiteSpace(Inputgame.SDCardDataURL) Then
@@ -143,7 +157,6 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to download the game: {e.Error.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Else
                 Try
-                    Thread.Sleep(100)
                     ZipFile.ExtractToDirectory(downloadFilePath, extractFolderPath, True)
                     File.Delete(downloadFilePath)
 
