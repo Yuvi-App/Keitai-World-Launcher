@@ -62,9 +62,10 @@ Namespace My.Managers
                 progressBar.Left = (Form1.ClientSize.Width - progressBar.Width) \ 2
                 progressBar.Top = (Form1.ClientSize.Height - progressBar.Height) \ 2
                 Form1.Controls.Add(progressBar)
-                progressBar.BringToFront()
-                progressBar.Value = 0
                 progressBar.Visible = True
+                progressBar.Style = ProgressBarStyle.Marquee
+                progressBar.MarqueeAnimationSpeed = 30
+                progressBar.BringToFront()
 
                 ' Download main ZIP
                 Await client1.DownloadFileTaskAsync(New Uri(url), savePath)
@@ -128,6 +129,7 @@ Namespace My.Managers
                 logger.Logger.LogError($"[Download] Exception occurred during download:{vbCrLf}{ex}")
                 MessageBox.Show($"Failed to start download: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Finally
+                progressBar.Style = ProgressBarStyle.Blocks
                 progressBar.Visible = False
                 Form1.Controls.Remove(overlay)
                 Form1.Controls.Remove(progressBar)
