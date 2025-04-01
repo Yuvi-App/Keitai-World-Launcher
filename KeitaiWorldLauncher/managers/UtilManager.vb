@@ -1525,38 +1525,34 @@ Namespace My.Managers
         End Function
 
 
-
-
-
         'MISC
         'Generate XML for List
-        Public Sub ProcessZipFileforGamelist(inputZipPath As String)
-            ' Ensure the input file exists
+        Dim BadFolders As New List(Of String)
+        Dim emulator As String = "doja"
+        Dim variants As New List(Of String)
+        Public Async Function ProcessZipFileforGamelistAsync(inputZipPath As String) As Task
+            BadFolders.Clear()
             If Not File.Exists(inputZipPath) Then
                 Throw New FileNotFoundException($"The file '{inputZipPath}' does not exist.")
             End If
 
-            ' Define paths
             Dim tempFolder As String = Path.Combine(Path.GetTempPath(), "ZipProcessing")
             Dim extractedFolder As String = Path.Combine(tempFolder, "Extracted")
             Dim xmlFilePath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), "gamelist.xml")
 
-            ' Clean up temp folder if it already exists
             If Directory.Exists(tempFolder) Then
                 Directory.Delete(tempFolder, True)
             End If
 
-            ' Extract the ZIP file to the temp folder
             Directory.CreateDirectory(extractedFolder)
             ZipFile.ExtractToDirectory(inputZipPath, extractedFolder)
 
-            ' Load or create the XML file with Shift-JIS encoding
             Dim xmlSettings As New XmlWriterSettings() With {
-        .Encoding = Encoding.GetEncoding("shift-jis"),
-        .Indent = True
-    }
-            Dim xmlDoc As New XmlDocument()
+                .Encoding = Encoding.GetEncoding("shift-jis"),
+                .Indent = True
+            }
 
+            Dim xmlDoc As New XmlDocument()
             If File.Exists(xmlFilePath) Then
                 xmlDoc.Load(xmlFilePath)
             Else
@@ -1564,49 +1560,52 @@ Namespace My.Managers
                 xmlDoc.AppendChild(root)
             End If
 
-            ' Process each folder in the extracted directory
-            Dim BadFolders As New List(Of String)
             Try
-                For Each rootFolderPath As String In Directory.GetDirectories(extractedFolder, "*", SearchOption.TopDirectoryOnly)
-                    Dim enTitle As String = Path.GetFileName(rootFolderPath)
-                    Dim variants As New List(Of String)
+                For Each rootFolderPathOriginal As String In Directory.GetDirectories(extractedFolder, "*", SearchOption.TopDirectoryOnly)
+                    Dim originalFolderName As String = Path.GetFileName(rootFolderPathOriginal)
+                    Dim urlSafeFolderName As String = MakeUrlSafeName(originalFolderName)
+
+                    Dim rootFolderPath As String = rootFolderPathOriginal
+                    If originalFolderName <> urlSafeFolderName Then
+                        Dim newFolderPath As String = Path.Combine(Path.GetDirectoryName(rootFolderPathOriginal), urlSafeFolderName)
+
+                        ' Cleanup if folder already exists
+                        If Directory.Exists(newFolderPath) Then
+                            Directory.Delete(newFolderPath, True)
+                        End If
+
+                        Directory.Move(rootFolderPathOriginal, newFolderPath)
+                        rootFolderPath = newFolderPath
+                    End If
+                    variants.Clear()
+                    Dim enTitle As String = originalFolderName ' For display in XML    
                     Dim zipFileName As String = Nothing
                     Dim zipSDFileName As String = Nothing
-                    Dim emulator As String = "doja"
+                    emulator = "doja"
 
-                    ' Determine if the root folder contains files directly or multiple subfolders
                     Dim subFolders = Directory.GetDirectories(rootFolderPath, "*", SearchOption.TopDirectoryOnly)
                     Dim jamFiles = Directory.GetFiles(rootFolderPath, "*.jam", SearchOption.TopDirectoryOnly)
                     Dim jarFiles = Directory.GetFiles(rootFolderPath, "*.jar", SearchOption.TopDirectoryOnly)
                     Dim spFiles = Directory.GetFiles(rootFolderPath, "*.sp", SearchOption.TopDirectoryOnly)
                     Dim scrFiles = Directory.GetFiles(rootFolderPath, "*.scr", SearchOption.TopDirectoryOnly)
 
-                    ' Case 1: Only one subfolder inside the root folder, go into that subfolder
                     If subFolders.Length = 1 AndAlso jamFiles.Length = 0 AndAlso jarFiles.Length = 0 AndAlso spFiles.Length = 0 AndAlso scrFiles.Length = 0 Then
-                        zipFileName = ProcessSingleVarient(subFolders(0), enTitle, inputZipPath, tempFolder, emulator)
+                        zipFileName = Await ProcessSingleVarientAsync(subFolders(0), urlSafeFolderName, inputZipPath, tempFolder)
 
-                        ' Case 2: Files directly in the root folder
                     ElseIf subFolders.Length = 0 AndAlso jamFiles.Length = 1 AndAlso jarFiles.Length = 1 Then
-                        zipFileName = ProcessSingleVarient(rootFolderPath, enTitle, inputZipPath, tempFolder, emulator)
+                        zipFileName = Await ProcessSingleVarientAsync(rootFolderPath, urlSafeFolderName, inputZipPath, tempFolder)
 
-                        ' Case 3: Multiple subfolders, treat them as variants
                     ElseIf subFolders.Length > 1 AndAlso jamFiles.Length = 0 AndAlso jarFiles.Length = 0 Then
-                        For Each variantFolder In subFolders
-                            Dim variantName As String = Path.GetFileName(variantFolder).Replace(" ", "_")
-                            If variantName.ToLower <> "sdcarddata" Then
-                                variants.Add(variantName)
-                            End If
-                        Next
-                        Dim zipFileNamesTuple = ProcessMultipleVarient(rootFolderPath, enTitle, variants, inputZipPath, tempFolder, emulator)
+                        Dim zipFileNamesTuple = Await ProcessMultipleVarientAsync(rootFolderPath, urlSafeFolderName, variants, inputZipPath, tempFolder)
                         zipFileName = zipFileNamesTuple.Item1
-                        If zipFileNamesTuple.Item2 <> Nothing Then
+                        If zipFileNamesTuple.Item2 IsNot Nothing Then
                             zipSDFileName = zipFileNamesTuple.Item2
                         End If
                     Else
-                        BadFolders.Add(Path.GetFileName(rootFolderPath))
+                        BadFolders.Add(originalFolderName)
                     End If
 
-                    ' Add the game entry to the XML
+                    ' Add game entry to XML
                     Dim root As XmlElement = xmlDoc.DocumentElement
                     Dim gameElement As XmlElement = xmlDoc.CreateElement("Game")
 
@@ -1630,16 +1629,9 @@ Namespace My.Managers
                     customAppIconURLElement.InnerText = ""
                     gameElement.AppendChild(customAppIconURLElement)
 
-                    If zipSDFileName <> Nothing Then
-                        Dim sdCardDataURLElement As XmlElement = xmlDoc.CreateElement("SDCardDataURL")
-                        sdCardDataURLElement.InnerText = $"iappli/sdcarddata/{zipSDFileName}"
-                        gameElement.AppendChild(sdCardDataURLElement)
-                    Else
-                        Dim sdCardDataURLElement As XmlElement = xmlDoc.CreateElement("SDCardDataURL")
-                        sdCardDataURLElement.InnerText = $""
-                        gameElement.AppendChild(sdCardDataURLElement)
-                    End If
-
+                    Dim sdCardDataURLElement As XmlElement = xmlDoc.CreateElement("SDCardDataURL")
+                    sdCardDataURLElement.InnerText = If(zipSDFileName IsNot Nothing, $"iappli/sdcarddata/{Path.GetFileNameWithoutExtension(zipFileName)}_sdcarddata.zip", "")
+                    gameElement.AppendChild(sdCardDataURLElement)
 
                     Dim emulatorElement As XmlElement = xmlDoc.CreateElement("Emulator")
                     emulatorElement.InnerText = emulator
@@ -1656,165 +1648,197 @@ Namespace My.Managers
                 MessageBox.Show($"Error Creating ZIP: {ex}")
             End Try
 
-            ' Save the updated XML file with Shift-JIS encoding
             Using writer As XmlWriter = XmlWriter.Create(xmlFilePath, xmlSettings)
                 xmlDoc.Save(writer)
             End Using
-            ' Clean up temp folder
+
             Directory.Delete(tempFolder, True)
+
             If BadFolders.Count > 0 Then
-                Dim OutputString = $"Completed XML Creation with Bad {BadFolders.Count} Folders {vbCrLf}"
+                Dim outputString = $"Completed XML Creation with Bad {BadFolders.Count} Folders{vbCrLf}"
                 For Each f In BadFolders
-                    OutputString += $"{f}{vbCrLf}"
+                    outputString += $"{f}{vbCrLf}"
                 Next
-                MessageBox.Show(OutputString)
-
+                MessageBox.Show(outputString)
             Else
-                MessageBox.Show($"Completed XML Creation with no Errors")
+                MessageBox.Show("Completed XML Creation with no Errors")
             End If
-        End Sub
-        Private Function ProcessSingleVarient(folderPath As String, inputENTitle As String, inputZipPath As String, tempFolder As String, ByRef emulator As String) As String
-            ' Rename
-            RenameFilesRecursively(folderPath, inputENTitle)
+        End Function
+        Private Async Function ProcessSingleVarientAsync(folderPath As String, inputENTitle As String, inputZipPath As String, tempFolder As String) As Task(Of String)
+            Await Task.Run(Sub() RenameFilesRecursively(folderPath, inputENTitle))
 
-            ' Locate .jam, .jar, and .sp files
             Dim jamFile As String = Directory.GetFiles(folderPath, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
             Dim jarFile As String = Directory.GetFiles(folderPath, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
             Dim spFile As String = Directory.GetFiles(folderPath, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
             Dim scrFile As String = Directory.GetFiles(folderPath, "*.scr", SearchOption.TopDirectoryOnly).FirstOrDefault()
 
-
-            ' Skip if no files are found
             If String.IsNullOrEmpty(jarFile) Then Return Nothing
 
-            ' Extract emulator and app details from the .jam file
             If Not String.IsNullOrEmpty(jamFile) Then
-                Dim jamLines As String() = File.ReadAllLines(jamFile, Encoding.GetEncoding("shift-jis"))
-                Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
-                If Not String.IsNullOrEmpty(appTypeLine) Then
+                Dim jamLines = Await File.ReadAllLinesAsync(jamFile, Encoding.GetEncoding("shift-jis"))
+                If jamLines.Any(Function(line) line.StartsWith("AppType = ")) Then
                     emulator = "star"
+                Else
+                    emulator = "doja"
                 End If
             End If
 
-            ' Create bin and sp folders
-            Dim binFolder As String = Path.Combine(tempFolder, "bin")
-            Dim spFolder As String = Path.Combine(tempFolder, "sp")
+            Dim binFolder = Path.Combine(tempFolder, "bin")
+            Dim spFolder = Path.Combine(tempFolder, "sp")
             Directory.CreateDirectory(binFolder)
             Directory.CreateDirectory(spFolder)
 
-            ' Move files to bin and sp folders
-            If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
-            If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
-            If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
-            If Not String.IsNullOrEmpty(scrFile) Then File.Move(scrFile, Path.Combine(spFolder, Path.GetFileName(scrFile)), True)
+            Await Task.Run(Sub()
+                               If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
+                               If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
+                               If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
+                               If Not String.IsNullOrEmpty(scrFile) Then File.Move(scrFile, Path.Combine(spFolder, Path.GetFileName(scrFile)), True)
+                           End Sub)
 
-            ' Create the ZIP file
-            Dim zipFileName As String = Path.GetFileNameWithoutExtension(jarFile) & ".zip"
-            Dim outputZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), zipFileName)
+            Dim zipFileName = Path.GetFileNameWithoutExtension(jarFile) & ".zip"
+            Dim outputZipPath = Path.Combine(Path.GetDirectoryName(inputZipPath), zipFileName)
             If File.Exists(outputZipPath) Then File.Delete(outputZipPath)
 
-            Dim tempZipFolder As String = Path.Combine(tempFolder, "ToZip")
+            Dim tempZipFolder = Path.Combine(tempFolder, "ToZip")
             Directory.CreateDirectory(tempZipFolder)
-            DirectoryCopy(binFolder, Path.Combine(tempZipFolder, "bin"), True)
-            DirectoryCopy(spFolder, Path.Combine(tempZipFolder, "sp"), True)
+            Await DirectoryCopyAsync(binFolder, Path.Combine(tempZipFolder, "bin"), True)
+            Await DirectoryCopyAsync(spFolder, Path.Combine(tempZipFolder, "sp"), True)
 
             ZipFile.CreateFromDirectory(tempZipFolder, outputZipPath)
             Directory.Delete(tempZipFolder, True)
             Directory.Delete(binFolder, True)
             Directory.Delete(spFolder, True)
+
             Return zipFileName
         End Function
-        Private Function ProcessMultipleVarient(folderPath As String, RootFolderName As String, variants As List(Of String), inputZipPath As String, tempFolder As String, ByRef emulator As String) As Tuple(Of String, String)
+        Private Async Function ProcessMultipleVarientAsync(folderPath As String, RootFolderName As String, variants As List(Of String), inputZipPath As String, tempFolder As String) As Task(Of Tuple(Of String, String))
             Dim MasterJarName As String = ""
-            Dim FoundSDCardData As Boolean = False
             Dim zipSDFileName As String = Nothing
-            ' Setup DIRS
-            Dim combinedZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), RootFolderName & ".zip")
-            Dim tempCombinedZipFolder As String = Path.Combine(tempFolder, "CombinedZip")
+            Dim combinedZipPath = Path.Combine(Path.GetDirectoryName(inputZipPath), RootFolderName & ".zip")
+            Dim tempCombinedZipFolder = Path.Combine(tempFolder, "CombinedZip")
             Directory.CreateDirectory(tempCombinedZipFolder)
 
             For Each VariantFolder In Directory.GetDirectories(folderPath)
-                'If SDCARDDATA Folder then we get sdcarddata and zip it.
-                If Path.GetFileName(VariantFolder).Replace(" ", "_").ToLower = "sdcarddata" Then
-                    Dim ExportSDCardDataFolder = Path.Combine(Path.GetDirectoryName(inputZipPath), "sdcarddata")
-                    Directory.CreateDirectory(ExportSDCardDataFolder)
-                    zipSDFileName = RootFolderName.Replace(" ", "_") & "_" & Path.GetFileName(VariantFolder).Replace(" ", "_") & ".zip"
-                    Dim outputSDZipPath As String = Path.Combine(ExportSDCardDataFolder, zipSDFileName)
+                Dim variantBaseName = Path.GetFileName(VariantFolder).Replace(" ", "_").Trim()
+
+                ' Handle sdcarddata as a special case
+                If variantBaseName.ToLower() = "sdcarddata" Then
+                    Dim exportSDCardDataFolder = Path.Combine(Path.GetDirectoryName(inputZipPath), "sdcarddata")
+                    Directory.CreateDirectory(exportSDCardDataFolder)
+                    zipSDFileName = RootFolderName.Replace(" ", "_") & "_" & variantBaseName & ".zip"
+                    Dim outputSDZipPath = Path.Combine(exportSDCardDataFolder, zipSDFileName)
                     If File.Exists(outputSDZipPath) Then File.Delete(outputSDZipPath)
                     ZipFile.CreateFromDirectory(VariantFolder, outputSDZipPath)
-                    FoundSDCardData = True
+                    Continue For
+                End If
 
-                    'Else follow normal path
-                Else
-                    Dim variantName As String = Path.GetFileName(VariantFolder).Replace(" ", "_")
-                    Dim tempCombinedZipVariantFolder As String = Path.Combine(tempCombinedZipFolder, variantName)
-                    Directory.CreateDirectory(tempCombinedZipVariantFolder)
+                ' Check if variant folder has subfolders (e.g., Part 1, Part 2)
+                Dim subVariantFolders = Directory.GetDirectories(VariantFolder)
+                If subVariantFolders.Length > 0 Then
+                    For Each subVariant In subVariantFolders
+                        ' Check if subVariant contains required files
+                        Dim hasValidFiles As Boolean =
+                    Directory.GetFiles(subVariant, "*.jam", SearchOption.TopDirectoryOnly).Any() AndAlso
+                    Directory.GetFiles(subVariant, "*.jar", SearchOption.TopDirectoryOnly).Any() AndAlso
+                    (Directory.GetFiles(subVariant, "*.sp", SearchOption.TopDirectoryOnly).Any() OrElse
+                     Directory.GetFiles(subVariant, "*.scr", SearchOption.TopDirectoryOnly).Any())
 
-                    ' Locate .jam, .jar, and .sp files
-                    Dim jamFile As String = Directory.GetFiles(VariantFolder, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
-                    Dim jarFile As String = Directory.GetFiles(VariantFolder, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
-                    Dim spFile As String = Directory.GetFiles(VariantFolder, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
-                    Dim scrFile As String = Directory.GetFiles(VariantFolder, "*.scr", SearchOption.TopDirectoryOnly).FirstOrDefault()
-
-                    ' Skip if no files are found
-                    If String.IsNullOrEmpty(jarFile) Then Return Nothing
-                    MasterJarName = Path.GetFileNameWithoutExtension(jarFile)
-                    ' Extract emulator and app details from the .jam file
-                    If Not String.IsNullOrEmpty(jamFile) Then
-                        Dim jamLines As String() = File.ReadAllLines(jamFile, Encoding.GetEncoding("shift-jis"))
-                        Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
-                        If Not String.IsNullOrEmpty(appTypeLine) Then
-                            emulator = "star"
+                        If Not hasValidFiles Then
+                            BadFolders.Add($"Missing required files: {subVariant}")
+                            Continue For
                         End If
-                    End If
-                    ' Create bin and sp folders
-                    Dim binFolder As String = Path.Combine(tempCombinedZipVariantFolder, "bin")
-                    Dim spFolder As String = Path.Combine(tempCombinedZipVariantFolder, "sp")
-                    Directory.CreateDirectory(binFolder)
-                    Directory.CreateDirectory(spFolder)
 
-                    ' Move files to bin and sp folders
-                    If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
-                    If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
-                    If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
-                    If Not String.IsNullOrEmpty(scrFile) Then File.Move(scrFile, Path.Combine(spFolder, Path.GetFileName(scrFile)), True)
+                        Dim subName = Path.GetFileName(subVariant).Replace(" ", "_").Trim()
+                        Dim fullVariantName = MakeUrlSafeName($"{variantBaseName}-{subName}")
+
+                        If fullVariantName.ToLower() <> "sdcarddata" Then
+                            variants.Add(fullVariantName)
+                        End If
+
+                        Dim variantTargetFolder = Path.Combine(tempCombinedZipFolder, fullVariantName)
+                        Directory.CreateDirectory(variantTargetFolder)
+
+                        Await ProcessVariantFolderAsync(subVariant, variantTargetFolder, Function(name) MasterJarName = name)
+                    Next
+                Else
+                    ' Standard single-level variant
+                    Dim fullVariantName = MakeUrlSafeName(variantBaseName)
+
+                    If fullVariantName.ToLower() <> "sdcarddata" Then
+                        variants.Add(fullVariantName)
+                    End If
+
+                    Dim variantTargetFolder = Path.Combine(tempCombinedZipFolder, fullVariantName)
+                    Directory.CreateDirectory(variantTargetFolder)
+
+                    Await ProcessVariantFolderAsync(VariantFolder, variantTargetFolder, Function(name) MasterJarName = name)
                 End If
             Next
 
-            ' Create the ZIP file
-            Dim zipFileName As String = Path.GetFileNameWithoutExtension(RootFolderName).Replace(" ", "_") & ".zip"
-            Dim outputZipPath As String = Path.Combine(Path.GetDirectoryName(inputZipPath), zipFileName)
+            ' Final ZIP
+            Dim zipFileName = Path.GetFileNameWithoutExtension(RootFolderName).Replace(" ", "_") & ".zip"
+            Dim outputZipPath = Path.Combine(Path.GetDirectoryName(inputZipPath), zipFileName)
             If File.Exists(outputZipPath) Then File.Delete(outputZipPath)
 
-            ' Need to rename all files in the combinedzip to be the same
-            RenameFilesRecursively(tempCombinedZipFolder, Path.GetFileNameWithoutExtension(zipFileName))
-
-            ' Create the final ZIP containing all variants
+            Await Task.Run(Sub() RenameFilesRecursively(tempCombinedZipFolder, Path.GetFileNameWithoutExtension(zipFileName)))
             ZipFile.CreateFromDirectory(tempCombinedZipFolder, outputZipPath)
             Directory.Delete(tempCombinedZipFolder, True)
-            zipFileName = Path.GetFileName(outputZipPath)
 
             Return Tuple.Create(zipFileName, zipSDFileName)
         End Function
-        Private Sub DirectoryCopy(sourceDirName As String, destDirName As String, copySubDirs As Boolean)
-            Dim dir As DirectoryInfo = New DirectoryInfo(sourceDirName)
-            Dim dirs As DirectoryInfo() = dir.GetDirectories()
 
-            If Not Directory.Exists(destDirName) Then
-                Directory.CreateDirectory(destDirName)
+        Private Async Function ProcessVariantFolderAsync(sourceFolder As String, variantTargetFolder As String, Optional setJarName As Action(Of String) = Nothing) As Task
+            Dim jamFile = Directory.GetFiles(sourceFolder, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
+            Dim jarFile = Directory.GetFiles(sourceFolder, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
+            Dim spFile = Directory.GetFiles(sourceFolder, "*.sp", SearchOption.TopDirectoryOnly).FirstOrDefault()
+            Dim scrFile = Directory.GetFiles(sourceFolder, "*.scr", SearchOption.TopDirectoryOnly).FirstOrDefault()
+
+            If String.IsNullOrEmpty(jarFile) Then Return
+
+            If setJarName IsNot Nothing Then setJarName(Path.GetFileNameWithoutExtension(jarFile))
+
+            If Not String.IsNullOrEmpty(jamFile) Then
+                Dim jamLines = Await File.ReadAllLinesAsync(jamFile, Encoding.GetEncoding("shift-jis"))
+                If jamLines.Any(Function(line) line.StartsWith("AppType = ")) Then
+                    emulator = "star"
+                Else
+                    emulator = "doja"
+                End If
             End If
 
-            For Each file In dir.GetFiles()
-                file.CopyTo(Path.Combine(destDirName, file.Name), True)
-            Next
+            Dim binFolder = Path.Combine(variantTargetFolder, "bin")
+            Dim spFolder = Path.Combine(variantTargetFolder, "sp")
+            Directory.CreateDirectory(binFolder)
+            Directory.CreateDirectory(spFolder)
 
-            If copySubDirs Then
-                For Each subdir In dirs
-                    Dim tempPath As String = Path.Combine(destDirName, subdir.Name)
-                    DirectoryCopy(subdir.FullName, tempPath, copySubDirs)
-                Next
-            End If
-        End Sub
+            Await Task.Run(Sub()
+                               If Not String.IsNullOrEmpty(jamFile) Then File.Move(jamFile, Path.Combine(binFolder, Path.GetFileName(jamFile)), True)
+                               If Not String.IsNullOrEmpty(jarFile) Then File.Move(jarFile, Path.Combine(binFolder, Path.GetFileName(jarFile)), True)
+                               If Not String.IsNullOrEmpty(spFile) Then File.Move(spFile, Path.Combine(spFolder, Path.GetFileName(spFile)), True)
+                               If Not String.IsNullOrEmpty(scrFile) Then File.Move(scrFile, Path.Combine(spFolder, Path.GetFileName(scrFile)), True)
+                           End Sub)
+        End Function
+        Private Async Function DirectoryCopyAsync(sourceDirName As String, destDirName As String, copySubDirs As Boolean) As Task
+            Await Task.Run(Sub()
+                               Dim dir As New DirectoryInfo(sourceDirName)
+                               Dim dirs As DirectoryInfo() = dir.GetDirectories()
+
+                               If Not Directory.Exists(destDirName) Then
+                                   Directory.CreateDirectory(destDirName)
+                               End If
+
+                               For Each file In dir.GetFiles()
+                                   file.CopyTo(Path.Combine(destDirName, file.Name), True)
+                               Next
+
+                               If copySubDirs Then
+                                   For Each subdir In dirs
+                                       Dim tempPath = Path.Combine(destDirName, subdir.Name)
+                                       DirectoryCopyAsync(subdir.FullName, tempPath, copySubDirs).Wait()
+                                   Next
+                               End If
+                           End Sub)
+        End Function
         Sub RenameFilesRecursively(ByVal directoryPath As String, newname As String)
             Try
                 ' Replace spaces with underscores in the provided newname
@@ -1856,6 +1880,19 @@ Namespace My.Managers
                 Console.WriteLine("Error: " & ex.Message)
             End Try
         End Sub
+        Private Function MakeUrlSafeName(name As String) As String
+            ' Converts a string to a URL-safe name by keeping only safe ASCII characters
+            Dim builder As New System.Text.StringBuilder()
+            For Each ch As Char In name
+                Dim code As Integer = AscW(ch)
+                If code >= 32 AndAlso code <= 126 AndAlso Not "{}&?^%$#".Contains(ch) Then
+                    builder.Append(ch)
+                Else
+                    builder.Append("_")
+                End If
+            Next
+            Return builder.ToString().Trim("_"c)
+        End Function
 
     End Class
 End Namespace

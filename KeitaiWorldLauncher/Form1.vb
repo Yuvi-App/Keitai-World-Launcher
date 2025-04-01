@@ -1119,10 +1119,10 @@ Public Class Form1
     Public Shared Sub QuitApplication()
         Application.Exit()
     End Sub
-    Private Sub GamelistToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GamelistToolStripMenuItem.Click
+    Private Async Sub GamelistToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GamelistToolStripMenuItem.Click
         OpenFileDialog1.Title = "Select Master Game Zip file"
         If OpenFileDialog1.ShowDialog = DialogResult.OK Then
-            utilManager.ProcessZipFileforGamelist(OpenFileDialog1.FileName)
+            Await utilManager.ProcessZipFileforGamelistAsync(OpenFileDialog1.FileName)
         End If
     End Sub
     Private Sub RefreshToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles RefreshToolStripMenuItem.Click
