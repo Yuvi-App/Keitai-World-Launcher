@@ -17,6 +17,7 @@ Imports ReaLTaiizor.Forms
 
 Public Class Form1
     'Global Vars
+    Private splash As SplashScreen
     Dim isDebug As Boolean = False
     Dim isOnline As Boolean = False
     Dim configManager As New ConfigManager()
@@ -62,12 +63,18 @@ Public Class Form1
     Dim MachiCharaExe As String
 
     ' FORM LOAD
+
     Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
         UtilManager.CheckAndCloseDoja()
         UtilManager.CheckAndCloseStar()
     End Sub
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Application.EnableVisualStyles()
+
+        'Summon Splash
+        splash = New SplashScreen()
+        splash.Show()
+        splash.Refresh()
 
         ' Adjust Form
         AdjustFormPadding()
@@ -198,6 +205,9 @@ Public Class Form1
         chkbxShaderGlass.Checked = UseShaderGlass
         cbxFilterType.SelectedIndex = 0
         cbxShaderGlassScaling.SelectedIndex = 2
+
+        ' Step 3: Close splash screen
+        splash.Close()
     End Sub
 
     ' General Other Function
@@ -936,6 +946,16 @@ Public Class Form1
         Else
             cmsGameLV_Favorite.Text = "Favorite"
         End If
+        Dim itemColor As Color = ListViewGames.SelectedItems(0).BackColor
+        Dim isNormalWindowColor = itemColor.Equals(SystemColors.Window)
+        Dim isHighlightColor = itemColor.Equals(SystemColors.Highlight)
+        Dim isWhiteColor = itemColor.Equals(Color.White)
+
+        If Not isNormalWindowColor AndAlso Not isHighlightColor AndAlso Not isWhiteColor Then
+            cmsGameLV_Download.Text = "Redownload"
+        Else
+            cmsGameLV_Download.Text = "Download"
+        End If
     End Sub
 
     'Launch Game
@@ -1227,7 +1247,12 @@ Public Class Form1
         NetworkUID = NewNetworkUID
     End Sub
     Private Sub AddGamesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AddGamesToolStripMenuItem.Click
-        MessageBox.Show("Please select the folder for which the games are you want to add. Ensure the .jar/.jam/.sp are named the same, and located in the same folder.")
+        Dim Result = MessageBox.Show($"Select the folder with the games you want to add.{vbCrLf}Ensure the .jar/.jam/.sp are named the same, and located in the same folder.", "Add Custom Games", MessageBoxButtons.OKCancel)
+
+        If Result = DialogResult.Cancel Then
+            Exit Sub
+        End If
+
         Using folderDialog As New FolderBrowserDialog()
             folderDialog.Description = "Select the folder containing .jar files"
             If folderDialog.ShowDialog() = DialogResult.OK Then
