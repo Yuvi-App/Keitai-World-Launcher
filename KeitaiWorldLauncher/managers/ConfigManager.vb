@@ -1,5 +1,6 @@
 ﻿Imports System.Xml
 Imports KeitaiWorldLauncher.My.logger
+Imports ReaLTaiizor.Controls
 
 Namespace My.Managers
     Public Class ConfigManager

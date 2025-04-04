@@ -677,6 +677,7 @@ Namespace My.Managers
                     Await EnsureDOJAJamFileEntries(jamPath)
                     logger.Logger.LogInfo("[Launch] Ensured DOJA jam entries")
                 End If
+                UpdateNetworkUIDinJAM(GameJAM)
 
                 ' Let filesystem settle (especially important on slower drives)
                 Await Task.Delay(500)
@@ -780,6 +781,7 @@ Namespace My.Managers
                 Await UpdateSTARAppconfig(STARPATH, GameJAM)
                 Await EnsureSTARJamFileEntries(GameJAM)
                 logger.Logger.LogInfo("[Launch] STAR app configuration and JAM entries updated.")
+                UpdateNetworkUIDinJAM(GameJAM)
 
                 Await Task.Delay(500) ' Let the filesystem settle
 
@@ -1087,6 +1089,41 @@ Namespace My.Managers
                 LaunchOverlay.Visible = False
             End If
         End Sub
+        Public Shared Function UpdateNetworkUIDinJAM(JamFile As String) As Boolean
+            If Not File.Exists(JamFile) Then
+                logger.Logger.LogError($"ERROR: Did not find {JamFile} to update networkUID")
+                Return False
+            End If
+
+            If Form1.NetworkUID.ToLower.Trim = "nullgwdocomo" Then
+                logger.Logger.LogInfo("Skipping update to NetworkUID in Jam due to it not being set (still NULLGWDOCOMO).")
+                Return True
+            End If
+
+            Dim originalLines = File.ReadAllLines(JamFile)
+            Dim lines As New List(Of String)
+            Dim replacementCount As Integer = 0
+
+            For Each line In originalLines
+                If Regex.IsMatch(line, "NULLGWDOCOMO", RegexOptions.IgnoreCase) Then
+                    replacementCount += Regex.Matches(line, "NULLGWDOCOMO", RegexOptions.IgnoreCase).Count
+                    Dim newLine = Regex.Replace(line, "NULLGWDOCOMO", Form1.NetworkUID, RegexOptions.IgnoreCase)
+                    lines.Add(newLine)
+                Else
+                    lines.Add(line)
+                End If
+            Next
+
+            If replacementCount > 0 Then
+                logger.Logger.LogInfo($"Replaced {replacementCount} occurrence(s) of 'NULLGWDOCOMO' with '{Form1.NetworkUID}' in {JamFile}")
+            Else
+                logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
+            End If
+
+            File.WriteAllLines(JamFile, lines)
+            logger.Logger.LogInfo($"Successfully updated {JamFile}")
+            Return True
+        End Function
 
         'DOJA EXTRAS
         Public Async Function UpdateDOJADeviceSkin(DOJALOCATION As String, hideUI As Boolean) As Task(Of Boolean)

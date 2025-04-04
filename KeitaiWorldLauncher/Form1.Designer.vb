@@ -205,7 +205,7 @@ Partial Class Form1
         BatchDownloadToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamesToolStripMenuItem, MachiCharaToolStripMenuItem})
         BatchDownloadToolStripMenuItem.Enabled = False
         BatchDownloadToolStripMenuItem.Name = "BatchDownloadToolStripMenuItem"
-        BatchDownloadToolStripMenuItem.Size = New Size(180, 24)
+        BatchDownloadToolStripMenuItem.Size = New Size(178, 24)
         BatchDownloadToolStripMenuItem.Text = "Batch Download"
         BatchDownloadToolStripMenuItem.Visible = False
         ' 
@@ -226,7 +226,7 @@ Partial Class Form1
         XMLCreationToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamelistToolStripMenuItem})
         XMLCreationToolStripMenuItem.Enabled = False
         XMLCreationToolStripMenuItem.Name = "XMLCreationToolStripMenuItem"
-        XMLCreationToolStripMenuItem.Size = New Size(180, 24)
+        XMLCreationToolStripMenuItem.Size = New Size(178, 24)
         XMLCreationToolStripMenuItem.Text = "XML Creation"
         XMLCreationToolStripMenuItem.Visible = False
         ' 
@@ -241,7 +241,7 @@ Partial Class Form1
         XMLUpdateToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {AddGameToolStripMenuItem})
         XMLUpdateToolStripMenuItem.Enabled = False
         XMLUpdateToolStripMenuItem.Name = "XMLUpdateToolStripMenuItem"
-        XMLUpdateToolStripMenuItem.Size = New Size(180, 24)
+        XMLUpdateToolStripMenuItem.Size = New Size(178, 24)
         XMLUpdateToolStripMenuItem.Text = "XML Update"
         XMLUpdateToolStripMenuItem.Visible = False
         ' 
@@ -254,7 +254,7 @@ Partial Class Form1
         ' AddGamesToolStripMenuItem
         ' 
         AddGamesToolStripMenuItem.Name = "AddGamesToolStripMenuItem"
-        AddGamesToolStripMenuItem.Size = New Size(180, 24)
+        AddGamesToolStripMenuItem.Size = New Size(178, 24)
         AddGamesToolStripMenuItem.Text = "Add Games"
         ' 
         ' HelpToolStripMenuItem
@@ -632,7 +632,7 @@ Partial Class Form1
         tpMachiChara.Location = New Point(4, 24)
         tpMachiChara.Name = "tpMachiChara"
         tpMachiChara.Padding = New Padding(3)
-        tpMachiChara.Size = New Size(909, 581)
+        tpMachiChara.Size = New Size(1033, 581)
         tpMachiChara.TabIndex = 1
         tpMachiChara.Text = "MachiChara"
         tpMachiChara.UseVisualStyleBackColor = True
@@ -652,6 +652,7 @@ Partial Class Form1
         Name = "Form1"
         Padding = New Padding(0, 65, 0, 3)
         Sizable = False
+        StartPosition = FormStartPosition.CenterScreen
         Text = "Keitai World Launcher"
         cmsGameLV.ResumeLayout(False)
         MenuStrip1.ResumeLayout(False)

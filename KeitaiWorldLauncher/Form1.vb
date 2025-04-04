@@ -14,6 +14,9 @@ Imports Microsoft.VisualBasic.FileIO
 Imports ReaLTaiizor.Controls
 Imports ReaLTaiizor.[Enum].Poison
 Imports ReaLTaiizor.Forms
+Imports ReaLTaiizor.Enum
+Imports ReaLTaiizor.Manager
+Imports ReaLTaiizor.Util
 
 Public Class Form1
     'Global Vars
@@ -42,25 +45,25 @@ Public Class Form1
     Dim CurrentSelectedMachiCharaCFD As String
 
     'Config Vars
-    Dim versionCheckUrl As String
-    Dim autoUpdate As Boolean
-    Dim FirstRun As Boolean
-    Dim gameListUrl As String
-    Dim autoUpdateGameList As Boolean
-    Dim machicharaListUrl As String
-    Dim autoUpdatemachicharaList As Boolean
-    Dim UseShaderGlass As Boolean
-    Dim NetworkUID As String
+    Public versionCheckUrl As String
+    Public autoUpdate As Boolean
+    Public FirstRun As Boolean
+    Public gameListUrl As String
+    Public autoUpdateGameList As Boolean
+    Public machicharaListUrl As String
+    Public autoUpdatemachicharaList As Boolean
+    Public UseShaderGlass As Boolean
+    Public NetworkUID As String
     Public Dojapath As String
     Public DojaAppPath As String
     Public DojaEXE As String
-    Dim DojaHideUI As Boolean
-    Dim DOJASoundType As String
+    Public DojaHideUI As Boolean
+    Public DOJASoundType As String
     Public Starpath As String
     Public StarAppPath As String
     Public StarEXE As String
-    Dim MachiCharapath As String
-    Dim MachiCharaExe As String
+    Public MachiCharapath As String
+    Public MachiCharaExe As String
 
     ' FORM LOAD
 
@@ -75,6 +78,12 @@ Public Class Form1
         splash = New SplashScreen()
         splash.Show()
         splash.Refresh()
+
+        ' Setup material Theme
+        Dim manager = MaterialSkinManager.Instance
+        manager.AddFormToManage(Me)
+        manager.Theme = MaterialSkinManager.Themes.LIGHT
+        manager.ColorScheme = New ReaLTaiizor.Colors.MaterialColorScheme(ReaLTaiizor.Colors.MaterialPrimary.Indigo500, ReaLTaiizor.Colors.MaterialPrimary.Indigo700, ReaLTaiizor.Colors.MaterialPrimary.Indigo100, ReaLTaiizor.Colors.MaterialAccent.Pink200, MaterialTextShade.LIGHT)
 
         ' Adjust Form
         AdjustFormPadding()
@@ -1131,8 +1140,53 @@ Public Class Form1
         MessageBox.Show($"Total MachiChara Available {machicharas.Count}{vbCrLf}Downloaded Successfully: {SuccessDLCount}{vbCrLf}Skipped: {SkippedCount}")
     End Function
     Private Sub AboutToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AboutToolStripMenuItem.Click
-        MessageBox.Show($"Keitai World Launcher{vbCrLf}{vbCrLf}Version:B{KeitaiWorldLauncher.My.Application.Info.Version.ToString}")
+        ' Create a new MaterialForm for About
+        Dim aboutForm As New ReaLTaiizor.Forms.MaterialForm With {
+        .Text = "About",
+        .Size = New Size(400, 250),
+        .StartPosition = FormStartPosition.CenterScreen,
+        .Sizable = False,
+        .FormBorderStyle = FormBorderStyle.FixedDialog,
+        .MaximizeBox = False,
+        .MinimizeBox = False
+    }
+
+        ' Build the About text
+        Dim aboutText As String =
+        "Keitai World Launcher" & Environment.NewLine & Environment.NewLine &
+        $"Version: B{KeitaiWorldLauncher.My.Application.Info.Version.ToString}"
+
+        ' Create label for content
+        Dim lblAbout As New Label With {
+        .Text = aboutText,
+        .AutoSize = False,
+        .Left = 20,
+        .Top = 80,
+        .Width = aboutForm.ClientSize.Width - 40,
+        .Height = 80,
+        .Font = New Font("Segoe UI", 10, FontStyle.Regular),
+        .ForeColor = Color.Black
+    }
+
+        ' Create Close button
+        Dim btnClose As New ReaLTaiizor.Controls.MaterialButton With {
+        .Text = "Close",
+        .Width = 100,
+        .Height = 36,
+        .Left = aboutForm.ClientSize.Width - 120,
+        .Top = aboutForm.ClientSize.Height - 60,
+        .HighEmphasis = True,
+        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+    }
+        AddHandler btnClose.Click, Sub() aboutForm.Close()
+
+        ' Add controls and show
+        aboutForm.Controls.Add(lblAbout)
+        aboutForm.Controls.Add(btnClose)
+        aboutForm.ShowDialog()
     End Sub
+
+
     Private Sub ExitToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExitToolStripMenuItem.Click
         Application.Exit()
     End Sub
@@ -1242,9 +1296,69 @@ Public Class Form1
         Dim process As Process = Process.Start(startInfo)
     End Sub
     Private Sub NetworkUIDConfigToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles NetworkUIDConfigToolStripMenuItem.Click
-        Dim NewNetworkUID = InputBox("Please enter the NetworkUID given to you by ButlerSheep on Keitai Wiki Discord.", "Enter Network UID", NetworkUID)
-        configManager.UpdateNetworkUIDSetting(NewNetworkUID)
-        NetworkUID = NewNetworkUID
+        Dim promptForm As New ReaLTaiizor.Forms.MaterialForm With {
+        .Text = "Enter Network UID",
+        .Size = New Size(540, 320),
+        .FormBorderStyle = FormBorderStyle.FixedDialog,
+        .StartPosition = FormStartPosition.CenterScreen,
+        .Sizable = False
+    }
+
+        ' Push everything down by starting higher top margin
+        Dim lblInstructions As New Label With {
+        .Text = "How to get your Network UID:" & Environment.NewLine &
+                "1. Join the Keitai Wiki Discord." & Environment.NewLine &
+                "2. Navigate to the #i-mode channel." & Environment.NewLine &
+                "3. Type '/get-uid' and ButlerSheep will DM you your UID.",
+        .AutoSize = False,
+        .Left = 20,
+        .Top = 80, ' increased spacing from top
+        .Width = 490,
+        .Height = 90
+    }
+
+        Dim txtInput As New ReaLTaiizor.Controls.MaterialTextBoxEdit With {
+        .Left = 20,
+        .Top = lblInstructions.Top + lblInstructions.Height + 20,
+        .Size = New Size(490, 40),
+        .Text = NetworkUID,
+        .MaxLength = 50,
+        .UseSystemPasswordChar = False,
+        .Hint = "Enter your Network UID..."
+    }
+
+        Dim btnOk As New ReaLTaiizor.Controls.MaterialButton With {
+        .Text = "OK",
+        .DialogResult = DialogResult.OK,
+        .Left = 290,
+        .Top = txtInput.Top + txtInput.Height + 25,
+        .Width = 100,
+        .HighEmphasis = True,
+        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+    }
+
+        Dim btnCancel As New ReaLTaiizor.Controls.MaterialButton With {
+        .Text = "CANCEL",
+        .DialogResult = DialogResult.Cancel,
+        .Left = 400,
+        .Top = txtInput.Top + txtInput.Height + 25,
+        .Width = 100,
+        .HighEmphasis = False,
+        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Text
+    }
+
+        promptForm.Controls.Add(lblInstructions)
+        promptForm.Controls.Add(txtInput)
+        promptForm.Controls.Add(btnOk)
+        promptForm.Controls.Add(btnCancel)
+        promptForm.AcceptButton = btnOk
+        promptForm.CancelButton = btnCancel
+
+        If promptForm.ShowDialog() = DialogResult.OK Then
+            Dim newNetworkUID As String = txtInput.Text.Trim()
+            configManager.UpdateNetworkUIDSetting(newNetworkUID)
+            NetworkUID = newNetworkUID
+        End If
     End Sub
     Private Sub AddGamesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AddGamesToolStripMenuItem.Click
         Dim Result = MessageBox.Show($"Select the folder with the games you want to add.{vbCrLf}Ensure the .jar/.jam/.sp are named the same, and located in the same folder.", "Add Custom Games", MessageBoxButtons.OKCancel)
@@ -1351,19 +1465,59 @@ Public Class Form1
         End Using
     End Sub
     Private Sub ControlsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ControlsToolStripMenuItem.Click
-        Dim keybinds As New StringBuilder()
-        keybinds.AppendLine("Doja & Star Keybinds:")
-        keybinds.AppendLine("--------------------------")
-        keybinds.AppendLine("Phone Button        Keyboard")
-        keybinds.AppendLine("--------------------------")
-        keybinds.AppendLine("UP                 → Up Arrow")
-        keybinds.AppendLine("DOWN               → Down Arrow")
-        keybinds.AppendLine("LEFT               → Left Arrow")
-        keybinds.AppendLine("RIGHT              → Right Arrow")
-        keybinds.AppendLine("Top Left Button    → A")
-        keybinds.AppendLine("Top Right Button   → S")
-        keybinds.AppendLine("Center Button      → Enter")
-        keybinds.AppendLine("123456789*#        → 123456789*#")
-        MessageBox.Show(keybinds.ToString(), "Keybinds", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        ' Create a new MaterialForm
+        Dim keybindForm As New ReaLTaiizor.Forms.MaterialForm With {
+            .Text = "Keybinds",
+            .Size = New Size(600, 400),
+            .StartPosition = FormStartPosition.CenterScreen,
+            .Sizable = False,
+            .FormBorderStyle = FormBorderStyle.FixedDialog,
+            .MaximizeBox = False,
+            .MinimizeBox = False
+        }
+
+        ' Keybinds content
+        Dim keybindText As String =
+            "Doja & Star Keybinds:" & Environment.NewLine &
+            "--------------------------" & Environment.NewLine &
+            "Phone Button        Keyboard" & Environment.NewLine &
+            "--------------------------" & Environment.NewLine &
+            "UP                 → Up Arrow" & Environment.NewLine &
+            "DOWN               → Down Arrow" & Environment.NewLine &
+            "LEFT               → Left Arrow" & Environment.NewLine &
+            "RIGHT              → Right Arrow" & Environment.NewLine &
+            "Top Left Button    → A" & Environment.NewLine &
+            "Top Right Button   → S" & Environment.NewLine &
+            "Center Button      → Enter" & Environment.NewLine &
+            "123456789*#        → 123456789*#"
+
+        ' Add a MaterialLabel to display the keybinds
+        Dim lblKeybinds As New Label With {
+            .Text = keybindText,
+            .AutoSize = False,
+            .Left = 20,
+            .Top = 80,
+            .Width = keybindForm.ClientSize.Width - 40,
+            .Height = 220,
+            .Font = New Font("Consolas", 10, FontStyle.Regular),
+            .ForeColor = Color.Black
+        }
+
+        ' Add a MaterialButton to close the form
+        Dim btnClose As New ReaLTaiizor.Controls.MaterialButton With {
+            .Text = "Close",
+            .Width = 100,
+            .Height = 36,
+            .Left = keybindForm.ClientSize.Width - 120,
+            .Top = keybindForm.ClientSize.Height - 60,
+            .HighEmphasis = True,
+            .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+        }
+        AddHandler btnClose.Click, Sub() keybindForm.Close()
+
+        ' Add controls to form and show
+        keybindForm.Controls.Add(lblKeybinds)
+        keybindForm.Controls.Add(btnClose)
+        keybindForm.ShowDialog()
     End Sub
 End Class
