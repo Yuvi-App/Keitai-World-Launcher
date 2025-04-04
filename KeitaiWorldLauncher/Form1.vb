@@ -75,9 +75,7 @@ Public Class Form1
         Application.EnableVisualStyles()
 
         'Summon Splash
-        splash = New SplashScreen()
-        splash.Show()
-        splash.Refresh()
+        SplashScreen.ShowSplash()
 
         ' Setup material Theme
         Dim manager = MaterialSkinManager.Instance
@@ -215,8 +213,8 @@ Public Class Form1
         cbxFilterType.SelectedIndex = 0
         cbxShaderGlassScaling.SelectedIndex = 2
 
-        ' Step 3: Close splash screen
-        splash.Close()
+        ' Close the splash screen
+        SplashScreen.CloseSplash()
     End Sub
 
     ' General Other Function
