@@ -23,9 +23,10 @@ Namespace My.Managers
         Private SelectedGame As Game
         Private SDCardDownloadFile As String
         Dim overlay As New Panel With {
-                    .Dock = DockStyle.Fill,
-                    .BackColor = Color.LightGray
-                }
+            .Dock = DockStyle.Fill,
+            .BackColor = Color.FromArgb(160, Color.Black), ' Semi-transparent black
+            .Visible = False
+        }
         Private expectClient2Download As Boolean = False
         Private client1Completed As Boolean = False
         Private client2Completed As Boolean = False
@@ -48,7 +49,7 @@ Namespace My.Managers
             Try
                 logger.Logger.LogInfo($"[Download] Starting download for: {Inputgame.ENTitle} from {url}")
 
-                ' Set global vars
+                ' Set Global Vars
                 downloadFilePath = savePath
                 extractFolderPath = extractTo
                 ReadJam = JAMLocation
@@ -56,18 +57,38 @@ Namespace My.Managers
                 Isthisbatchdownload = BatchDownload
                 SelectedGame = Inputgame
 
-                ' Show progress UI
+                ' Create overlay panel
+                overlay = New Panel With {
+                    .Dock = DockStyle.Fill,
+                    .BackColor = Color.FromArgb(160, Color.White),
+                    .Visible = True
+                }
                 Form1.Controls.Add(overlay)
                 overlay.BringToFront()
-                progressBar.Left = (Form1.ClientSize.Width - progressBar.Width) \ 2
-                progressBar.Top = (Form1.ClientSize.Height - progressBar.Height) \ 2
-                Form1.Controls.Add(progressBar)
-                progressBar.Visible = True
+                Dim loadingLabel As New Label With {
+                    .Text = "Downloading game...",
+                    .ForeColor = Color.Black,
+                    .Font = New Font("Segoe UI", 14, FontStyle.Bold),
+                    .BackColor = Color.Transparent,
+                    .AutoSize = True
+                }
+                overlay.Controls.Add(loadingLabel)
                 progressBar.Style = ProgressBarStyle.Marquee
                 progressBar.MarqueeAnimationSpeed = 30
-                progressBar.BringToFront()
+                progressBar.Visible = True
+                overlay.Controls.Add(progressBar)
+                Dim centerControls = Sub()
+                                         progressBar.Left = (overlay.Width - progressBar.Width) \ 2
+                                         progressBar.Top = (overlay.Height - progressBar.Height) \ 2
 
-                ' Download main ZIP
+                                         loadingLabel.Left = (overlay.Width - loadingLabel.Width) \ 2
+                                         loadingLabel.Top = progressBar.Top - loadingLabel.Height - 10
+                                     End Sub
+                centerControls()
+                AddHandler overlay.Resize, Sub() centerControls()
+
+
+                ' Start Main Logic - Download main ZIP
                 Await client1.DownloadFileTaskAsync(New Uri(url), savePath)
                 logger.Logger.LogInfo($"[Download] Main file downloaded to: {savePath}")
 
@@ -129,10 +150,15 @@ Namespace My.Managers
                 logger.Logger.LogError($"[Download] Exception occurred during download:{vbCrLf}{ex}")
                 MessageBox.Show($"Failed to start download: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Finally
-                progressBar.Style = ProgressBarStyle.Blocks
-                progressBar.Visible = False
-                Form1.Controls.Remove(overlay)
-                Form1.Controls.Remove(progressBar)
+                If overlay IsNot Nothing Then
+                    Form1.Controls.Remove(overlay)
+                    overlay.Dispose()
+                End If
+
+                If progressBar IsNot Nothing Then
+                    overlay.Controls.Remove(progressBar)
+                    progressBar.Visible = False
+                End If
             End Try
         End Function
         Private Sub DownloadProgressChanged(sender As Object, e As DownloadProgressChangedEventArgs)

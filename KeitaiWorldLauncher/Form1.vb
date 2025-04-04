@@ -1353,7 +1353,7 @@ Public Class Form1
         promptForm.CancelButton = btnCancel
 
         If promptForm.ShowDialog() = DialogResult.OK Then
-            Dim newNetworkUID As String = txtInput.Text.Trim()
+            Dim newNetworkUID As String = txtInput.Text.Trim().ToUpper
             configManager.UpdateNetworkUIDSetting(newNetworkUID)
             NetworkUID = newNetworkUID
         End If
