@@ -347,12 +347,12 @@ Namespace My.Managers
 
                 ' Create and configure a TableLayoutPanel
                 Dim tableLayout As New TableLayoutPanel() With {
-                    .ColumnCount = 2,
-                    .AutoSize = True,
-                    .Dock = DockStyle.Top
-                }
+            .ColumnCount = 2,
+            .AutoSize = True,
+            .Dock = DockStyle.Top
+        }
                 ' Define the column widths: first fixed, second fills remaining space
-                tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 100))
+                tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 150))
                 tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100))
 
                 ' Read the file lines (using the proper encoding)
@@ -373,7 +373,9 @@ Namespace My.Managers
                     ' Create a label for the key
                     Dim lbl As New Label() With {
                         .Text = key,
-                        .AutoSize = True,
+                        .Width = 150,
+                        .AutoSize = False,
+                        .AutoEllipsis = True,
                         .Anchor = AnchorStyles.Left
                     }
 
@@ -400,6 +402,7 @@ Namespace My.Managers
                 MessageBox.Show($"Error generating controls for JAM: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+
 
 
         'Get App Icons

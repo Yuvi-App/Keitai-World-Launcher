@@ -77,12 +77,6 @@ Public Class Form1
         'Summon Splash
         SplashScreen.ShowSplash()
 
-        ' Setup material Theme
-        Dim manager = MaterialSkinManager.Instance
-        manager.AddFormToManage(Me)
-        manager.Theme = MaterialSkinManager.Themes.LIGHT
-        manager.ColorScheme = New ReaLTaiizor.Colors.MaterialColorScheme(ReaLTaiizor.Colors.MaterialPrimary.Indigo500, ReaLTaiizor.Colors.MaterialPrimary.Indigo700, ReaLTaiizor.Colors.MaterialPrimary.Indigo100, ReaLTaiizor.Colors.MaterialAccent.Pink200, MaterialTextShade.LIGHT)
-
         ' Adjust Form
         AdjustFormPadding()
 
@@ -367,6 +361,8 @@ Public Class Form1
 
         ' Clear the ListView
         ListViewGames.Items.Clear()
+        ListViewGames.BackColor = SystemColors.Window
+
 
         ' Load favorites and installed games into hash sets for quick lookup
         Dim favoriteGames As HashSet(Of String) = If(File.Exists(Path.Combine("configs", "favorites.txt")),
@@ -440,6 +436,7 @@ Public Class Form1
         ListViewGamesVariants.Items.Clear()
         ListViewGamesVariants.Columns.Clear()
         ListViewGamesVariants.Columns.Add("Game Variants", -2, HorizontalAlignment.Left) ' Add a column
+        ListViewGamesVariants.BackColor = SystemColors.Window
 
         ' Ensure a game is selected
         If ListViewGames.SelectedItems.Count = 0 Then
@@ -1183,8 +1180,6 @@ Public Class Form1
         aboutForm.Controls.Add(btnClose)
         aboutForm.ShowDialog()
     End Sub
-
-
     Private Sub ExitToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExitToolStripMenuItem.Click
         Application.Exit()
     End Sub
