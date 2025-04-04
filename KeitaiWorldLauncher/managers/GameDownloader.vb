@@ -151,12 +151,10 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to start download: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Finally
                 If overlay IsNot Nothing Then
-                    Form1.Controls.Remove(overlay)
-                    overlay.Dispose()
+                    overlay.Visible = False
                 End If
 
                 If progressBar IsNot Nothing Then
-                    overlay.Controls.Remove(progressBar)
                     progressBar.Visible = False
                 End If
             End Try
