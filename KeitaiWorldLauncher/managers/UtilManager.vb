@@ -45,7 +45,7 @@ Namespace My.Managers
         Public Shared Function CheckforPreReq() As Boolean
             ' Check for administrator privileges before continuing
             If Not IsRunningAsAdmin() Then
-                MessageBox.Show("For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
+                MessageBox.Show(owner:=SplashScreen, "For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
                         "Please restart the application as an Administrator by right-clicking the executable and selecting 'Run as administrator'.",
                         "Administrator Privileges Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                 Form1.QuitApplication()
@@ -86,7 +86,7 @@ Namespace My.Managers
             ' Check for DOJA Emulator
             My.logger.Logger.LogInfo("Checking for DOJA Emu")
             If Not File.Exists(DOJAEmulator) Then
-                MessageBox.Show($"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {DOJAEmulator}")
+                MessageBox.Show(owner:=SplashScreen, $"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {DOJAEmulator}")
                 My.logger.Logger.LogInfo("Missing DOJA 5.1 Emulator")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
                 Form1.QuitApplication()
@@ -95,7 +95,7 @@ Namespace My.Managers
             ' Check for STAR Emulator
             My.logger.Logger.LogInfo("Checking for STAR Emu")
             If Not File.Exists(StarEmulator) Then
-                MessageBox.Show($"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {StarEmulator}")
+                MessageBox.Show(owner:=SplashScreen, $"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {StarEmulator}")
                 My.logger.Logger.LogInfo("Missing STAR 2.0 Emulator")
                 OpenURL("https://archive.org/details/iappli-tool-dev-tools")
                 Form1.QuitApplication()
@@ -104,7 +104,7 @@ Namespace My.Managers
             ' Check for Locale Emulator
             My.logger.Logger.LogInfo("Checking for LEPROC")
             If Not File.Exists(localeEmuLoc) Then
-                MessageBox.Show($"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files need to be located at {localeEmuLoc}")
+                MessageBox.Show(owner:=SplashScreen, $"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files need to be located at {localeEmuLoc}")
                 My.logger.Logger.LogInfo("Missing Locale Emulator")
                 OpenURL("https://github.com/xupefei/Locale-Emulator/releases")
                 Form1.QuitApplication()
@@ -113,7 +113,7 @@ Namespace My.Managers
             ' Check for ShaderGlass
             My.logger.Logger.LogInfo("Checking for ShaderGlass")
             If Not File.Exists(ShaderGlassLoc) Then
-                MessageBox.Show($"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files need to be located at {ShaderGlassLoc}")
+                MessageBox.Show(owner:=SplashScreen, $"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files need to be located at {ShaderGlassLoc}")
                 My.logger.Logger.LogInfo("Missing ShaderGlass")
                 OpenURL("https://github.com/mausimus/ShaderGlass/releases")
                 Form1.QuitApplication()
@@ -122,7 +122,7 @@ Namespace My.Managers
             ' Check for Java 8
             My.logger.Logger.LogInfo("Checking for Java 8")
             If Not IsJava8Update152Installed() Then
-                MessageBox.Show("Missing JAVA 8... Download is required")
+                MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
                 OpenURL("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
                 Form1.QuitApplication()
@@ -131,7 +131,7 @@ Namespace My.Managers
             ' Check for Visual C++ Runtimes
             My.logger.Logger.LogInfo("Checking for C++ Runtimes")
             If Not IsVCRuntime2022Installed() Then
-                MessageBox.Show("Unable to Detect C++ Runtimes... To ensure compatibility, we recommend you install this Runtime AIO Package.")
+                MessageBox.Show(owner:=SplashScreen, "Unable to Detect C++ Runtimes... To ensure compatibility, we recommend you install this Runtime AIO Package.")
                 My.logger.Logger.LogInfo("Missing C++ Runtimes")
                 OpenURL("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
                 Form1.QuitApplication()
@@ -189,7 +189,7 @@ Namespace My.Managers
             Dim invalidChars As Char() = {" "c, "("c, ")"c, "{"c, "}"c}
 
             If exePath.IndexOfAny(invalidChars) <> -1 Then
-                MessageBox.Show("The path to the KeitaiWikiLauncher contains invalid characters:" & Environment.NewLine &
+                MessageBox.Show(owner:=SplashScreen, "The path to the KeitaiWikiLauncher contains invalid characters:" & Environment.NewLine &
                                 """" & exePath & """" & Environment.NewLine &
                                 "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
                                 "Warning - Invalid Path Characters",
@@ -335,7 +335,7 @@ Namespace My.Managers
                     'MessageBox.Show("Launcher is up to date.", "No Updates", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End If
             Catch ex As Exception
-                MessageBox.Show($"Failed to check for updates. Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show(owner:=SplashScreen, $"Failed to check for updates. Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
 

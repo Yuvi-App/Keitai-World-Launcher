@@ -38,6 +38,8 @@ Public Class Form1
     Public ToolsFolder As String = "data\tools"
     Public ConfigsFolder As String = "configs"
     Public LogFolder As String = "logs"
+    Public FavoritesTxtFile As String = Path.Combine(ConfigsFolder, "favorites.txt")
+    Public CustomGamesTxtFile As String = Path.Combine(ConfigsFolder, "customgames.txt")
 
     'Index Vars Can Change
     Dim CurrentSelectedGameJAM As String
@@ -192,7 +194,7 @@ Public Class Form1
                 Next
             End If
         Catch ex As Exception
-            MessageBox.Show($"Failed to Load MachiChara List:{vbCrLf}{ex}")
+            'MessageBox.Show($"Failed to Load MachiChara List:{vbCrLf}{ex}")
             Logger.LogError("Failed to Load MachiChara List", ex)
         End Try
 
@@ -243,13 +245,13 @@ Public Class Form1
         If starFound Then
             cbxStarSDK.SelectedItem = starDefault
         Else
-            MessageBox.Show($"The default SDK '{starDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{starDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
 
         If dojaFound Then
             cbxDojaSDK.SelectedItem = dojaDefault
         Else
-            MessageBox.Show($"The default SDK '{dojaDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{dojaDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
     End Sub
     Private Sub LoadGameIcons()
@@ -299,6 +301,11 @@ Public Class Form1
         ' Load Game List
         Logger.LogInfo("Processing gamelist.xml")
         Try
+            ' Ensure the favorite file exists
+            If Not File.Exists(FavoritesTxtFile) Then
+                File.Create(FavoritesTxtFile).Close() ' Ensure the file is created and closed
+            End If
+
             games = gameListManager.LoadGames()
             lblTotalGameCount.Text = $"Total: {games.Count}"
 
@@ -342,7 +349,7 @@ Public Class Form1
 
             ListViewGames.EndUpdate()
         Catch ex As Exception
-            MessageBox.Show($"Failed to Load Game List:{vbCrLf}{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            MessageBox.Show(owner:=SplashScreen, $"Failed to Load Game List:{vbCrLf}{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Logger.LogError("Failed to Load Game List", ex)
         End Try
     End Sub
@@ -365,13 +372,13 @@ Public Class Form1
 
 
         ' Load favorites and installed games into hash sets for quick lookup
-        Dim favoriteGames As HashSet(Of String) = If(File.Exists(Path.Combine("configs", "favorites.txt")),
-        File.ReadAllLines(Path.Combine("configs", "favorites.txt")).Select(Function(fav) fav.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+        Dim favoriteGames As HashSet(Of String) = If(File.Exists(FavoritesTxtFile),
+        File.ReadAllLines(FavoritesTxtFile).Select(Function(fav) fav.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
         New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
         ' Load custom games into hash sets for quick lookup
-        Dim customGames As HashSet(Of String) = If(File.Exists(Path.Combine("configs", "customgames.txt")),
-        File.ReadAllLines(Path.Combine("configs", "customgames.txt")).Select(Function(fav) fav.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+        Dim customGames As HashSet(Of String) = If(File.Exists(CustomGamesTxtFile),
+        File.ReadAllLines(CustomGamesTxtFile).Select(Function(fav) fav.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
         New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
         ' Load installed games into hash sets for quick lookup

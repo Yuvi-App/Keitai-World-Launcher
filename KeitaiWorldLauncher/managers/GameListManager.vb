@@ -18,7 +18,7 @@ Namespace My.Managers
             Catch ex As Exception
                 ' Handle errors such as network issues or invalid URL
                 logger.Logger.LogWarning($"Failed to download gamelist: {ex.Message}")
-                MessageBox.Show($"Failed to download gamelist: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show(owner:=SplashScreen, $"Failed to download gamelist: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
         ' Load games from XML
