@@ -82,6 +82,7 @@ Partial Class Form1
         cbxShaderGlassScaling = New ComboBox()
         chkbxLocalEmulator = New CheckBox()
         tpMachiChara = New TabPage()
+        OpenGameFolderToolStripMenuItem = New ToolStripMenuItem()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
         GroupBox2.SuspendLayout()
@@ -102,32 +103,32 @@ Partial Class Form1
         ' cmsGameLV
         ' 
         cmsGameLV.ImageScalingSize = New Size(20, 20)
-        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite})
+        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite, OpenGameFolderToolStripMenuItem})
         cmsGameLV.Name = "cmsGameLV"
-        cmsGameLV.Size = New Size(129, 92)
+        cmsGameLV.Size = New Size(181, 136)
         ' 
         ' cmsGameLV_Launch
         ' 
         cmsGameLV_Launch.Name = "cmsGameLV_Launch"
-        cmsGameLV_Launch.Size = New Size(128, 22)
+        cmsGameLV_Launch.Size = New Size(180, 22)
         cmsGameLV_Launch.Text = "Launch"
         ' 
         ' cmsGameLV_Download
         ' 
         cmsGameLV_Download.Name = "cmsGameLV_Download"
-        cmsGameLV_Download.Size = New Size(128, 22)
+        cmsGameLV_Download.Size = New Size(180, 22)
         cmsGameLV_Download.Text = "Download"
         ' 
         ' cmsGameLV_Delete
         ' 
         cmsGameLV_Delete.Name = "cmsGameLV_Delete"
-        cmsGameLV_Delete.Size = New Size(128, 22)
+        cmsGameLV_Delete.Size = New Size(180, 22)
         cmsGameLV_Delete.Text = "Delete"
         ' 
         ' cmsGameLV_Favorite
         ' 
         cmsGameLV_Favorite.Name = "cmsGameLV_Favorite"
-        cmsGameLV_Favorite.Size = New Size(128, 22)
+        cmsGameLV_Favorite.Size = New Size(180, 22)
         cmsGameLV_Favorite.Text = "Favorite"
         ' 
         ' MenuStrip1
@@ -637,6 +638,12 @@ Partial Class Form1
         tpMachiChara.Text = "MachiChara"
         tpMachiChara.UseVisualStyleBackColor = True
         ' 
+        ' OpenGameFolderToolStripMenuItem
+        ' 
+        OpenGameFolderToolStripMenuItem.Name = "OpenGameFolderToolStripMenuItem"
+        OpenGameFolderToolStripMenuItem.Size = New Size(180, 22)
+        OpenGameFolderToolStripMenuItem.Text = "Open game folder"
+        ' 
         ' Form1
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
@@ -728,4 +735,5 @@ Partial Class Form1
     Friend WithEvents chkbxLocalEmulator As CheckBox
     Friend WithEvents cbxShaderGlassScaling As ComboBox
     Friend WithEvents Label2 As Label
+    Friend WithEvents OpenGameFolderToolStripMenuItem As ToolStripMenuItem
 End Class

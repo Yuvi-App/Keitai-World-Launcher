@@ -8,19 +8,20 @@ Namespace My.Managers
     Public Class MachiCharaListManager
         Private Const MachiCharaListPath As String = "configs/machicharalist.xml"
 
-        Public Shared Sub DownloadMachiCharaList(url As String)
+        Public Shared Async Function DownloadMachiCharaListAsync(url As String) As Task
             Try
-                Using client As New WebClient()
-                    ' Download the file from the specified URL
-                    client.DownloadFile(url, MachiCharaListPath)
+                Using client As New Net.Http.HttpClient()
+                    Dim fileBytes As Byte() = Await client.GetByteArrayAsync(url)
+                    Await File.WriteAllBytesAsync(MachiCharaListPath, fileBytes)
                     'MessageBox.Show("Updated Machi Chara list downloaded successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 End Using
             Catch ex As Exception
-                ' Handle errors such as network issues or invalid URL
-                MessageBox.Show($"Failed to download Machi Chara list: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show(owner:=SplashScreen, $"Failed to download Machi Chara list: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
-        End Sub
-        ' Load games from XML
+        End Function
+
+
+        ' Load MachiChara from XML
         Public Function LoadMachiChara() As List(Of MachiChara)
             If File.Exists(MachiCharaListPath) Then
                 Try

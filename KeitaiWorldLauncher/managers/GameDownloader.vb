@@ -66,7 +66,7 @@ Namespace My.Managers
                 Form1.Controls.Add(overlay)
                 overlay.BringToFront()
                 Dim loadingLabel As New Label With {
-                    .Text = "Downloading game...",
+                    .Text = "Downloading...",
                     .ForeColor = Color.Black,
                     .Font = New Font("Segoe UI", 14, FontStyle.Bold),
                     .BackColor = Color.Transparent,
@@ -163,7 +163,7 @@ Namespace My.Managers
             ' Update the progress bar
             progressBar.Value = e.ProgressPercentage
         End Sub
-        Private Sub DownloadFileCompleted(sender As Object, e As System.ComponentModel.AsyncCompletedEventArgs)
+        Private Async Sub DownloadFileCompleted(sender As Object, e As System.ComponentModel.AsyncCompletedEventArgs)
             If sender Is client1 Then
                 client1Completed = True
             ElseIf sender Is client2 Then

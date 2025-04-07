@@ -19,32 +19,10 @@ Namespace My.Managers
     Public Class UtilManager
         Private Shared LaunchOverlay As Panel = Nothing
 
-
-        Public Shared Sub SetupDIRS()
-            Dim directories As String() = {
-                "data",
-                "configs",
-                "logs",
-                Path.Combine("data", "downloads"),
-                Path.Combine("data", "tools"),
-                Path.Combine("data", "tools", "icons"),
-                Path.Combine("data", "tools", "icons", "defaults"),
-                Path.Combine("data", "tools", "skins"),
-                Path.Combine("data", "tools", "skins", "doja", "ui"),
-                Path.Combine("data", "tools", "skins", "doja", "noui"),
-                Path.Combine("data", "tools", "skins", "star", "ui"),
-                Path.Combine("data", "tools", "skins", "star", "noui")
-            }
-
-            For Each D In directories
-                Directory.CreateDirectory(D)
-            Next
-        End Sub
-
         'PreReq Check
-        Public Shared Function CheckforPreReq() As Boolean
+        Public Shared Async Function CheckforPreReqAsync() As Task(Of Boolean)
             ' Check for administrator privileges before continuing
-            If Not IsRunningAsAdmin() Then
+            If Not Await IsRunningAsAdminAsync() Then
                 MessageBox.Show(owner:=SplashScreen, "For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
                         "Please restart the application as an Administrator by right-clicking the executable and selecting 'Run as administrator'.",
                         "Administrator Privileges Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
@@ -64,10 +42,10 @@ Namespace My.Managers
                 Dim regFile As String = Path.Combine(dir, "doja.reg")
                 Dim dojaExe As String = Path.Combine(dir, "bin", "doja.exe")
                 If File.Exists(regFile) Then
-                    UtilManager.ImportRegFile(regFile)
+                    Await UtilManager.ImportRegFileAsync(regFile)
                 End If
-                If File.Exists(dojaExe) AndAlso Not UtilManager.IsDpiScalingSet(dojaExe) Then
-                    UtilManager.SetDpiScaling(dojaExe)
+                If File.Exists(dojaExe) AndAlso Not Await UtilManager.IsDpiScalingSetAsync(dojaExe) Then
+                    Await UtilManager.SetDpiScalingAsync(dojaExe)
                 End If
             Next
 
@@ -76,10 +54,10 @@ Namespace My.Managers
                 Dim regFile As String = Path.Combine(dir, "star.reg")
                 Dim starExe As String = Path.Combine(dir, "bin", "star.exe")
                 If File.Exists(regFile) Then
-                    UtilManager.ImportRegFile(regFile)
+                    Await UtilManager.ImportRegFileAsync(regFile)
                 End If
-                If File.Exists(starExe) AndAlso Not UtilManager.IsDpiScalingSet(starExe) Then
-                    UtilManager.SetDpiScaling(starExe)
+                If File.Exists(starExe) AndAlso Not Await UtilManager.IsDpiScalingSetAsync(starExe) Then
+                    Await UtilManager.SetDpiScalingAsync(starExe)
                 End If
             Next
 
@@ -88,7 +66,7 @@ Namespace My.Managers
             If Not File.Exists(DOJAEmulator) Then
                 MessageBox.Show(owner:=SplashScreen, $"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {DOJAEmulator}")
                 My.logger.Logger.LogInfo("Missing DOJA 5.1 Emulator")
-                OpenURL("https://archive.org/details/iappli-tool-dev-tools")
+                Await OpenURLAsync("https://archive.org/details/iappli-tool-dev-tools")
                 Form1.QuitApplication()
             End If
 
@@ -97,7 +75,7 @@ Namespace My.Managers
             If Not File.Exists(StarEmulator) Then
                 MessageBox.Show(owner:=SplashScreen, $"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {StarEmulator}")
                 My.logger.Logger.LogInfo("Missing STAR 2.0 Emulator")
-                OpenURL("https://archive.org/details/iappli-tool-dev-tools")
+                Await OpenURLAsync("https://archive.org/details/iappli-tool-dev-tools")
                 Form1.QuitApplication()
             End If
 
@@ -106,7 +84,7 @@ Namespace My.Managers
             If Not File.Exists(localeEmuLoc) Then
                 MessageBox.Show(owner:=SplashScreen, $"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files need to be located at {localeEmuLoc}")
                 My.logger.Logger.LogInfo("Missing Locale Emulator")
-                OpenURL("https://github.com/xupefei/Locale-Emulator/releases")
+                Await OpenURLAsync("https://github.com/xupefei/Locale-Emulator/releases")
                 Form1.QuitApplication()
             End If
 
@@ -115,194 +93,242 @@ Namespace My.Managers
             If Not File.Exists(ShaderGlassLoc) Then
                 MessageBox.Show(owner:=SplashScreen, $"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files need to be located at {ShaderGlassLoc}")
                 My.logger.Logger.LogInfo("Missing ShaderGlass")
-                OpenURL("https://github.com/mausimus/ShaderGlass/releases")
+                Await OpenURLAsync("https://github.com/mausimus/ShaderGlass/releases")
                 Form1.QuitApplication()
             End If
 
             ' Check for Java 8
             My.logger.Logger.LogInfo("Checking for Java 8")
-            If Not IsJava8Update152Installed() Then
+            If Not Await IsJava8Update152InstalledAsync() Then
                 MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
-                OpenURL("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
+                Await OpenURLAsync("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
                 Form1.QuitApplication()
             End If
 
             ' Check for Visual C++ Runtimes
             My.logger.Logger.LogInfo("Checking for C++ Runtimes")
-            If Not IsVCRuntime2022Installed() Then
+            If Not Await IsVCRuntime2022InstalledAsync() Then
                 MessageBox.Show(owner:=SplashScreen, "Unable to Detect C++ Runtimes... To ensure compatibility, we recommend you install this Runtime AIO Package.")
                 My.logger.Logger.LogInfo("Missing C++ Runtimes")
-                OpenURL("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
+                Await OpenURLAsync("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
                 Form1.QuitApplication()
             End If
 
             Return True
         End Function
-        Shared Function IsJava8Update152Installed() As Boolean
-            Dim javaVersions As String() = {
-                "SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_152",
-                "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8.0_152"
-            }
+        Public Shared Async Function IsJava8Update152InstalledAsync() As Task(Of Boolean)
+            Return Await Task.Run(Function()
+                                      Dim javaVersions As String() = {
+                                  "SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_152",
+                                  "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8.0_152"
+                              }
 
-            For Each regPath In javaVersions
-                Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
-                    If key IsNot Nothing Then
-                        Return True ' Java 8 Update 152 is installed
-                    End If
-                End Using
-            Next
+                                      For Each regPath In javaVersions
+                                          Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                                              If key IsNot Nothing Then
+                                                  Return True ' Java 8 Update 152 is installed
+                                              End If
+                                          End Using
+                                      Next
 
-            Return False ' Java 8 Update 152 is not installed
+                                      Return False ' Java 8 Update 152 is not installed
+                                  End Function)
         End Function
-        Shared Function IsVCRuntime2022Installed() As Boolean
-            Dim vcPaths As String() = {
-                "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64", ' 64-bit
-                "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86"  ' 32-bit
-            }
+        Public Shared Async Function IsVCRuntime2022InstalledAsync() As Task(Of Boolean)
+            Return Await Task.Run(Function()
+                                      Dim vcPaths As String() = {
+                                  "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64", ' 64-bit
+                                  "SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x86"  ' 32-bit
+                              }
 
-            For Each regPath In vcPaths
-                Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
-                    If key IsNot Nothing Then
-                        Dim installed As Object = key.GetValue("Installed")
-                        If installed IsNot Nothing AndAlso installed.ToString() = "1" Then
-                            Return True ' VC++ Runtime 2022 is installed
-                        End If
-                    End If
-                End Using
-            Next
+                                      For Each regPath In vcPaths
+                                          Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                                              If key IsNot Nothing Then
+                                                  Dim installed As Object = key.GetValue("Installed")
+                                                  If installed IsNot Nothing AndAlso installed.ToString() = "1" Then
+                                                      Return True ' VC++ Runtime 2022 is installed
+                                                  End If
+                                              End If
+                                          End Using
+                                      Next
 
-            Return False ' VC++ Runtime 2022 is NOT installed
+                                      Return False ' VC++ Runtime 2022 is NOT installed
+                                  End Function)
         End Function
-        Shared Sub OpenURL(url As String)
-            Try
-                Process.Start(New ProcessStartInfo With {
-                    .FileName = url,
-                    .UseShellExecute = True
-                })
-            Catch ex As Exception
-                MessageBox.Show("Failed to open the URL: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
-        End Sub
-        Public Shared Sub CheckForSpacesInPath()
-            Dim exePath As String = Assembly.GetExecutingAssembly().Location
-            Dim invalidChars As Char() = {" "c, "("c, ")"c, "{"c, "}"c}
+        Public Shared Async Function OpenURLAsync(url As String) As Task
+            Await Task.Run(Sub()
+                               Try
+                                   Process.Start(New ProcessStartInfo With {
+                               .FileName = url,
+                               .UseShellExecute = True
+                           })
+                               Catch ex As Exception
+                                   MessageBox.Show("Failed to open the URL: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                               End Try
+                           End Sub)
+        End Function
+        Public Shared Async Function CheckForSpacesInPathAsync() As Task
+            Await Task.Run(Sub()
+                               Dim exePath As String = Assembly.GetExecutingAssembly().Location
+                               Dim invalidChars As Char() = {" "c, "("c, ")"c, "{"c, "}"c}
 
-            If exePath.IndexOfAny(invalidChars) <> -1 Then
-                MessageBox.Show(owner:=SplashScreen, "The path to the KeitaiWikiLauncher contains invalid characters:" & Environment.NewLine &
-                                """" & exePath & """" & Environment.NewLine &
-                                "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
-                                "Warning - Invalid Path Characters",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Warning)
-            End If
-        End Sub
+                               If exePath.IndexOfAny(invalidChars) <> -1 Then
+                                   ' Show the MessageBox on the UI thread
+                                   If SplashScreen.InvokeRequired Then
+                                       SplashScreen.Invoke(Sub()
+                                                               MessageBox.Show(owner:=SplashScreen,
+                                                                       "The path to the KeitaiWikiLauncher contains invalid characters:" & Environment.NewLine &
+                                                                       """" & exePath & """" & Environment.NewLine &
+                                                                       "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
+                                                                       "Warning - Invalid Path Characters",
+                                                                       MessageBoxButtons.OK,
+                                                                       MessageBoxIcon.Warning)
+                                                           End Sub)
+                                   Else
+                                       MessageBox.Show(owner:=SplashScreen,
+                                               "The path to the KeitaiWikiLauncher contains invalid characters:" & Environment.NewLine &
+                                               """" & exePath & """" & Environment.NewLine &
+                                               "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
+                                               "Warning - Invalid Path Characters",
+                                               MessageBoxButtons.OK,
+                                               MessageBoxIcon.Warning)
+                                   End If
+                               End If
+                           End Sub)
+        End Function
+        Public Shared Async Function SetupDIRSAsync() As Task
+            Await Task.Run(Sub()
+                               Dim directories As String() = {
+                           "data",
+                           "configs",
+                           "logs",
+                           Path.Combine("data", "downloads"),
+                           Path.Combine("data", "tools"),
+                           Path.Combine("data", "tools", "icons"),
+                           Path.Combine("data", "tools", "icons", "defaults"),
+                           Path.Combine("data", "tools", "skins"),
+                           Path.Combine("data", "tools", "skins", "doja", "ui"),
+                           Path.Combine("data", "tools", "skins", "doja", "noui"),
+                           Path.Combine("data", "tools", "skins", "star", "ui"),
+                           Path.Combine("data", "tools", "skins", "star", "noui")
+                       }
+
+                               For Each D In directories
+                                   Directory.CreateDirectory(D)
+                               Next
+                           End Sub)
+        End Function
 
         'MISC
-        Public Shared Function IsDpiScalingSet(exePath As String) As Boolean
-            Try
-                Dim regPath As String = "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
+        Public Shared Async Function IsDpiScalingSetAsync(exePath As String) As Task(Of Boolean)
+            Return Await Task.Run(Function()
+                                      Try
+                                          Dim regPath As String = "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
 
-                ' Open the registry key for reading
-                Using key As RegistryKey = Registry.CurrentUser.OpenSubKey(regPath, False)
-                    If key IsNot Nothing Then
-                        Dim value As Object = key.GetValue(exePath)
-                        ' Check if the key exists and contains the expected DPI scaling flag
-                        If value IsNot Nothing AndAlso value.ToString().Contains("HIGHDPIAWARE") Then
-                            Return True ' DPI Scaling override is set
-                        End If
-                    End If
-                End Using
-            Catch ex As Exception
-                MessageBox.Show("Error reading registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
+                                          ' Open the registry key for reading
+                                          Using key As RegistryKey = Registry.CurrentUser.OpenSubKey(regPath, False)
+                                              If key IsNot Nothing Then
+                                                  Dim value As Object = key.GetValue(exePath)
+                                                  ' Check if the key exists and contains the expected DPI scaling flag
+                                                  If value IsNot Nothing AndAlso value.ToString().Contains("HIGHDPIAWARE") Then
+                                                      Return True ' DPI Scaling override is set
+                                                  End If
+                                              End If
+                                          End Using
+                                      Catch ex As Exception
+                                          MessageBox.Show("Error reading registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                      End Try
 
-            Return False ' DPI Scaling override is not set
+                                      Return False ' DPI Scaling override is not set
+                                  End Function)
         End Function
-        Public Shared Sub SetDpiScaling(exePath As String)
-            Try
-                ' Define the registry path
-                Dim regPath As String = "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
+        Public Shared Async Function SetDpiScalingAsync(exePath As String) As Task
+            Await Task.Run(Sub()
+                               Try
+                                   ' Define the registry path
+                                   Dim regPath As String = "Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
 
-                ' Open the registry key
-                Using key As RegistryKey = Registry.CurrentUser.OpenSubKey(regPath, True)
-                    If key Is Nothing Then
-                        ' Create the key if it doesn't exist
-                        Using newKey As RegistryKey = Registry.CurrentUser.CreateSubKey(regPath)
-                            newKey.SetValue(exePath, "~ HIGHDPIAWARE", RegistryValueKind.String)
-                        End Using
-                    Else
-                        ' Set the value for the EXE path
-                        key.SetValue(exePath, "~ HIGHDPIAWARE", RegistryValueKind.String)
-                    End If
-                End Using
+                                   ' Open the registry key
+                                   Using key As RegistryKey = Registry.CurrentUser.OpenSubKey(regPath, True)
+                                       If key Is Nothing Then
+                                           ' Create the key if it doesn't exist
+                                           Using newKey As RegistryKey = Registry.CurrentUser.CreateSubKey(regPath)
+                                               newKey.SetValue(exePath, "~ HIGHDPIAWARE", RegistryValueKind.String)
+                                           End Using
+                                       Else
+                                           ' Set the value for the EXE path
+                                           key.SetValue(exePath, "~ HIGHDPIAWARE", RegistryValueKind.String)
+                                       End If
+                                   End Using
 
-                'MessageBox.Show("DPI Scaling override set successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                logger.Logger.LogInfo($"Set DPIAware: {exePath}")
-            Catch ex As Exception
-                logger.Logger.LogInfo($"Failed to Set DPIAware: {exePath}")
-                MessageBox.Show("Error modifying registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
-        End Sub
-        Public Shared Sub ImportRegFile(filePath As String)
+                                   logger.Logger.LogInfo($"Set DPIAware: {exePath}")
+                               Catch ex As Exception
+                                   logger.Logger.LogInfo($"Failed to Set DPIAware: {exePath}")
+                                   MessageBox.Show("Error modifying registry: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                               End Try
+                           End Sub)
+        End Function
+        Public Shared Async Function ImportRegFileAsync(filePath As String) As Task
             If IO.File.Exists(filePath) Then
                 logger.Logger.LogInfo($"Importing Reg: {filePath}")
-                Dim proc As New Process()
-                proc.StartInfo.FileName = "regedit.exe"
-                proc.StartInfo.Arguments = "/s """ & filePath & """"
-                proc.StartInfo.UseShellExecute = True
-                proc.StartInfo.Verb = "runas" ' Runs as administrator
-                proc.Start()
-                proc.WaitForExit()
+                Await Task.Run(Sub()
+                                   Dim proc As New Process()
+                                   proc.StartInfo.FileName = "regedit.exe"
+                                   proc.StartInfo.Arguments = "/s """ & filePath & """"
+                                   proc.StartInfo.UseShellExecute = True
+                                   proc.StartInfo.Verb = "runas" ' Runs as administrator
+                                   proc.Start()
+                                   proc.WaitForExit()
+                               End Sub)
             Else
                 logger.Logger.LogInfo($"Failed to Find Reg: {filePath}")
                 Throw New IO.FileNotFoundException("Registry file not found: " & filePath)
             End If
-        End Sub
-        Public Shared Function IsRunningAsAdmin() As Boolean
-            Try
-                Dim identity = WindowsIdentity.GetCurrent()
-                Dim principal = New WindowsPrincipal(identity)
-                Return principal.IsInRole(WindowsBuiltInRole.Administrator)
-            Catch ex As Exception
-                'MessageBox.Show("Error checking privileges: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return False
-            End Try
         End Function
-        Public Shared Sub DeleteLogIfTooLarge(logFilePath As String)
+        Public Shared Async Function IsRunningAsAdminAsync() As Task(Of Boolean)
+            Return Await Task.Run(Function()
+                                      Try
+                                          Dim identity = WindowsIdentity.GetCurrent()
+                                          Dim principal = New WindowsPrincipal(identity)
+                                          Return principal.IsInRole(WindowsBuiltInRole.Administrator)
+                                      Catch ex As Exception
+                                          'MessageBox.Show("Error checking privileges: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                          Return False
+                                      End Try
+                                  End Function)
+        End Function
+        Public Shared Async Function DeleteLogIfTooLargeAsync(logFilePath As String) As Task
+            Await Task.Run(Sub()
+                               Try
+                                   ' Ensure the file exists before checking
+                                   If File.Exists(logFilePath) Then
+                                       ' Get the file size in bytes
+                                       Dim fileInfo As New FileInfo(logFilePath)
+                                       Dim fileSizeInMB As Double = fileInfo.Length / (1024 * 1024) ' Convert bytes to MB
+
+                                       ' Check if the file size exceeds 10MB
+                                       If fileSizeInMB >= 10 Then
+                                           File.Delete(logFilePath)
+                                           'MessageBox.Show("Log file deleted as it exceeded 10MB.", "Log Cleanup", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                                       End If
+                                   End If
+                               Catch ex As Exception
+                                   MessageBox.Show("Error cleaning up log file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                               End Try
+                           End Sub)
+        End Function
+        Public Shared Async Function IsInternetAvailableAsync(InputUrl As String, Optional timeout As Integer = 90000) As Task(Of Boolean)
             Try
-                ' Ensure the file exists before checking
-                If File.Exists(logFilePath) Then
-                    ' Get the file size in bytes
-                    Dim fileInfo As New FileInfo(logFilePath)
-                    Dim fileSizeInMB As Double = fileInfo.Length / (1024 * 1024) ' Convert bytes to MB
+                Using client As New Net.Http.HttpClient()
+                    client.Timeout = TimeSpan.FromMilliseconds(timeout)
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64)") ' Common User-Agent
 
-                    ' Check if the file size exceeds 10MB
-                    If fileSizeInMB >= 10 Then
-                        File.Delete(logFilePath)
-                        'MessageBox.Show("Log file deleted as it exceeded 10MB.", "Log Cleanup", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                    End If
-                End If
-
-            Catch ex As Exception
-                MessageBox.Show("Error cleaning up log file: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
-        End Sub
-        Public Shared Function IsInternetAvailable(InputUrl As String, Optional timeout As Integer = 60000) As Boolean
-            Try
-                Dim request As Net.HttpWebRequest = CType(Net.WebRequest.Create(InputUrl), Net.HttpWebRequest)
-                request.Timeout = timeout
-                request.ReadWriteTimeout = timeout
-                request.Method = "GET"
-                request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" ' Common User-Agent
-                request.AllowAutoRedirect = True
-
-                Using response As Net.HttpWebResponse = CType(request.GetResponse(), Net.HttpWebResponse)
-                    Dim code As Integer = CInt(response.StatusCode)
-                    If code >= 200 AndAlso code < 300 Then
+                    Dim response As Net.Http.HttpResponseMessage = Await client.GetAsync(InputUrl)
+                    If response.IsSuccessStatusCode Then
                         Return True
                     Else
-                        My.logger.Logger.LogWarning($"Internet check failed: Status code {code} from {InputUrl}")
+                        My.logger.Logger.LogWarning($"Internet check failed: Status code {(CInt(response.StatusCode))} from {InputUrl}")
                         Return False
                     End If
                 End Using
@@ -311,33 +337,34 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
-        Public Shared Sub ShowSnackBar(InputString)
-            Dim SnackBarMessage As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
-            SnackBarMessage.Show(Form1)
-        End Sub
+        Public Shared Async Function ShowSnackBarAsync(InputString As String, Optional delayMs As Integer = 0) As Task
+            If delayMs > 0 Then
+                Await Task.Delay(delayMs)
+            End If
+
+            Await Task.Run(Sub()
+                               Dim snackBar As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
+                               snackBar.Show(Form1)
+                           End Sub)
+        End Function
+
 
         'Check for APP Updates
-        Shared Sub CheckForUpdates(latestVersionUrl As String)
-            Dim currentVersion As String = KeitaiWorldLauncher.My.Application.Info.Version.ToString ' Get the current version of the app
+        Public Shared Async Function CheckForUpdatesAsync(latestVersionUrl As String) As Task
+            Dim currentVersion As String = KeitaiWorldLauncher.My.Application.Info.Version.ToString ' Get current version
 
             Try
-                Dim client As New WebClient()
-                Dim latestVersion As String = client.DownloadString(latestVersionUrl).Trim()
+                Using client As New Net.Http.HttpClient()
+                    Dim latestVersion As String = (Await client.GetStringAsync(latestVersionUrl)).Trim()
 
-                If currentVersion <> latestVersion Then
-                    MessageBox.Show($"You are running an outdated version ({currentVersion}){vbCrLf}A new version ({latestVersion}) is available to download.")
-                    'Dim result = MessageBox.Show($"A new version ({latestVersion}) is available. Would you like to update?", "Update Available", MessageBoxButtons.YesNo, MessageBoxIcon.Information)
-
-                    'If result = DialogResult.Yes Then
-                    '    Process.Start("https://example.com/download") ' Link to download the new version
-                    'End If
-                Else
-                    'MessageBox.Show("Launcher is up to date.", "No Updates", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                End If
+                    If currentVersion <> latestVersion Then
+                        MessageBox.Show(owner:=SplashScreen, $"You are running an outdated version ({currentVersion}){vbCrLf}A new version ({latestVersion}) is available to download.")
+                    End If
+                End Using
             Catch ex As Exception
                 MessageBox.Show(owner:=SplashScreen, $"Failed to check for updates. Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
-        End Sub
+        End Function
 
         'Generate Controls
         Public Shared Sub GenerateDynamicControlsFromLines(JAMFile As String, container As Panel)
@@ -403,8 +430,6 @@ Namespace My.Managers
             End Try
         End Sub
 
-
-
         'Get App Icons
         Public Sub ExtractAndResizeAppIcon(jarFilePath As String, jamFilePath As String, SelectedGame As Game)
             Try
@@ -458,6 +483,7 @@ Namespace My.Managers
                 MessageBox.Show($"Error extracting and resizing the icon: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+
         Private Sub UpdateListViewItemIcon(gameTitle As String, newIconPath As String)
             ' Ensure the ImageList exists
             If Form1.ListViewGames.SmallImageList Is Nothing Then
@@ -655,7 +681,7 @@ Namespace My.Managers
 
                 ' Update draw size for DOJA5
                 If DOJAVER = 5 Then
-                    Dim dimensions = ExtractDOJAWidthHeight(jamPath)
+                    Dim dimensions = Await ExtractDOJAWidthHeightAsync(jamPath)
                     Dim width As Integer = dimensions.Item1
                     Dim height As Integer = dimensions.Item2
                     Await UpdatedDOJADrawSize(DOJAPATH, width, height)
@@ -1167,25 +1193,28 @@ Namespace My.Managers
                                       End Try
                                   End Function)
         End Function
-        Public Function ExtractDOJAWidthHeight(filePath As String) As (Integer, Integer)
-            Dim width As Integer = 240
-            Dim height As Integer = 240
-            Try
-                For Each line As String In File.ReadLines(filePath)
-                    If line.StartsWith("DrawArea =", StringComparison.OrdinalIgnoreCase) Then
-                        Dim dimensions = line.Split("="c)(1).Trim().Split("x"c)
-                        If dimensions.Length = 2 Then
-                            width = Convert.ToInt32(dimensions(0).Trim())
-                            height = Convert.ToInt32(dimensions(1).Trim())
-                        End If
-                        Exit For
-                    End If
-                Next
-            Catch ex As Exception
-                Console.WriteLine($"Error reading width And height: {ex.Message}")
-            End Try
+        Public Async Function ExtractDOJAWidthHeightAsync(filePath As String) As Task(Of (Integer, Integer))
+            Return Await Task.Run(Function()
+                                      Dim width As Integer = 240
+                                      Dim height As Integer = 240
 
-            Return (width, height)
+                                      Try
+                                          For Each line As String In File.ReadLines(filePath, Encoding.GetEncoding("shift-jis"))
+                                              If line.StartsWith("DrawArea =", StringComparison.OrdinalIgnoreCase) Then
+                                                  Dim dimensions = line.Split("="c)(1).Trim().Split("x"c)
+                                                  If dimensions.Length = 2 Then
+                                                      width = Convert.ToInt32(dimensions(0).Trim())
+                                                      height = Convert.ToInt32(dimensions(1).Trim())
+                                                  End If
+                                                  Exit For
+                                              End If
+                                          Next
+                                      Catch ex As Exception
+                                          Console.WriteLine($"Error reading width and height: {ex.Message}")
+                                      End Try
+
+                                      Return (width, height)
+                                  End Function)
         End Function
         Public Async Function UpdatedDOJADrawSize(DOJALOCATION As String, width As Integer, height As Integer) As Task
             Dim deviceInfoFile As String = Path.Combine(DOJALOCATION, "lib", "skin", "deviceinfo", "device1")
@@ -1377,7 +1406,6 @@ Namespace My.Managers
                 logger.Logger.LogInfo("Bytes 4-7 are not all 0xFF. No changes made: " & inputFilePath)
             End If
         End Function
-
 
         'STAR EXTRAS
         Public Async Function UpdateSTARDeviceSkin(STARLOCATION As String, hideUI As Boolean) As Task(Of Boolean)
