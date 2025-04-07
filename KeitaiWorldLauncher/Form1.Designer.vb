@@ -30,6 +30,7 @@ Partial Class Form1
         cmsGameLV_Download = New ToolStripMenuItem()
         cmsGameLV_Delete = New ToolStripMenuItem()
         cmsGameLV_Favorite = New ToolStripMenuItem()
+        OpenGameFolderToolStripMenuItem = New ToolStripMenuItem()
         MenuStrip1 = New MenuStrip()
         FileToolStripMenuItem = New ToolStripMenuItem()
         RefreshToolStripMenuItem = New ToolStripMenuItem()
@@ -82,7 +83,7 @@ Partial Class Form1
         cbxShaderGlassScaling = New ComboBox()
         chkbxLocalEmulator = New CheckBox()
         tpMachiChara = New TabPage()
-        OpenGameFolderToolStripMenuItem = New ToolStripMenuItem()
+        TroubleshootingToolStripMenuItem = New ToolStripMenuItem()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
         GroupBox2.SuspendLayout()
@@ -105,31 +106,37 @@ Partial Class Form1
         cmsGameLV.ImageScalingSize = New Size(20, 20)
         cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite, OpenGameFolderToolStripMenuItem})
         cmsGameLV.Name = "cmsGameLV"
-        cmsGameLV.Size = New Size(181, 136)
+        cmsGameLV.Size = New Size(171, 114)
         ' 
         ' cmsGameLV_Launch
         ' 
         cmsGameLV_Launch.Name = "cmsGameLV_Launch"
-        cmsGameLV_Launch.Size = New Size(180, 22)
+        cmsGameLV_Launch.Size = New Size(170, 22)
         cmsGameLV_Launch.Text = "Launch"
         ' 
         ' cmsGameLV_Download
         ' 
         cmsGameLV_Download.Name = "cmsGameLV_Download"
-        cmsGameLV_Download.Size = New Size(180, 22)
+        cmsGameLV_Download.Size = New Size(170, 22)
         cmsGameLV_Download.Text = "Download"
         ' 
         ' cmsGameLV_Delete
         ' 
         cmsGameLV_Delete.Name = "cmsGameLV_Delete"
-        cmsGameLV_Delete.Size = New Size(180, 22)
+        cmsGameLV_Delete.Size = New Size(170, 22)
         cmsGameLV_Delete.Text = "Delete"
         ' 
         ' cmsGameLV_Favorite
         ' 
         cmsGameLV_Favorite.Name = "cmsGameLV_Favorite"
-        cmsGameLV_Favorite.Size = New Size(180, 22)
+        cmsGameLV_Favorite.Size = New Size(170, 22)
         cmsGameLV_Favorite.Text = "Favorite"
+        ' 
+        ' OpenGameFolderToolStripMenuItem
+        ' 
+        OpenGameFolderToolStripMenuItem.Name = "OpenGameFolderToolStripMenuItem"
+        OpenGameFolderToolStripMenuItem.Size = New Size(170, 22)
+        OpenGameFolderToolStripMenuItem.Text = "Open game folder"
         ' 
         ' MenuStrip1
         ' 
@@ -260,7 +267,7 @@ Partial Class Form1
         ' 
         ' HelpToolStripMenuItem
         ' 
-        HelpToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {ControlsToolStripMenuItem, AboutToolStripMenuItem})
+        HelpToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {ControlsToolStripMenuItem, TroubleshootingToolStripMenuItem, AboutToolStripMenuItem})
         HelpToolStripMenuItem.Name = "HelpToolStripMenuItem"
         HelpToolStripMenuItem.Size = New Size(49, 23)
         HelpToolStripMenuItem.Text = "Help"
@@ -268,13 +275,13 @@ Partial Class Form1
         ' ControlsToolStripMenuItem
         ' 
         ControlsToolStripMenuItem.Name = "ControlsToolStripMenuItem"
-        ControlsToolStripMenuItem.Size = New Size(130, 24)
+        ControlsToolStripMenuItem.Size = New Size(180, 24)
         ControlsToolStripMenuItem.Text = "Controls"
         ' 
         ' AboutToolStripMenuItem
         ' 
         AboutToolStripMenuItem.Name = "AboutToolStripMenuItem"
-        AboutToolStripMenuItem.Size = New Size(130, 24)
+        AboutToolStripMenuItem.Size = New Size(180, 24)
         AboutToolStripMenuItem.Text = "About"
         ' 
         ' OpenFileDialog1
@@ -638,11 +645,11 @@ Partial Class Form1
         tpMachiChara.Text = "MachiChara"
         tpMachiChara.UseVisualStyleBackColor = True
         ' 
-        ' OpenGameFolderToolStripMenuItem
+        ' TroubleshootingToolStripMenuItem
         ' 
-        OpenGameFolderToolStripMenuItem.Name = "OpenGameFolderToolStripMenuItem"
-        OpenGameFolderToolStripMenuItem.Size = New Size(180, 22)
-        OpenGameFolderToolStripMenuItem.Text = "Open game folder"
+        TroubleshootingToolStripMenuItem.Name = "TroubleshootingToolStripMenuItem"
+        TroubleshootingToolStripMenuItem.Size = New Size(180, 24)
+        TroubleshootingToolStripMenuItem.Text = "Troubleshooting"
         ' 
         ' Form1
         ' 
@@ -736,4 +743,5 @@ Partial Class Form1
     Friend WithEvents cbxShaderGlassScaling As ComboBox
     Friend WithEvents Label2 As Label
     Friend WithEvents OpenGameFolderToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents TroubleshootingToolStripMenuItem As ToolStripMenuItem
 End Class

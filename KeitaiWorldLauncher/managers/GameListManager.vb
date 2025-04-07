@@ -48,11 +48,11 @@ Namespace My.Managers
 
 
         ' Add a new game to the list
-        Public Async Sub AddGame(game As Game)
+        Public Async Function AddGameAsync(game As Game) As Task
             Dim games = Await LoadGamesAsync()
             games.Add(game)
             Await SaveGamesAsync(games)
-        End Sub
+        End Function
 
     End Class
 End Namespace

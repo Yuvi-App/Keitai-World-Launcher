@@ -174,6 +174,8 @@ Public Class Form1
             If autoUpdatemachicharaList = True Then
                 Await MachiCharaListManager.DownloadMachiCharaListAsync(machicharaListUrl)
             End If
+
+            utilManager.SendStats
         Else
             isOnline = False
             Me.Text = "Keitai World Launcher - Offline"
@@ -675,14 +677,14 @@ Public Class Form1
 
                                            ' Update customgames.txt
                                            Dim configPath As String = Path.Combine(ConfigsFolder, "customgames.txt")
-                                               If File.Exists(configPath) Then
-                                                   Dim lines As List(Of String) = File.ReadAllLines(configPath).ToList()
-                                                   If lines.Remove(Path.GetFileNameWithoutExtension(game.ZIPName)) Then
-                                                       File.WriteAllLines(configPath, lines)
-                                                   End If
+                                           If File.Exists(configPath) Then
+                                               Dim lines As List(Of String) = File.ReadAllLines(configPath).ToList()
+                                               If lines.Remove(Path.GetFileNameWithoutExtension(game.ZIPName)) Then
+                                                   File.WriteAllLines(configPath, lines)
                                                End If
-                                           Else
-                                               failedGames.Add($"{game.ENTitle} (Not downloaded)")
+                                           End If
+                                       Else
+                                           failedGames.Add($"{game.ENTitle} (Not downloaded)")
                                        End If
                                    Catch ex As Exception
                                        failedGames.Add($"{game.ENTitle} (Error: {ex.Message})")
@@ -824,7 +826,7 @@ Public Class Form1
                 .Variants = ""
             }
 
-                gameListManager.AddGame(game)
+                Await gameListManager.AddGameAsync(game)
             End If
         Next
     End Function
@@ -1277,46 +1279,36 @@ Public Class Form1
         startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
         Dim process As Process = Process.Start(startInfo)
     End Sub
-    Private Sub AddGameToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AddGameToolStripMenuItem.Click
+    Private Async Sub AddGameToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AddGameToolStripMenuItem.Click
         Dim ENTitle = InputBox("Enter the English name of the game:", "English Game Name").Trim()
 
-        ' Validate English Game Name
         If String.IsNullOrWhiteSpace(ENTitle) Then
             MsgBox("The English game name cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
             Exit Sub
         End If
 
         Dim JPTitle = InputBox("Enter the Japanese name of the game (leave blank if same as English):", "Japanese Game Name").Trim()
-        If String.IsNullOrWhiteSpace(JPTitle) Then
-            JPTitle = ENTitle
-        End If
+        If String.IsNullOrWhiteSpace(JPTitle) Then JPTitle = ENTitle
 
         Dim ZIPName = InputBox("Enter the name of the zip file (include .zip at the end):", "Zip File Name").Trim()
-
-        ' Validate ZIP Name
         If String.IsNullOrWhiteSpace(ZIPName) Then
             MsgBox("The ZIP file name cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
             Exit Sub
         End If
-
-        If Not ZIPName.EndsWith(".zip") Then
+        If Not ZIPName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) Then
             ZIPName += ".zip"
         End If
 
         Dim DownloadURL = InputBox("Enter the download URL for the zip file:", "Download URL").Trim()
-
-        ' Validate Download URL
         If String.IsNullOrWhiteSpace(DownloadURL) Then
             MsgBox("The download URL cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
             Exit Sub
-
         End If
 
         Dim AppIconURL = InputBox("Enter the URL of a custom app icon (24x24) or leave blank to use the default icon:", "App Icon URL").Trim()
         Dim SDCardData = InputBox("Enter the SD Card data zip URL or leave blank if not applicable:", "SD Card Data URL").Trim()
         Dim Emulator = InputBox("Enter the emulator type (doja or star):", "Emulator").Trim().ToLower()
 
-        ' Validate Emulator Type
         While Emulator <> "doja" AndAlso Emulator <> "star"
             Emulator = InputBox("Invalid input. Please enter only 'doja' or 'star':", "Emulator").Trim().ToLower()
             If String.IsNullOrWhiteSpace(Emulator) Then
@@ -1325,18 +1317,20 @@ Public Class Form1
             End If
         End While
 
-        Dim newGame As New Game() With {
-            .ENTitle = ENTitle,
-            .JPTitle = JPTitle,
-            .ZIPName = ZIPName,
-            .DownloadURL = DownloadURL,
-            .CustomAppIconURL = AppIconURL,
-            .SDCardDataURL = SDCardData,
-            .Emulator = Emulator
-        }
-        gameListManager.AddGame(newGame)
+        Dim newGame As New Game With {
+        .ENTitle = ENTitle,
+        .JPTitle = JPTitle,
+        .ZIPName = ZIPName,
+        .DownloadURL = DownloadURL,
+        .CustomAppIconURL = AppIconURL,
+        .SDCardDataURL = SDCardData,
+        .Emulator = Emulator
+    }
 
-        MessageBox.Show("Added, Make sure you download this AppConfig and upload")
+        ' ✅ Await the actual async save operation
+        Await gameListManager.AddGameAsync(newGame)
+
+        MessageBox.Show("Added. Make sure you download this AppConfig and upload.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
     End Sub
     Private Sub ShaderGlassConfigToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ShaderGlassConfigToolStripMenuItem.Click
         Dim Apppath = $"cmd"
@@ -1575,6 +1569,74 @@ Public Class Form1
         keybindForm.Controls.Add(btnClose)
         keybindForm.ShowDialog()
     End Sub
+    Private Sub TroubleshootingToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles TroubleshootingToolStripMenuItem.Click
+        ' Create a new MaterialForm
+        Dim TroubleShootingForm As New ReaLTaiizor.Forms.MaterialForm With {
+            .Text = "Troubleshooting",
+            .Size = New Size(600, 500),
+            .StartPosition = FormStartPosition.CenterScreen,
+            .Sizable = False,
+            .FormBorderStyle = FormBorderStyle.FixedDialog,
+            .MaximizeBox = False,
+            .MinimizeBox = False
+        }
 
+        Dim troubleshootingMessage As String =
+            "   TROUBLESHOOTING DOJA/STAR ISSUES" & vbCrLf & vbCrLf &
+        "Grey Screen After Launching App:" & vbCrLf &
+        "If the app launches and DOJA/STAR appears but the screen stays grey," & vbCrLf &
+        "it usually means the required registry entries are missing." & vbCrLf &
+        "To fix this:" & vbCrLf &
+        "  • Navigate to: data/tools/idkDOJA5.1" & vbCrLf &
+        "    → Run: doja.reg" & vbCrLf &
+        "  • Navigate to: data/tools/idkSTAR2.0" & vbCrLf &
+        "    → Run: star.reg" & vbCrLf & vbCrLf &
+        """Failed to Detect Doja/Star Running"" Error:" & vbCrLf &
+        "This error typically means one of the following:" & vbCrLf &
+        "  1. The download is corrupted" & vbCrLf &
+        "  2. Java is not correctly installed" & vbCrLf &
+        "  3. Your file path contains spaces" & vbCrLf & vbCrLf &
+        "Steps to fix:" & vbCrLf &
+        "  • Try redownloading the game:" & vbCrLf &
+        "    → Right-click the game title, choose 'Redownload'" & vbCrLf &
+        "  • Make sure Java 8 (32-bit) is installed" & vbCrLf &
+        "  • Ensure the folder path has NO spaces" & vbCrLf & vbCrLf &
+        "If you're still having trouble," & vbCrLf &
+        "ask for help in the #troubleshooting channel."
+
+        Dim rtbMessage As New RichTextBox With {
+        .Text = troubleshootingMessage,
+        .ReadOnly = True,
+        .Multiline = True,
+        .ScrollBars = RichTextBoxScrollBars.Vertical,
+        .BorderStyle = BorderStyle.None,
+        .Font = New Font("Consolas", 10, FontStyle.Regular),
+        .ForeColor = Color.Black,
+        .BackColor = TroubleShootingForm.BackColor,
+        .Left = 20,
+        .Top = 70,
+        .Width = TroubleShootingForm.ClientSize.Width - 40,
+        .Height = TroubleShootingForm.ClientSize.Height - 80,
+        .Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Bottom
+    }
+
+        Dim btnClose As New ReaLTaiizor.Controls.MaterialButton With {
+            .Text = "Close",
+            .Width = 100,
+            .Height = 36,
+            .Left = TroubleShootingForm.ClientSize.Width - 120,
+            .Top = TroubleShootingForm.ClientSize.Height - 50,
+            .HighEmphasis = True,
+            .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained,
+            .Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        }
+
+        AddHandler btnClose.Click, Sub() TroubleShootingForm.Close()
+
+        ' Add controls to form and show
+        TroubleShootingForm.Controls.Add(rtbMessage)
+        TroubleShootingForm.Controls.Add(btnClose)
+        TroubleShootingForm.ShowDialog()
+    End Sub
 
 End Class

@@ -83,8 +83,6 @@ Namespace My.Managers
 
                     ' Save the updated XML file
                     doc.Save(ConfigFilePath)
-
-                    'MessageBox.Show("DOJAHideUI setting updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 Else
                     'MessageBox.Show("DOJAHideUI setting not found in the configuration file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 End If

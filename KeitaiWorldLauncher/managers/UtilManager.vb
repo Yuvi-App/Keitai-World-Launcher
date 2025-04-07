@@ -220,6 +220,18 @@ Namespace My.Managers
                            End Sub)
         End Function
 
+        ' Stats
+        Public Shared Function SendStats()
+            Dim client As New Net.WebClient()
+            Dim json As String = "{""userID"":""" & Environment.MachineName & """, ""version"":""" & KeitaiWorldLauncher.My.Application.Info.Version.ToString & """}"
+            client.Headers(HttpRequestHeader.ContentType) = "application/json"
+            Try
+                client.UploadString("https://script.google.com/macros/s/AKfycbzY8Nz4fs-0tMiOZ-UClK_H4GbydXDMD2N35z7tHK2Xrjht0wAswtS8jBZQzeoham4WqA/exec", "POST", json)
+            Catch ex As Exception
+                ' Ignore or log silently
+            End Try
+        End Function
+
         'MISC
         Public Shared Async Function IsDpiScalingSetAsync(exePath As String) As Task(Of Boolean)
             Return Await Task.Run(Function()
@@ -347,7 +359,6 @@ Namespace My.Managers
                                snackBar.Show(Form1)
                            End Sub)
         End Function
-
 
         'Check for APP Updates
         Public Shared Async Function CheckForUpdatesAsync(latestVersionUrl As String) As Task
@@ -483,7 +494,6 @@ Namespace My.Managers
                 MessageBox.Show($"Error extracting and resizing the icon: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-
         Private Sub UpdateListViewItemIcon(gameTitle As String, newIconPath As String)
             ' Ensure the ImageList exists
             If Form1.ListViewGames.SmallImageList Is Nothing Then

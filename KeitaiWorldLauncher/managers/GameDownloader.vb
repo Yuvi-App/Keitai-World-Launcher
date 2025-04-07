@@ -159,10 +159,6 @@ Namespace My.Managers
                 End If
             End Try
         End Function
-        Private Sub DownloadProgressChanged(sender As Object, e As DownloadProgressChangedEventArgs)
-            ' Update the progress bar
-            progressBar.Value = e.ProgressPercentage
-        End Sub
         Private Async Sub DownloadFileCompleted(sender As Object, e As System.ComponentModel.AsyncCompletedEventArgs)
             If sender Is client1 Then
                 client1Completed = True
@@ -199,9 +195,7 @@ Namespace My.Managers
             End If
 
             ' Detach event handlers
-            RemoveHandler client1.DownloadProgressChanged, AddressOf DownloadProgressChanged
             RemoveHandler client1.DownloadFileCompleted, AddressOf DownloadFileCompleted
-            RemoveHandler client2.DownloadProgressChanged, AddressOf DownloadProgressChanged
             RemoveHandler client2.DownloadFileCompleted, AddressOf DownloadFileCompleted
         End Sub
     End Class
