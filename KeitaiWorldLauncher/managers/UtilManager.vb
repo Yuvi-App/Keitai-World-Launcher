@@ -222,13 +222,43 @@ Namespace My.Managers
 
         ' Stats
         Public Shared Function SendStats()
-            Dim client As New Net.WebClient()
-            Dim json As String = "{""userID"":""" & Environment.MachineName & """, ""version"":""" & KeitaiWorldLauncher.My.Application.Info.Version.ToString & """}"
+            Dim whUrl = "https://script.google.com/macros/s/AKfycbzMw28MJBHTSgrcTpgc6r1hl3aGQECBVYA3GLhlP73cEGp9nLt7SVPdIixveRerB3nPfw/exec"
+            Dim dotNetVersion As String = Environment.Version.ToString()
+            Dim javaVersion As String = GetJavaVersion()
+            Dim version As String = KeitaiWorldLauncher.My.Application.Info.Version.ToString
+            Dim platform As String = Environment.OSVersion.Platform.ToString()
+            Dim source As String = "KWL"
+            Dim json As String = $"{{""version"":""{version}"",""platform"":""{platform}"",""dotNetVersion"":""{dotNetVersion}"",""javaVersion"":""{javaVersion}"",""source"":""{source}""}}"
+            Dim client As New WebClient()
             client.Headers(HttpRequestHeader.ContentType) = "application/json"
             Try
-                client.UploadString("https://script.google.com/macros/s/AKfycbzY8Nz4fs-0tMiOZ-UClK_H4GbydXDMD2N35z7tHK2Xrjht0wAswtS8jBZQzeoham4WqA/exec", "POST", json)
+                client.UploadStringAsync(New Uri(whUrl), "POST", json)
             Catch ex As Exception
-                ' Ignore or log silently
+                ' Fail silently
+            End Try
+        End Function
+        Public Shared Function GetJavaVersion() As String
+            Try
+                Dim psi As New ProcessStartInfo("java", "-version") With {
+            .RedirectStandardError = True,
+            .UseShellExecute = False,
+            .CreateNoWindow = True
+        }
+
+                Using process As Process = Process.Start(psi)
+                    Using reader As IO.StreamReader = process.StandardError
+                        Dim output As String = reader.ReadToEnd()
+                        ' Example output line: java version "1.8.0_321"
+                        Dim match = System.Text.RegularExpressions.Regex.Match(output, "java version ""([\d._]+)""")
+                        If match.Success Then
+                            Return match.Groups(1).Value
+                        End If
+                    End Using
+                End Using
+
+                Return "Java installed, version not detected"
+            Catch ex As Exception
+                Return "Java not found"
             End Try
         End Function
 
