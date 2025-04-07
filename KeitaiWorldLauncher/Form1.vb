@@ -988,7 +988,7 @@ Public Class Form1
         If addedCount > 0 Then message &= $"{addedCount} added to favorites. "
         If removedCount > 0 Then message &= $"{removedCount} removed from favorites."
         If message <> "" Then
-            Await UtilManager.ShowSnackBarAsync(message.Trim())
+            UtilManager.ShowSnackBar(message.Trim())
         End If
 
         ' Refresh the UI to reflect the new favorite status
@@ -1095,7 +1095,7 @@ Public Class Form1
             End If
 
             ' Start Launching Game
-            Await UtilManager.ShowSnackBarAsync($"Launching '{selectedGameTitle}'")
+            UtilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
 
             Select Case CorrectedEmulator.ToLower()
                 Case "doja"

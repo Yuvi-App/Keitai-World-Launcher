@@ -379,15 +379,9 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
-        Public Shared Async Function ShowSnackBarAsync(InputString As String, Optional delayMs As Integer = 0) As Task
-            If delayMs > 0 Then
-                Await Task.Delay(delayMs)
-            End If
-
-            Await Task.Run(Sub()
-                               Dim snackBar As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
-                               snackBar.Show(Form1)
-                           End Sub)
+        Public Shared Function ShowSnackBar(InputString As String) As Task
+            Dim snackBar As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
+            snackBar.Show(Form1)
         End Function
 
         'Check for APP Updates
