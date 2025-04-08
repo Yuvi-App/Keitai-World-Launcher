@@ -31,7 +31,6 @@ Namespace My.Managers
                     End Using
                 Catch ex As Exception
                     logger.Logger.LogError("Failed to load MachiCharaList.XML...")
-                    'MessageBox.Show("Failed to load MachiCharaList.XML...")
                 End Try
 
             Else

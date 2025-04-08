@@ -36,7 +36,6 @@ Namespace My.Managers
             client2 = New WebClient()
             progressBar = progressBarControl
         End Sub
-
         Public Async Function DownloadGameAsync(
             url As String,
             savePath As String,

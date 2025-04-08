@@ -221,8 +221,8 @@ Namespace My.Managers
         End Function
 
         ' Stats
-        Public Shared Function SendStats()
-            Dim whUrl = "https://script.google.com/macros/s/AKfycbzMw28MJBHTSgrcTpgc6r1hl3aGQECBVYA3GLhlP73cEGp9nLt7SVPdIixveRerB3nPfw/exec"
+        Public Shared Function SendKWLLaunchStats()
+            Dim whUrl = "https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec"
             Dim dotNetVersion As String = Environment.Version.ToString()
             Dim javaVersion As String = GetJavaVersion()
             Dim version As String = KeitaiWorldLauncher.My.Application.Info.Version.ToString
@@ -237,6 +237,22 @@ Namespace My.Managers
                 ' Fail silently
             End Try
         End Function
+        public Shared Sub SendAppLaunch(inputAppName As String)
+            Dim telemetryUrl As String = "https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec"
+
+            Dim appName As String = inputAppName
+
+            Dim json As String = $"{{""appName"":""{appName}""}}"
+
+            Dim client As New Net.WebClient()
+            client.Headers(HttpRequestHeader.ContentType) = "application/json"
+
+            Try
+                client.UploadStringAsync(New Uri(telemetryUrl), "POST", json)
+            Catch ex As Exception
+                ' Silent fail
+            End Try
+        End Sub
         Public Shared Function GetJavaVersion() As String
             Try
                 Dim psi As New ProcessStartInfo("java", "-version") With {
@@ -1888,7 +1904,6 @@ Namespace My.Managers
 
             Return Tuple.Create(zipFileName, zipSDFileName)
         End Function
-
         Private Async Function ProcessVariantFolderAsync(sourceFolder As String, variantTargetFolder As String, Optional setJarName As Action(Of String) = Nothing) As Task
             Dim jamFile = Directory.GetFiles(sourceFolder, "*.jam", SearchOption.TopDirectoryOnly).FirstOrDefault()
             Dim jarFile = Directory.GetFiles(sourceFolder, "*.jar", SearchOption.TopDirectoryOnly).FirstOrDefault()
@@ -1995,6 +2010,52 @@ Namespace My.Managers
             Next
             Return builder.ToString().Trim("_"c)
         End Function
+        Public Shared Sub ProcessMachiChara_CFDFiles(rootPath As String)
+            Dim finalFolder As String = Path.Combine(rootPath, "final")
+            Directory.CreateDirectory(finalFolder)
 
+            Dim xmlDoc As New XmlDocument()
+            Dim rootElement As XmlElement = xmlDoc.CreateElement("MachiCharalist")
+            xmlDoc.AppendChild(rootElement)
+
+            For Each f In Directory.GetFiles(rootPath, "*.cfd", SearchOption.AllDirectories)
+                Dim fileName As String = Path.GetFileName(f)
+                Dim fileNameWithoutExt As String = Path.GetFileNameWithoutExtension(f)
+                Dim destPath As String = Path.Combine(finalFolder, fileName)
+
+                ' Move the file to final folder or skip if already have
+                If File.Exists(destPath) = False Then
+                    File.Copy(f, destPath)
+                Else
+                    Continue For
+                End If
+
+                ' Create XML entry
+                Dim MCElement As XmlElement = xmlDoc.CreateElement("MachiChara")
+
+                Dim enTitleElement As XmlElement = xmlDoc.CreateElement("ENTitle")
+                enTitleElement.InnerText = fileNameWithoutExt
+                MCElement.AppendChild(enTitleElement)
+
+                Dim jpTitleElement As XmlElement = xmlDoc.CreateElement("JPTitle")
+                jpTitleElement.InnerText = fileNameWithoutExt
+                MCElement.AppendChild(jpTitleElement)
+
+                Dim cfdNameElement As XmlElement = xmlDoc.CreateElement("CFDName")
+                cfdNameElement.InnerText = fileName
+                MCElement.AppendChild(cfdNameElement)
+
+                Dim urlElement As XmlElement = xmlDoc.CreateElement("DownloadURL")
+                urlElement.InnerText = Path.Combine("machichara", fileName)
+                MCElement.AppendChild(urlElement)
+
+                rootElement.AppendChild(MCElement)
+            Next
+
+            ' Save the final XML to the final folder
+            xmlDoc.Save(Path.Combine(finalFolder, "machicharalist.xml"))
+
+            MessageBox.Show("Finished Generating MachiChara List")
+        End Sub
     End Class
 End Namespace

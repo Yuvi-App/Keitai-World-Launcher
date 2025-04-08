@@ -175,7 +175,8 @@ Public Class Form1
                 Await MachiCharaListManager.DownloadMachiCharaListAsync(machicharaListUrl)
             End If
 
-            utilManager.SendStats
+            ' Send Launch Stats
+            UtilManager.SendKWLLaunchStats()
         Else
             isOnline = False
             Me.Text = "Keitai World Launcher - Offline"
@@ -189,18 +190,7 @@ Public Class Form1
         Await LoadGameListFirstTimeAsync()
 
         ' Load MachiChara List
-        Logger.LogInfo("Processing machichara.xml")
-        Try
-            machicharas = machicharaListManager.LoadMachiChara()
-            If machicharas IsNot Nothing Then
-                For Each mc In machicharas
-                    lbxMachiCharaList.Items.Add(mc.ENTitle)
-                Next
-            End If
-        Catch ex As Exception
-            'MessageBox.Show($"Failed to Load MachiChara List:{vbCrLf}{ex}")
-            Logger.LogError("Failed to Load MachiChara List", ex)
-        End Try
+        Await LoadMachiCharaListFirsTimeASync()
 
         'Last Step
         Await GetSDKsAsync()
@@ -374,6 +364,33 @@ Public Class Form1
             Logger.LogError("Failed to Load Game List", ex)
         End Try
     End Function
+    Private Async Function LoadMachiCharaListFirsTimeASync() As Task(Of Boolean)
+        Logger.LogInfo("Processing machicharalist.xml")
+        ListViewMachiChara.View = View.Details
+        ListViewMachiChara.FullRowSelect = True
+        ListViewMachiChara.Columns.Clear()
+        ListViewMachiChara.Columns.Add("Title", ListViewMachiChara.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
+        Try
+            machicharas = machicharaListManager.LoadMachiChara()
+            If machicharas IsNot Nothing Then
+                ListViewMachiChara.Items.Clear()
+                For Each mc In machicharas
+                    Dim item As New ListViewItem(mc.ENTitle)
+                    item.Tag = mc ' Store the full object for later access
+                    ListViewMachiChara.Items.Add(item)
+
+                    'Check if Downloaded already
+                    Dim CFDPath = Path.Combine(DownloadsFolder, mc.CFDName)
+                    If File.Exists(CFDPath) Then
+                        item.BackColor = Color.LightGreen
+                    End If
+                Next
+                lblMachiCharaTotalCount.Text = $"Total: {ListViewMachiChara.Items.Count}"
+            End If
+        Catch ex As Exception
+            Logger.LogError("Failed to Load MachiChara List", ex)
+        End Try
+    End Function
     Private Sub EnableButtons()
         ' Enable game launch button and checkbox
         btnLaunchGame.Enabled = True
@@ -381,6 +398,9 @@ Public Class Form1
         cobxAudioType.Enabled = True
         chkbxShaderGlass.Enabled = True
         cbxShaderGlassScaling.Enabled = True
+        cbxDojaSDK.Enabled = True
+        cbxStarSDK.Enabled = True
+        chkbxLocalEmulator.Enabled = True
     End Sub
     Private Async Function FilterAndHighlightGamesAsync() As Task
         ' Get filter and search term from UI (must be done on UI thread)
@@ -465,7 +485,7 @@ Public Class Form1
         ListViewGamesVariants.View = View.Details
         ListViewGamesVariants.Items.Clear()
         ListViewGamesVariants.Columns.Clear()
-        ListViewGamesVariants.Columns.Add("Game Variants", -2, HorizontalAlignment.Left)
+        ListViewGamesVariants.Columns.Add("Game Variants", ListViewGamesVariants.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
         ListViewGamesVariants.BackColor = SystemColors.Window
 
         ' Ensure a game is selected
@@ -488,6 +508,7 @@ Public Class Form1
         For Each v As String In variants
             ListViewGamesVariants.Items.Add(New ListViewItem(v.Trim()))
         Next
+        lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count.ToString}"
     End Function
     Private Async Function DownloadGames(ContextDownload As Boolean) As Task
 
@@ -605,27 +626,24 @@ Public Class Form1
             MessageBox.Show($"An error occurred while downloading '{selectedGame.ENTitle}'. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
     End Function
-    Private Sub DownloadMachiChara()
-        ' Get the selected game
-        Dim selectedMachiCharaTitle As String = lbxMachiCharaList.SelectedItem.ToString()
-        Dim selectedMachiChara As MachiChara = machicharas.FirstOrDefault(Function(g) g.ENTitle = selectedMachiCharaTitle)
-
+    Private Async Sub DownloadMachiChara(selectedMachiChara As MachiChara)
         If selectedMachiChara IsNot Nothing Then
             Logger.LogInfo($"Checking for {DownloadsFolder}\{selectedMachiChara.CFDName}")
-            CurrentSelectedMachiCharaCFD = $"{DownloadsFolder}\{selectedMachiChara.CFDName}"
+            CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
 
-            ' Check if the MC is already downloaded
+            ' Check if the MachiChara is already downloaded
             Dim localFilePath As String = CurrentSelectedMachiCharaCFD
-            Dim DownloadFilePath As String = $"{DownloadsFolder}\{selectedMachiChara.CFDName}"
-            If File.Exists(localFilePath) Then
+            Dim downloadFilePath As String = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
 
+            If File.Exists(localFilePath) Then
+                ' File already exists, nothing to do (or maybe inform the user)
             Else
-                ' Download the machi chara 
                 Dim result = MessageBox.Show($"The Machi Chara '{selectedMachiChara.ENTitle} ({selectedMachiChara.CFDName})' is not downloaded. Would you like to download it?", "Download Machi Chara", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
                     Logger.LogInfo($"Starting Download for {selectedMachiChara.DownloadURL}")
                     Dim MachiCharaDownloader As New MachiCharaDownloader(pbGameDL)
-                    MachiCharaDownloader.DownloadMachiCharaAsync(selectedMachiChara.DownloadURL, DownloadFilePath, False)
+                    Await MachiCharaDownloader.DownloadMachiCharaAsync(selectedMachiChara.DownloadURL, downloadFilePath, False)
+                    HighlightMachiChara()
                 End If
             End If
             btnMachiCharaLaunch.Enabled = True
@@ -702,6 +720,47 @@ Public Class Form1
             End If
 
             Await FilterAndHighlightGamesAsync()
+        End If
+    End Function
+    Public Async Function DeleteMachiCharaAsync() As Task
+        If ListViewMachiChara.SelectedItems.Count = 0 Then
+            MessageBox.Show("Please select at least one MachiChara to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        ' ❗ Safely copy selected items to a list on the UI thread
+        Dim selectedCharaList As New List(Of MachiChara)
+        For Each item As ListViewItem In ListViewMachiChara.SelectedItems
+            Dim mc As MachiChara = CType(item.Tag, MachiChara)
+            If mc IsNot Nothing Then selectedCharaList.Add(mc)
+        Next
+
+        Dim deletedFiles As New List(Of String)
+
+        ' Run deletion logic in background
+        Await Task.Run(Sub()
+                           For Each selectedMachiChara In selectedCharaList
+                               Dim cfdPath As String = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
+                               If File.Exists(cfdPath) Then
+                                   Try
+                                       File.Delete(cfdPath)
+                                       Logger.LogInfo($"Deleted MachiChara: {selectedMachiChara.CFDName}")
+                                       SyncLock deletedFiles
+                                           deletedFiles.Add(selectedMachiChara.CFDName)
+                                       End SyncLock
+                                   Catch ex As Exception
+                                       Logger.LogError($"Failed to delete MachiChara: {selectedMachiChara.CFDName}", ex)
+                                   End Try
+                               End If
+                           Next
+                       End Sub)
+
+        ' UI-safe call
+        HighlightMachiChara()
+
+        If deletedFiles.Count > 0 Then
+            MessageBox.Show("Deleted the following MachiCharas:" & vbCrLf & String.Join(vbCrLf, deletedFiles),
+                        "MachiChara Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
         End If
     End Function
     Public Sub RefreshGameHighlighting()
@@ -859,18 +918,31 @@ Public Class Form1
 
             ' Adjust TabControl position
             If MaterialTabControl1 IsNot Nothing Then
-                MaterialTabControl1.Top = Me.MainMenuStrip.Bottom + 5
-                MaterialTabControl1.Left = Me.Padding.Left
+                MaterialTabControl1.Top = Me.MainMenuStrip.Bottom
+                MaterialTabControl1.Left = Me.MainMenuStrip.Left
 
                 ' Now, adjust the form's client size so that MaterialTabControl1 has 3 pixels of space on the right and bottom.
-                Dim newClientWidth As Integer = MaterialTabControl1.Left + MaterialTabControl1.Width + 3
-                Dim newClientHeight As Integer = MaterialTabControl1.Top + MaterialTabControl1.Height - 20
+                Dim newClientWidth As Integer = MaterialTabControl1.Left + MaterialTabControl1.Width - 8
+                Dim newClientHeight As Integer = MaterialTabControl1.Top + MaterialTabControl1.Height - 16
 
                 Me.ClientSize = New Size(newClientWidth, newClientHeight)
             End If
         Catch ex As Exception
             MessageBox.Show("Error adjusting form padding: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
+    End Sub
+    Public Sub HighlightMachiChara()
+        For Each item As ListViewItem In ListViewMachiChara.Items
+            Dim mc As MachiChara = CType(item.Tag, MachiChara)
+            If mc IsNot Nothing Then
+                Dim cfdPath As String = Path.Combine(DownloadsFolder, mc.CFDName)
+                If File.Exists(cfdPath) Then
+                    item.BackColor = Color.LightGreen
+                Else
+                    item.BackColor = Color.White ' Optional: reset if not found
+                End If
+            End If
+        Next
     End Sub
 
 
@@ -891,13 +963,16 @@ Public Class Form1
         Await DownloadGames(False)
         EnableButtons()
     End Sub
-    Private Sub lbxMachiCharaList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles lbxMachiCharaList.SelectedIndexChanged
-        If lbxMachiCharaList.SelectedIndex = -1 Then Return
-        DownloadMachiChara()
-    End Sub
     Private Async Sub ListViewGamesVariants_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGamesVariants.SelectedIndexChanged
         Await DownloadGames(False)
     End Sub
+    Private Sub lbxMachiCharaList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewMachiChara.SelectedIndexChanged
+        If ListViewMachiChara.SelectedItems.Count = 0 Then Return
+        Dim selectedItem As ListViewItem = ListViewMachiChara.SelectedItems(0)
+        Dim selectedMachiChara As MachiChara = CType(selectedItem.Tag, MachiChara)
+        DownloadMachiChara(selectedMachiChara)
+    End Sub
+
 
     ' CheckBox Changes
     Private Sub chkbxHidePhoneUI_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxHidePhoneUI.CheckedChanged
@@ -951,13 +1026,13 @@ Public Class Form1
         End If
     End Sub
 
-
     'Textbox Changes
     Private Async Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged
         Await FilterAndHighlightGamesAsync()
     End Sub
 
     'ContextMenuStrip Changes
+    'Appli CMS
     Private Async Sub cmsGameLV_Download_Click(sender As Object, e As EventArgs) Handles cmsGameLV_Download.Click
         Await DownloadGames(True)
     End Sub
@@ -1025,8 +1100,18 @@ Public Class Form1
             Process.Start("explorer.exe", gameFolder)
         End If
     End Sub
+    'MachiChara CMS
+    Private Sub DownloadCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DownloadCMS_MachiChara.Click
+        If ListViewMachiChara.SelectedItems.Count = 0 Then Return
+        Dim selectedItem As ListViewItem = ListViewMachiChara.SelectedItems(0)
+        Dim selectedMachiChara As MachiChara = CType(selectedItem.Tag, MachiChara)
+        DownloadMachiChara(selectedMachiChara)
+    End Sub
+    Private Async Sub DeleteCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DeleteCMS_MachiChara.Click
+        Await DeleteMachiCharaAsync()
+    End Sub
 
-    'Launch Game
+    'Launch Apps Buttons
     Private Async Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         Try
             Logger.LogInfo("Attempting to launch game...")
@@ -1096,7 +1181,7 @@ Public Class Form1
 
             ' Start Launching Game
             UtilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
-
+            UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
             Select Case CorrectedEmulator.ToLower()
                 Case "doja"
                     Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
@@ -1130,13 +1215,22 @@ Public Class Form1
             MessageBox.Show($"Error Launching Game:{vbCrLf}{ex.Message}")
         End Try
     End Sub
-    Private Sub btnMachiCharaLaunch_Click(sender As Object, e As EventArgs) Handles btnMachiCharaLaunch.Click, lbxMachiCharaList.DoubleClick
-        ' Get the selected MachiChara
-        Dim selectedMachiCharaTitle As String = lbxMachiCharaList.SelectedItem.ToString()
-        Dim selectedMachiChara As MachiChara = machicharas.FirstOrDefault(Function(g) g.ENTitle = selectedMachiCharaTitle)
-        utilManager.LaunchCustomMachiCharaCommand(MachiCharaExe, CurrentSelectedMachiCharaCFD)
-    End Sub
+    Private Sub btnMachiCharaLaunch_Click(sender As Object, e As EventArgs) Handles btnMachiCharaLaunch.Click
+        If ListViewMachiChara.SelectedItems.Count = 0 Then
+            MessageBox.Show("Please select a MachiChara to launch.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
 
+        Dim selectedItem As ListViewItem = ListViewMachiChara.SelectedItems(0)
+        Dim selectedMachiChara As MachiChara = CType(selectedItem.Tag, MachiChara)
+
+        If selectedMachiChara IsNot Nothing Then
+            CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
+
+            UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedMachiCharaCFD))
+            utilManager.LaunchCustomMachiCharaCommand(MachiCharaExe, CurrentSelectedMachiCharaCFD)
+        End If
+    End Sub
 
     'Menu Strip Items
     Private Async Sub GamesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GamesToolStripMenuItem.Click
@@ -1638,5 +1732,9 @@ Public Class Form1
         TroubleShootingForm.Controls.Add(btnClose)
         TroubleShootingForm.ShowDialog()
     End Sub
-
+    Private Sub MachiCharaCreateXMLToolStripMenu_Click(sender As Object, e As EventArgs) Handles MachiCharaCreateXMLToolStripMenu.Click
+        If FolderBrowserDialog1.ShowDialog = DialogResult.OK Then
+            utilManager.ProcessMachiChara_CFDFiles(FolderBrowserDialog1.SelectedPath)
+        End If
+    End Sub
 End Class
