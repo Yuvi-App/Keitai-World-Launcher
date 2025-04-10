@@ -93,6 +93,8 @@ Partial Class Form1
         cbxShaderGlassScaling = New ComboBox()
         chkbxLocalEmulator = New CheckBox()
         tpMachiChara = New TabPage()
+        chkboxMachiCharaLocalEmulator = New CheckBox()
+        CheckBox1 = New CheckBox()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
         GroupBox2.SuspendLayout()
@@ -225,7 +227,7 @@ Partial Class Form1
         BatchDownloadToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamesToolStripMenuItem, MachiCharaToolStripMenuItem})
         BatchDownloadToolStripMenuItem.Enabled = False
         BatchDownloadToolStripMenuItem.Name = "BatchDownloadToolStripMenuItem"
-        BatchDownloadToolStripMenuItem.Size = New Size(178, 24)
+        BatchDownloadToolStripMenuItem.Size = New Size(180, 24)
         BatchDownloadToolStripMenuItem.Text = "Batch Download"
         BatchDownloadToolStripMenuItem.Visible = False
         ' 
@@ -246,7 +248,7 @@ Partial Class Form1
         XMLCreationToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamelistToolStripMenuItem, MachiCharaCreateXMLToolStripMenu})
         XMLCreationToolStripMenuItem.Enabled = False
         XMLCreationToolStripMenuItem.Name = "XMLCreationToolStripMenuItem"
-        XMLCreationToolStripMenuItem.Size = New Size(178, 24)
+        XMLCreationToolStripMenuItem.Size = New Size(180, 24)
         XMLCreationToolStripMenuItem.Text = "XML Creation"
         XMLCreationToolStripMenuItem.Visible = False
         ' 
@@ -267,7 +269,7 @@ Partial Class Form1
         XMLUpdateToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {AddGameToolStripMenuItem})
         XMLUpdateToolStripMenuItem.Enabled = False
         XMLUpdateToolStripMenuItem.Name = "XMLUpdateToolStripMenuItem"
-        XMLUpdateToolStripMenuItem.Size = New Size(178, 24)
+        XMLUpdateToolStripMenuItem.Size = New Size(180, 24)
         XMLUpdateToolStripMenuItem.Text = "XML Update"
         XMLUpdateToolStripMenuItem.Visible = False
         ' 
@@ -280,7 +282,7 @@ Partial Class Form1
         ' AddGamesToolStripMenuItem
         ' 
         AddGamesToolStripMenuItem.Name = "AddGamesToolStripMenuItem"
-        AddGamesToolStripMenuItem.Size = New Size(178, 24)
+        AddGamesToolStripMenuItem.Size = New Size(180, 24)
         AddGamesToolStripMenuItem.Text = "Add Games"
         ' 
         ' HelpToolStripMenuItem
@@ -686,6 +688,7 @@ Partial Class Form1
         ' 
         ' GroupBox3
         ' 
+        GroupBox3.Controls.Add(CheckBox1)
         GroupBox3.Controls.Add(Label2)
         GroupBox3.Controls.Add(btnLaunchGame)
         GroupBox3.Controls.Add(lblAudioWarning)
@@ -747,6 +750,7 @@ Partial Class Form1
         ' 
         ' tpMachiChara
         ' 
+        tpMachiChara.Controls.Add(chkboxMachiCharaLocalEmulator)
         tpMachiChara.Controls.Add(btnMachiCharaLaunch)
         tpMachiChara.Controls.Add(GroupBox2)
         tpMachiChara.Location = New Point(4, 24)
@@ -756,6 +760,31 @@ Partial Class Form1
         tpMachiChara.TabIndex = 1
         tpMachiChara.Text = "MachiChara"
         tpMachiChara.UseVisualStyleBackColor = True
+        ' 
+        ' chkboxMachiCharaLocalEmulator
+        ' 
+        chkboxMachiCharaLocalEmulator.AutoSize = True
+        chkboxMachiCharaLocalEmulator.FlatStyle = FlatStyle.Flat
+        chkboxMachiCharaLocalEmulator.Location = New Point(416, 85)
+        chkboxMachiCharaLocalEmulator.Name = "chkboxMachiCharaLocalEmulator"
+        chkboxMachiCharaLocalEmulator.Size = New Size(108, 19)
+        chkboxMachiCharaLocalEmulator.TabIndex = 4
+        chkboxMachiCharaLocalEmulator.Text = "Locale Emulator"
+        chkboxMachiCharaLocalEmulator.UseVisualStyleBackColor = True
+        ' 
+        ' CheckBox1
+        ' 
+        CheckBox1.AutoSize = True
+        CheckBox1.Checked = True
+        CheckBox1.CheckState = CheckState.Checked
+        CheckBox1.Enabled = False
+        CheckBox1.FlatStyle = FlatStyle.Flat
+        CheckBox1.Location = New Point(125, 68)
+        CheckBox1.Name = "CheckBox1"
+        CheckBox1.Size = New Size(108, 19)
+        CheckBox1.TabIndex = 15
+        CheckBox1.Text = "Locale Emulator"
+        CheckBox1.UseVisualStyleBackColor = True
         ' 
         ' Form1
         ' 
@@ -789,6 +818,7 @@ Partial Class Form1
         GroupBox3.ResumeLayout(False)
         GroupBox3.PerformLayout()
         tpMachiChara.ResumeLayout(False)
+        tpMachiChara.PerformLayout()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -861,4 +891,6 @@ Partial Class Form1
     Friend WithEvents DownloadCMS_MachiChara As ToolStripMenuItem
     Friend WithEvents DeleteCMS_MachiChara As ToolStripMenuItem
     Friend WithEvents ListViewMachiChara As ListView
+    Friend WithEvents chkboxMachiCharaLocalEmulator As CheckBox
+    Friend WithEvents CheckBox1 As CheckBox
 End Class

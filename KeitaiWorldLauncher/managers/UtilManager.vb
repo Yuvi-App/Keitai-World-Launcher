@@ -211,7 +211,8 @@ Namespace My.Managers
                            Path.Combine("data", "tools", "skins", "doja", "ui"),
                            Path.Combine("data", "tools", "skins", "doja", "noui"),
                            Path.Combine("data", "tools", "skins", "star", "ui"),
-                           Path.Combine("data", "tools", "skins", "star", "noui")
+                           Path.Combine("data", "tools", "skins", "star", "noui"),
+                           Path.Combine("data", "tools", "controller-profiles")
                        }
 
                                For Each D In directories
@@ -911,34 +912,41 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Sub LaunchCustomMachiCharaCommand(MachiCharaEXE, CFDFile)
+        Public Sub LaunchCustomMachiCharaCommand(MachiCharaEXE As String, CFDFile As String)
             Try
-                ' Paths and arguments
-                Dim appPath As String = AppDomain.CurrentDomain.BaseDirectory & "data\tools\locale_emulator\LEProc.exe"
+                ' Build full paths
+                Dim LocalEmulatorPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data\tools\locale_emulator\LEProc.exe")
                 Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
                 Dim machicharaexePath As String = MachiCharaEXE
-                Dim CFDPath As String = AppDomain.CurrentDomain.BaseDirectory & CFDFile
+                Dim CFDPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, CFDFile)
 
-                ' Combine arguments
-                Dim arguments As String = $"""{machicharaexePath}"" ""{CFDPath}"""
-
-                ' Set up process start info
                 Dim processInfo As New ProcessStartInfo()
-                processInfo.FileName = "cmd.exe" ' Use cmd.exe to run the command
-                processInfo.Arguments = "/C " & Chr(34) & arguments & Chr(34) ' /C runs the command and exits
-                processInfo.UseShellExecute = False ' Do not use the OS shell
-                processInfo.CreateNoWindow = True ' Do not create a visible cmd window
-                processInfo.RedirectStandardOutput = True ' Redirect output if needed
-                processInfo.RedirectStandardError = True ' Redirect errors if needed
-                processInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+
+                If Form1.chkboxMachiCharaLocalEmulator.Checked = True Then
+                    ' Launch using Locale Emulator
+                    processInfo.FileName = LocalEmulatorPath
+                    processInfo.Arguments = $"{guidArg} ""{machicharaexePath}"" ""{CFDPath}"""
+                Else
+                    ' Launch directly
+                    processInfo.FileName = machicharaexePath
+                    processInfo.Arguments = $"""{CFDPath}"""
+                End If
+
+                ' Common settings
+                processInfo.UseShellExecute = False
+                processInfo.CreateNoWindow = True
+                processInfo.RedirectStandardOutput = True
+                processInfo.RedirectStandardError = True
+                processInfo.WorkingDirectory = Path.GetDirectoryName(machicharaexePath)
 
                 ' Start the process
-                Dim process As Process = Process.Start(processInfo)
+                Process.Start(processInfo)
 
             Catch ex As Exception
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+
         Public Async Function LaunchShaderGlass(AppName As String) As Task
             Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
             Dim appPath As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "ShaderGlass.exe")
