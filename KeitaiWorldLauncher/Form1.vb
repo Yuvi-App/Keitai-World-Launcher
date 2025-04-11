@@ -1,23 +1,11 @@
-﻿Imports System.Diagnostics.Eventing.Reader
-Imports System.Formats.Tar
-Imports System.IO
-Imports System.Net.Security
-Imports System.Runtime.InteropServices
+﻿Imports System.IO
+Imports System.Reflection.Metadata.Ecma335
 Imports System.Text
-Imports System.Threading
-Imports System.Timers
-Imports System.Windows.Forms.VisualStyles.VisualStyleElement
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
-Imports Microsoft.VisualBasic.FileIO
-Imports ReaLTaiizor.Controls
 Imports ReaLTaiizor.[Enum].Poison
-Imports ReaLTaiizor.Forms
-Imports ReaLTaiizor.Enum
-Imports ReaLTaiizor.Manager
-Imports ReaLTaiizor.Util
-Imports Newtonsoft.Json.Converters
+Imports SharpDX.DirectInput
 
 Public Class Form1
     'Global Vars
@@ -69,7 +57,6 @@ Public Class Form1
     Public MachiCharaExe As String
 
     ' FORM LOAD
-
     Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
         UtilManager.CheckAndCloseDoja()
         UtilManager.CheckAndCloseStar()
@@ -401,6 +388,7 @@ Public Class Form1
         cbxDojaSDK.Enabled = True
         cbxStarSDK.Enabled = True
         chkbxLocalEmulator.Enabled = True
+        chkbxEnableController.Enabled = True
     End Sub
     Private Async Function FilterAndHighlightGamesAsync() As Task
         ' Get filter and search term from UI (must be done on UI thread)
@@ -889,7 +877,7 @@ Public Class Form1
             End If
         Next
     End Function
-    Private Sub AdjustFormPadding()
+    Public Sub AdjustFormPadding()
         Try
             ' Get the system DPI scaling factor
             Dim g As Graphics = Me.CreateGraphics()
@@ -944,6 +932,48 @@ Public Class Form1
             End If
         Next
     End Sub
+    Public Function LoadConnectedControllers() As Boolean
+        Dim directInput = New DirectInput()
+        Dim devices = directInput.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly)
+
+        For Each deviceInfo In devices
+            cbxGameControllers.Items.Add(deviceInfo.InstanceName)
+            Logger.LogInfo($"Detected controller: {deviceInfo.InstanceName}")
+        Next
+
+        If cbxGameControllers.Items.Count > 0 Then
+            cbxGameControllers.SelectedIndex = 0
+            cbxGameControllers.Enabled = True
+            Return True
+        Else
+            MessageBox.Show("No controllers detected... Please connect one and try again.")
+            Return False
+        End If
+    End Function
+    Public Function LoadControllerProfiles() As Boolean
+        Dim profilePath As String = Path.Combine(ToolsFolder, "controller-profiles")
+
+        If Not Directory.Exists(profilePath) Then
+            Logger.LogInfo($"Controller profile directory not found: {profilePath}")
+            MessageBox.Show("Profile folder not found.")
+            Return False
+        End If
+
+        For Each file In Directory.GetFiles(profilePath, "*.gamecontroller.amgp")
+            Dim profileName = Path.GetFileNameWithoutExtension(file).Replace(".gamecontroller", "")
+            cbxControllerProfile.Items.Add(profileName)
+            Logger.LogInfo($"Loaded profile: {profileName}")
+        Next
+
+        If cbxControllerProfile.Items.Count > 0 Then
+            cbxControllerProfile.SelectedIndex = 0
+            cbxControllerProfile.Enabled = True
+            Return True
+        Else
+            MessageBox.Show("No controller profiles detected... Please download one before enabling.")
+            Return False
+        End If
+    End Function
 
 
     ' LISTBOX/LISTVIEW CHANGES
@@ -980,6 +1010,33 @@ Public Class Form1
     End Sub
     Private Sub chkbxShaderGlass_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxShaderGlass.CheckedChanged
         configManager.UpdateUseShaderGlassSetting(chkbxShaderGlass.Checked)
+    End Sub
+    Private Sub chkEnableController_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxEnableController.CheckedChanged
+        If Not chkbxEnableController.Checked Then
+            Logger.LogInfo("Controller support disabled by user.")
+
+            cbxControllerProfile.Items.Clear()
+            cbxGameControllers.Items.Clear()
+            cbxGameControllers.Enabled = False
+            cbxControllerProfile.Enabled = False
+            Return
+        End If
+
+        Logger.LogInfo("Controller support enabled by user.")
+
+        cbxControllerProfile.Items.Clear()
+        cbxGameControllers.Items.Clear()
+
+        If Not LoadConnectedControllers() Then
+            Logger.LogInfo("No controllers detected. Disabling controller support.")
+            chkbxEnableController.Checked = False
+            Return
+        End If
+
+        If Not LoadControllerProfiles() Then
+            Logger.LogInfo("No controller profiles found. Disabling controller support.")
+            chkbxEnableController.Checked = False
+        End If
     End Sub
 
     ' ComboBox Changes
@@ -1226,7 +1283,7 @@ Public Class Form1
 
         If selectedMachiChara IsNot Nothing Then
             CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
-
+            UtilManager.ShowSnackBar($"Launching '{CurrentSelectedMachiCharaCFD}'")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedMachiCharaCFD))
             utilManager.LaunchCustomMachiCharaCommand(MachiCharaExe, CurrentSelectedMachiCharaCFD)
         End If
@@ -1354,12 +1411,26 @@ Public Class Form1
         Application.Restart()
     End Sub
     Private Sub KeyConfiguratorToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles KeyConfiguratorToolStripMenuItem.Click
-        Dim Apppath = $"{ToolsFolder}\antimicrox\bin\antimicrox.exe"
-        Dim startInfo As New ProcessStartInfo()
-        startInfo.FileName = Apppath
-        startInfo.UseShellExecute = False
-        startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
-        Dim process As Process = Process.Start(startInfo)
+        Dim processName As String = "antimicrox" ' No .exe
+        Dim isRunning As Boolean = process.GetProcessesByName(processName).Length > 0
+
+        If isRunning = False Then
+            Dim Apppath = $"{ToolsFolder}\antimicrox\bin\antimicrox.exe"
+            Dim startInfo As New ProcessStartInfo()
+            startInfo.FileName = Apppath
+            startInfo.UseShellExecute = False
+            startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+            Dim process As Process = Process.Start(startInfo)
+        Else
+            Dim Apppath = $"{ToolsFolder}\antimicrox\bin\antimicrox.exe"
+            Dim args = $"--show"
+            Dim startInfo As New ProcessStartInfo()
+            startInfo.FileName = Apppath
+            startInfo.Arguments = args
+            startInfo.UseShellExecute = False
+            startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+            Dim process As Process = Process.Start(startInfo)
+        End If
     End Sub
     Private Sub AppConfigToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AppConfigToolStripMenuItem.Click
         Dim Apppath = $"cmd"
@@ -1610,57 +1681,77 @@ Public Class Form1
     Private Sub ControlsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ControlsToolStripMenuItem.Click
         ' Create a new MaterialForm
         Dim keybindForm As New ReaLTaiizor.Forms.MaterialForm With {
-            .Text = "Keybinds",
-            .Size = New Size(600, 400),
-            .StartPosition = FormStartPosition.CenterScreen,
-            .Sizable = False,
-            .FormBorderStyle = FormBorderStyle.FixedDialog,
-            .MaximizeBox = False,
-            .MinimizeBox = False
-        }
+        .Text = "Keybinds",
+        .Size = New Size(900, 500),
+        .StartPosition = FormStartPosition.CenterScreen,
+        .Sizable = False,
+        .FormBorderStyle = FormBorderStyle.FixedDialog,
+        .MaximizeBox = False,
+        .MinimizeBox = False
+    }
 
         ' Keybinds content
         Dim keybindText As String =
-            "Doja & Star Keybinds:" & Environment.NewLine &
-            "--------------------------" & Environment.NewLine &
-            "Phone Button        Keyboard" & Environment.NewLine &
-            "--------------------------" & Environment.NewLine &
-            "UP                 → Up Arrow" & Environment.NewLine &
-            "DOWN               → Down Arrow" & Environment.NewLine &
-            "LEFT               → Left Arrow" & Environment.NewLine &
-            "RIGHT              → Right Arrow" & Environment.NewLine &
-            "Top Left Button    → A" & Environment.NewLine &
-            "Top Right Button   → S" & Environment.NewLine &
-            "Center Button      → Enter" & Environment.NewLine &
-            "123456789*#        → 123456789*#"
+        "Doja & Star Keybinds:" & Environment.NewLine &
+        "--------------------------" & Environment.NewLine &
+        "Phone Button        Keyboard" & Environment.NewLine &
+        "--------------------------" & Environment.NewLine &
+        "UP                 → Up Arrow" & Environment.NewLine &
+        "DOWN               → Down Arrow" & Environment.NewLine &
+        "LEFT               → Left Arrow" & Environment.NewLine &
+        "RIGHT              → Right Arrow" & Environment.NewLine &
+        "Top Left Button    → A" & Environment.NewLine &
+        "Top Center Button   → D" & Environment.NewLine &
+        "Top Right Button   → S" & Environment.NewLine &
+        "Center Button      → Enter" & Environment.NewLine &
+        "123456789*#        → 123456789*#"
 
-        ' Add a MaterialLabel to display the keybinds
+        ' Add a label to display the keybinds
         Dim lblKeybinds As New Label With {
-            .Text = keybindText,
-            .AutoSize = False,
-            .Left = 20,
-            .Top = 80,
-            .Width = keybindForm.ClientSize.Width - 40,
-            .Height = 220,
-            .Font = New Font("Consolas", 10, FontStyle.Regular),
-            .ForeColor = Color.Black
-        }
+        .Text = keybindText,
+        .AutoSize = False,
+        .Left = 20,
+        .Top = 80,
+        .Width = 360,
+        .Height = 300,
+        .Font = New Font("Consolas", 10, FontStyle.Regular),
+        .ForeColor = Color.Black
+    }
 
-        ' Add a MaterialButton to close the form
+        ' Load the image if it exists
+        Dim imagePath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", "doja", "doja_controls.png")
+        Dim picControls As New PictureBox With {
+        .Left = 400,
+        .Top = 80,
+        .Size = New Size(360, 300),
+        .SizeMode = PictureBoxSizeMode.AutoSize,
+        .Visible = File.Exists(imagePath)
+    }
+
+        If picControls.Visible Then
+            picControls.Image = Image.FromFile(imagePath)
+        Else
+            Logger.LogInfo("Image not found for Keybind Form: " & imagePath)
+        End If
+
+        ' Add a close button
         Dim btnClose As New ReaLTaiizor.Controls.MaterialButton With {
-            .Text = "Close",
-            .Width = 100,
-            .Height = 36,
-            .Left = keybindForm.ClientSize.Width - 120,
-            .Top = keybindForm.ClientSize.Height - 60,
-            .HighEmphasis = True,
-            .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
-        }
+        .Text = "Close",
+        .Width = 100,
+        .Height = 36,
+        .Left = keybindForm.ClientSize.Width - 120,
+        .Top = keybindForm.ClientSize.Height - 60,
+        .HighEmphasis = True,
+        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+    }
         AddHandler btnClose.Click, Sub() keybindForm.Close()
 
-        ' Add controls to form and show
+        ' Add controls to the form
         keybindForm.Controls.Add(lblKeybinds)
+        keybindForm.Controls.Add(picControls)
         keybindForm.Controls.Add(btnClose)
+
+        ' Show the form
         keybindForm.ShowDialog()
     End Sub
     Private Sub TroubleshootingToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles TroubleshootingToolStripMenuItem.Click
@@ -1734,7 +1825,7 @@ Public Class Form1
     End Sub
     Private Sub MachiCharaCreateXMLToolStripMenu_Click(sender As Object, e As EventArgs) Handles MachiCharaCreateXMLToolStripMenu.Click
         If FolderBrowserDialog1.ShowDialog = DialogResult.OK Then
-            utilManager.ProcessMachiChara_CFDFiles(FolderBrowserDialog1.SelectedPath)
+            UtilManager.ProcessMachiChara_CFDFiles(FolderBrowserDialog1.SelectedPath)
         End If
     End Sub
 End Class

@@ -14,6 +14,7 @@ Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.Win32
 Imports System.Security.Principal
 Imports System.Reflection
+Imports SharpDX.DirectInput
 
 Namespace My.Managers
     Public Class UtilManager
@@ -238,7 +239,7 @@ Namespace My.Managers
                 ' Fail silently
             End Try
         End Function
-        public Shared Sub SendAppLaunch(inputAppName As String)
+        Public Shared Sub SendAppLaunch(inputAppName As String)
             Dim telemetryUrl As String = "https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec"
 
             Dim appName As String = inputAppName
@@ -279,7 +280,7 @@ Namespace My.Managers
             End Try
         End Function
 
-        'MISC
+        ' MISC
         Public Shared Async Function IsDpiScalingSetAsync(exePath As String) As Task(Of Boolean)
             Return Await Task.Run(Function()
                                       Try
@@ -800,6 +801,10 @@ Namespace My.Managers
                     End If
                 End If
 
+                If Form1.chkbxEnableController.Checked Then
+                    Await LaunchControllerProfileAMGP()
+                End If
+
             Catch ex As Exception
                 logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -903,6 +908,10 @@ Namespace My.Managers
                     End If
                 End If
 
+                If Form1.chkbxEnableController.Checked Then
+                    Await LaunchControllerProfileAMGP()
+                End If
+
             Catch ex As ArgumentException
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
                 MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
@@ -946,7 +955,6 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-
         Public Async Function LaunchShaderGlass(AppName As String) As Task
             Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
             Dim appPath As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "ShaderGlass.exe")
@@ -980,9 +988,62 @@ Namespace My.Managers
                 MessageBox.Show("Failed to launch ShaderGlass: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Function
+        Public Async Function LaunchControllerProfileAMGP() As Task
+            Dim selectedProfile As String = TryCast(Form1.cbxControllerProfile.SelectedItem, String)
+            Dim selectedController As String = TryCast(Form1.cbxGameControllers.SelectedItem, String)
+
+            If String.IsNullOrEmpty(selectedProfile) OrElse String.IsNullOrEmpty(selectedController) Then
+                Return
+            End If
+
+            Dim selectedControllerGUID As Guid = Guid.Empty
+            Dim directInput As New DirectInput()
+            Dim gameControllers = directInput.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly)
+
+            For Each deviceInfo In gameControllers
+                If deviceInfo.InstanceName = selectedController Then
+                    selectedControllerGUID = deviceInfo.InstanceGuid
+                    Exit For
+                End If
+            Next
+
+            If selectedControllerGUID = Guid.Empty Then
+                logger.Logger.LogInfo($"Launch aborted: Controller '{selectedController}' not found.")
+                Return
+            End If
+
+            Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
+            Dim appPath As String = Path.Combine(baseDir, "data", "tools", "antimicrox", "bin", "antimicrox.exe")
+            Dim argumentFile As String = Path.Combine(baseDir, "data", "tools", "controller-profiles", selectedProfile & ".gamecontroller.amgp")
+
+            If Not File.Exists(appPath) Then
+                logger.Logger.LogInfo("AntimicroX executable not found: " & appPath)
+                Return
+            End If
+
+            If Not File.Exists(argumentFile) Then
+                logger.Logger.LogInfo("Profile file not found: " & argumentFile)
+                Return
+            End If
+
+            Dim startInfo As New ProcessStartInfo() With {
+                .FileName = appPath,
+                .Arguments = $"--profile ""{argumentFile}"" --profile-controller {selectedControllerGUID} --hidden",
+                .UseShellExecute = True,
+                .WorkingDirectory = baseDir
+            }
+
+            logger.Logger.LogInfo($"Launching AntimicroX with profile '{selectedProfile}' and controller '{selectedController}' ({selectedControllerGUID})")
+            Try
+                Process.Start(startInfo)
+            Catch ex As Exception
+                MessageBox.Show("Failed to launch AntimicroX: " & ex.Message, "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogInfo("Failed to launch AntimicroX: " & ex.Message)
+            End Try
+        End Function
         Public Async Function ModifyCaptureWindow(filePath As String, AppName As String) As Task
             If Not File.Exists(filePath) Then
-                Console.WriteLine($"ShaderGlass config file not found: {filePath}")
+                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
                 Return
             End If
 
@@ -1021,7 +1082,7 @@ Namespace My.Managers
             End Select
 
             If Not File.Exists(filePath) Then
-                Console.WriteLine($"ShaderGlass config file not found: {filePath}")
+                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
                 Return
             End If
 
@@ -1102,7 +1163,7 @@ Namespace My.Managers
                     Dim process As Process = Process.Start(startInfo)
 
                     If process Is Nothing Then
-                        logger.Logger.LogError($"[LaunchHelper] Attempt {attempt}: Failed to start process.")
+                        logger.Logger.LogError($"[LaunchHelper] Attempt {attempt} Failed to start process.")
                         Continue For
                     End If
 
@@ -1120,7 +1181,7 @@ Namespace My.Managers
                     logger.Logger.LogInfo($"[LaunchHelper] Waiting for {processNameToCheck} to become ready...")
 
                     If Await waitFunction() Then
-                        logger.Logger.LogInfo($"[LaunchHelper] {processNameToCheck} is running and ready.")
+                        logger.Logger.LogInfo($"[LaunchHelper] {processNameToCheck} Is running And ready.")
                         UtilManager.HideLaunchOverlay()
                         Return True
                     Else
@@ -1130,7 +1191,7 @@ Namespace My.Managers
                         Await Task.Delay(500)
                     End If
                 Catch ex As Exception
-                    logger.Logger.LogError($"[LaunchHelper] Exception during attempt {attempt}: {ex.Message}")
+                    logger.Logger.LogError($"[LaunchHelper] Exception during attempt {attempt} {ex.Message}")
                 End Try
             Next
 
@@ -1178,12 +1239,12 @@ Namespace My.Managers
         End Sub
         Public Shared Function UpdateNetworkUIDinJAM(JamFile As String) As Boolean
             If Not File.Exists(JamFile) Then
-                logger.Logger.LogError($"ERROR: Did not find {JamFile} to update networkUID")
+                logger.Logger.LogError($"ERROR Did Not find {JamFile} to update networkUID")
                 Return False
             End If
 
             If Form1.NetworkUID.ToLower.Trim = "nullgwdocomo" Then
-                logger.Logger.LogInfo("Skipping update to NetworkUID in Jam due to it not being set (still NULLGWDOCOMO).")
+                logger.Logger.LogInfo("Skipping update to NetworkUID in Jam due to it Not being set (still NULLGWDOCOMO).")
                 Return True
             End If
 
@@ -1204,7 +1265,7 @@ Namespace My.Managers
             If replacementCount > 0 Then
                 logger.Logger.LogInfo($"Replaced {replacementCount} occurrence(s) of 'NULLGWDOCOMO' with '{Form1.NetworkUID}' in {JamFile}")
             Else
-                logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
+                    logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
             End If
 
             File.WriteAllLines(JamFile, lines)

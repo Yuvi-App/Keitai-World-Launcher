@@ -89,12 +89,14 @@ Partial Class Form1
         MaterialTabControl1 = New ReaLTaiizor.Controls.MaterialTabControl()
         tpGames = New TabPage()
         GroupBox3 = New GroupBox()
+        cbxControllerProfile = New ComboBox()
+        chkbxEnableController = New CheckBox()
+        cbxGameControllers = New ComboBox()
         Label2 = New Label()
         cbxShaderGlassScaling = New ComboBox()
         chkbxLocalEmulator = New CheckBox()
         tpMachiChara = New TabPage()
         chkboxMachiCharaLocalEmulator = New CheckBox()
-        CheckBox1 = New CheckBox()
         cmsGameLV.SuspendLayout()
         MenuStrip1.SuspendLayout()
         GroupBox2.SuspendLayout()
@@ -227,7 +229,7 @@ Partial Class Form1
         BatchDownloadToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamesToolStripMenuItem, MachiCharaToolStripMenuItem})
         BatchDownloadToolStripMenuItem.Enabled = False
         BatchDownloadToolStripMenuItem.Name = "BatchDownloadToolStripMenuItem"
-        BatchDownloadToolStripMenuItem.Size = New Size(180, 24)
+        BatchDownloadToolStripMenuItem.Size = New Size(178, 24)
         BatchDownloadToolStripMenuItem.Text = "Batch Download"
         BatchDownloadToolStripMenuItem.Visible = False
         ' 
@@ -248,7 +250,7 @@ Partial Class Form1
         XMLCreationToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {GamelistToolStripMenuItem, MachiCharaCreateXMLToolStripMenu})
         XMLCreationToolStripMenuItem.Enabled = False
         XMLCreationToolStripMenuItem.Name = "XMLCreationToolStripMenuItem"
-        XMLCreationToolStripMenuItem.Size = New Size(180, 24)
+        XMLCreationToolStripMenuItem.Size = New Size(178, 24)
         XMLCreationToolStripMenuItem.Text = "XML Creation"
         XMLCreationToolStripMenuItem.Visible = False
         ' 
@@ -269,7 +271,7 @@ Partial Class Form1
         XMLUpdateToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {AddGameToolStripMenuItem})
         XMLUpdateToolStripMenuItem.Enabled = False
         XMLUpdateToolStripMenuItem.Name = "XMLUpdateToolStripMenuItem"
-        XMLUpdateToolStripMenuItem.Size = New Size(180, 24)
+        XMLUpdateToolStripMenuItem.Size = New Size(178, 24)
         XMLUpdateToolStripMenuItem.Text = "XML Update"
         XMLUpdateToolStripMenuItem.Visible = False
         ' 
@@ -282,7 +284,7 @@ Partial Class Form1
         ' AddGamesToolStripMenuItem
         ' 
         AddGamesToolStripMenuItem.Name = "AddGamesToolStripMenuItem"
-        AddGamesToolStripMenuItem.Size = New Size(180, 24)
+        AddGamesToolStripMenuItem.Size = New Size(178, 24)
         AddGamesToolStripMenuItem.Text = "Add Games"
         ' 
         ' HelpToolStripMenuItem
@@ -436,7 +438,7 @@ Partial Class Form1
         cbxStarSDK.Margin = New Padding(2)
         cbxStarSDK.Name = "cbxStarSDK"
         cbxStarSDK.Size = New Size(85, 23)
-        cbxStarSDK.TabIndex = 8
+        cbxStarSDK.TabIndex = 10
         ' 
         ' cbxDojaSDK
         ' 
@@ -449,7 +451,7 @@ Partial Class Form1
         cbxDojaSDK.Margin = New Padding(2)
         cbxDojaSDK.Name = "cbxDojaSDK"
         cbxDojaSDK.Size = New Size(85, 23)
-        cbxDojaSDK.TabIndex = 7
+        cbxDojaSDK.TabIndex = 9
         ' 
         ' chkbxShaderGlass
         ' 
@@ -461,7 +463,7 @@ Partial Class Form1
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
         chkbxShaderGlass.Size = New Size(86, 19)
-        chkbxShaderGlass.TabIndex = 6
+        chkbxShaderGlass.TabIndex = 2
         chkbxShaderGlass.Text = "ShaderGlass"
         chkbxShaderGlass.UseVisualStyleBackColor = True
         ' 
@@ -489,7 +491,7 @@ Partial Class Form1
         cobxAudioType.Margin = New Padding(2)
         cobxAudioType.Name = "cobxAudioType"
         cobxAudioType.Size = New Size(85, 23)
-        cobxAudioType.TabIndex = 4
+        cobxAudioType.TabIndex = 8
         ' 
         ' GroupBox1
         ' 
@@ -656,7 +658,7 @@ Partial Class Form1
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
         btnLaunchGame.Size = New Size(100, 40)
-        btnLaunchGame.TabIndex = 2
+        btnLaunchGame.TabIndex = 1
         btnLaunchGame.Text = "Launch ▶"
         btnLaunchGame.UseVisualStyleBackColor = True
         ' 
@@ -688,7 +690,9 @@ Partial Class Form1
         ' 
         ' GroupBox3
         ' 
-        GroupBox3.Controls.Add(CheckBox1)
+        GroupBox3.Controls.Add(cbxControllerProfile)
+        GroupBox3.Controls.Add(chkbxEnableController)
+        GroupBox3.Controls.Add(cbxGameControllers)
         GroupBox3.Controls.Add(Label2)
         GroupBox3.Controls.Add(btnLaunchGame)
         GroupBox3.Controls.Add(lblAudioWarning)
@@ -708,6 +712,43 @@ Partial Class Form1
         GroupBox3.TabIndex = 2
         GroupBox3.TabStop = False
         GroupBox3.Text = "Launch Settings"
+        ' 
+        ' cbxControllerProfile
+        ' 
+        cbxControllerProfile.DropDownStyle = ComboBoxStyle.DropDownList
+        cbxControllerProfile.Enabled = False
+        cbxControllerProfile.FlatStyle = FlatStyle.Flat
+        cbxControllerProfile.Font = New Font("Segoe UI", 9F)
+        cbxControllerProfile.FormattingEnabled = True
+        cbxControllerProfile.Location = New Point(149, 108)
+        cbxControllerProfile.Margin = New Padding(2)
+        cbxControllerProfile.Name = "cbxControllerProfile"
+        cbxControllerProfile.Size = New Size(183, 23)
+        cbxControllerProfile.TabIndex = 7
+        ' 
+        ' chkbxEnableController
+        ' 
+        chkbxEnableController.Enabled = False
+        chkbxEnableController.FlatStyle = FlatStyle.Flat
+        chkbxEnableController.Location = New Point(149, 57)
+        chkbxEnableController.Name = "chkbxEnableController"
+        chkbxEnableController.Size = New Size(183, 19)
+        chkbxEnableController.TabIndex = 5
+        chkbxEnableController.Text = "Enable Controller"
+        chkbxEnableController.UseVisualStyleBackColor = True
+        ' 
+        ' cbxGameControllers
+        ' 
+        cbxGameControllers.DropDownStyle = ComboBoxStyle.DropDownList
+        cbxGameControllers.Enabled = False
+        cbxGameControllers.FlatStyle = FlatStyle.Flat
+        cbxGameControllers.Font = New Font("Segoe UI", 9F)
+        cbxGameControllers.FormattingEnabled = True
+        cbxGameControllers.Location = New Point(149, 81)
+        cbxGameControllers.Margin = New Padding(2)
+        cbxGameControllers.Name = "cbxGameControllers"
+        cbxGameControllers.Size = New Size(183, 23)
+        cbxGameControllers.TabIndex = 6
         ' 
         ' Label2
         ' 
@@ -732,7 +773,7 @@ Partial Class Form1
         cbxShaderGlassScaling.Margin = New Padding(2)
         cbxShaderGlassScaling.Name = "cbxShaderGlassScaling"
         cbxShaderGlassScaling.Size = New Size(85, 23)
-        cbxShaderGlassScaling.TabIndex = 13
+        cbxShaderGlassScaling.TabIndex = 11
         ' 
         ' chkbxLocalEmulator
         ' 
@@ -744,7 +785,7 @@ Partial Class Form1
         chkbxLocalEmulator.Location = New Point(6, 115)
         chkbxLocalEmulator.Name = "chkbxLocalEmulator"
         chkbxLocalEmulator.Size = New Size(108, 19)
-        chkbxLocalEmulator.TabIndex = 12
+        chkbxLocalEmulator.TabIndex = 4
         chkbxLocalEmulator.Text = "Locale Emulator"
         chkbxLocalEmulator.UseVisualStyleBackColor = True
         ' 
@@ -771,20 +812,6 @@ Partial Class Form1
         chkboxMachiCharaLocalEmulator.TabIndex = 4
         chkboxMachiCharaLocalEmulator.Text = "Locale Emulator"
         chkboxMachiCharaLocalEmulator.UseVisualStyleBackColor = True
-        ' 
-        ' CheckBox1
-        ' 
-        CheckBox1.AutoSize = True
-        CheckBox1.Checked = True
-        CheckBox1.CheckState = CheckState.Checked
-        CheckBox1.Enabled = False
-        CheckBox1.FlatStyle = FlatStyle.Flat
-        CheckBox1.Location = New Point(125, 68)
-        CheckBox1.Name = "CheckBox1"
-        CheckBox1.Size = New Size(108, 19)
-        CheckBox1.TabIndex = 15
-        CheckBox1.Text = "Locale Emulator"
-        CheckBox1.UseVisualStyleBackColor = True
         ' 
         ' Form1
         ' 
@@ -892,5 +919,7 @@ Partial Class Form1
     Friend WithEvents DeleteCMS_MachiChara As ToolStripMenuItem
     Friend WithEvents ListViewMachiChara As ListView
     Friend WithEvents chkboxMachiCharaLocalEmulator As CheckBox
-    Friend WithEvents CheckBox1 As CheckBox
+    Friend WithEvents chkbxEnableController As CheckBox
+    Friend WithEvents cbxGameControllers As ComboBox
+    Friend WithEvents cbxControllerProfile As ComboBox
 End Class
