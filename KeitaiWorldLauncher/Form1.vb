@@ -68,6 +68,9 @@ Public Class Form1
         'Summon Splash
         SplashScreen.ShowSplash()
 
+        ' Setup SJIS 
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
+
         ' Adjust Form
         AdjustFormPadding()
 
@@ -84,9 +87,6 @@ Public Class Form1
 
         ' Setup DIRs
         Await UtilManager.SetupDIRSAsync()
-
-        ' Setup SJIS 
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
 
         ' Setup Logging
         ' Check log File Size and Cleanup
@@ -496,6 +496,11 @@ Public Class Form1
         For Each v As String In variants
             ListViewGamesVariants.Items.Add(New ListViewItem(v.Trim()))
         Next
+
+        If ListViewGamesVariants.Items.Count = 1 Then
+            ListViewGamesVariants.Items(0).Selected = True
+        End If
+
         lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count.ToString}"
     End Function
     Private Async Function DownloadGames(ContextDownload As Boolean) As Task
