@@ -401,20 +401,20 @@ Public Class Form1
 
                                                                         ' Load favorites and custom games
                                                                         Dim favoriteGames As HashSet(Of String) =
-            If(File.Exists(FavoritesTxtFile),
-               File.ReadAllLines(FavoritesTxtFile).Select(Function(f) f.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
-               New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
+        If(File.Exists(FavoritesTxtFile),
+           File.ReadAllLines(FavoritesTxtFile).Select(Function(f) f.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+           New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
                                                                         Dim customGames As HashSet(Of String) =
-            If(File.Exists(CustomGamesTxtFile),
-               File.ReadAllLines(CustomGamesTxtFile).Select(Function(f) f.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
-               New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
+        If(File.Exists(CustomGamesTxtFile),
+           File.ReadAllLines(CustomGamesTxtFile).Select(Function(f) f.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+           New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
                                                                         ' Load installed game folders
                                                                         Dim installedGames As HashSet(Of String) =
-            Directory.GetDirectories(DownloadsFolder).
-            Select(Function(folder) Path.GetFileName(folder)).
-            ToHashSet(StringComparer.OrdinalIgnoreCase)
+        Directory.GetDirectories(DownloadsFolder).
+        Select(Function(folder) Path.GetFileName(folder)).
+        ToHashSet(StringComparer.OrdinalIgnoreCase)
 
                                                                         For Each game In games
                                                                             Dim gameTitle As String = game.ENTitle
@@ -425,17 +425,19 @@ Public Class Form1
                                                                             Dim isFavorited As Boolean = favoriteGames.Contains(gameTitle)
                                                                             Dim isCustom As Boolean = customGames.Contains(gameTitle)
                                                                             Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(zipFileName)
+                                                                            Dim isFanTranslation As Boolean = gameTitle.IndexOf("Patch", StringComparison.OrdinalIgnoreCase) >= 0
 
                                                                             Dim matchesFilter As Boolean = selectedFilter = "all" OrElse
-                                           (selectedFilter = "favorites" AndAlso isFavorited) OrElse
-                                           (selectedFilter = "custom" AndAlso isCustom) OrElse
-                                           (selectedFilter = "installed" AndAlso isInstalled) OrElse
-                                           (emulatorType = selectedFilter)
+                                                                               (selectedFilter = "favorites" AndAlso isFavorited) OrElse
+                                                                               (selectedFilter = "custom" AndAlso isCustom) OrElse
+                                                                               (selectedFilter = "installed" AndAlso isInstalled) OrElse
+                                                                               (selectedFilter = "fan-translations" AndAlso isFanTranslation) OrElse
+                                                                               (emulatorType = selectedFilter)
 
                                                                             If matchesSearch AndAlso matchesFilter Then
                                                                                 Dim item As New ListViewItem(gameTitle) With {
-                    .ImageKey = gameTitle
-                }
+                                                                                    .ImageKey = gameTitle
+                                                                                }
 
                                                                                 If isInstalled AndAlso isFavorited Then
                                                                                     item.BackColor = Color.LightSeaGreen
@@ -464,10 +466,8 @@ Public Class Form1
         ListViewGames.Items.AddRange(filteredItems.ToArray())
         lblFilteredGameCount.Text = $"Filtered: {filteredItems.Count}"
         ListViewGames.EndUpdate()
-
-        ' Optionally load variants after a selection
-        'Await LoadGameVariantsAsync()
     End Function
+
     Private Async Function LoadGameVariantsAsync() As Task
         ' Ensure the ListView view mode is set to Details
         ListViewGamesVariants.View = View.Details

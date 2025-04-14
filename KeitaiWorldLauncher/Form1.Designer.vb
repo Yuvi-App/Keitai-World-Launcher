@@ -571,11 +571,11 @@ Partial Class Form1
         cbxFilterType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxFilterType.FlatStyle = FlatStyle.Flat
         cbxFilterType.FormattingEnabled = True
-        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Doja", "Star"})
-        cbxFilterType.Location = New Point(360, 20)
+        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star"})
+        cbxFilterType.Location = New Point(340, 20)
         cbxFilterType.Margin = New Padding(2)
         cbxFilterType.Name = "cbxFilterType"
-        cbxFilterType.Size = New Size(100, 23)
+        cbxFilterType.Size = New Size(120, 23)
         cbxFilterType.TabIndex = 9
         ' 
         ' txtLVSearch
@@ -585,7 +585,7 @@ Partial Class Form1
         txtLVSearch.Margin = New Padding(2)
         txtLVSearch.Name = "txtLVSearch"
         txtLVSearch.PlaceholderText = "Search"
-        txtLVSearch.Size = New Size(350, 23)
+        txtLVSearch.Size = New Size(331, 23)
         txtLVSearch.TabIndex = 7
         ' 
         ' ListViewGames
