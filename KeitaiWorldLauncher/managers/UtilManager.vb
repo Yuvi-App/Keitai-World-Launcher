@@ -15,6 +15,7 @@ Imports Microsoft.Win32
 Imports System.Security.Principal
 Imports System.Reflection
 Imports SharpDX.DirectInput
+Imports SharpDX.XInput
 
 Namespace My.Managers
     Public Class UtilManager
@@ -591,6 +592,7 @@ Namespace My.Managers
                 Try
                     logger.Logger.LogInfo("User agreed to close doja.exe.")
                     CheckAndCloseShaderGlass()
+                    CheckAndCloseAMX()
 
                     For Each process As Process In dojaProcesses
                         logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
@@ -631,6 +633,7 @@ Namespace My.Managers
                 Try
                     logger.Logger.LogInfo("User agreed to close star.exe.")
                     CheckAndCloseShaderGlass()
+                    CheckAndCloseAMX()
 
                     For Each process As Process In starProcesses
                         logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
@@ -652,6 +655,32 @@ Namespace My.Managers
                 logger.Logger.LogInfo("User chose not to close star.exe.")
                 Return True ' Still running
             End If
+        End Function
+        Shared Function CheckAndCloseAMX() As Boolean
+            Dim AMXProcesses = Process.GetProcessesByName("antimicrox")
+            If AMXProcesses.Length = 0 Then
+                logger.Logger.LogInfo("antimicrox.exe is not currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {AMXProcesses.Length} instance(s) of antimicrox.exe running.")
+            Try
+                For Each process As Process In AMXProcesses
+                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
+                    process.Kill()
+                    process.WaitForExit()
+                Next
+
+                logger.Logger.LogInfo("All antimicrox.exe processes closed successfully.")
+                Return False ' No longer running
+            Catch ex As Exception
+                logger.Logger.LogError("Error while closing antimicrox.exe: " & ex.ToString())
+                MessageBox.Show("An error occurred while trying to close antimicrox.exe: " & ex.Message,
+                            "Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                Return True ' Still running
+            End Try
         End Function
         Shared Function CheckAndCloseShaderGlass() As Boolean
             Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
@@ -801,8 +830,11 @@ Namespace My.Managers
                     End If
                 End If
 
-                If Form1.chkbxEnableController.Checked Then
+                If Form1.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
+                    If Form1.chkboxControllerVibration.Checked = True Then
+                        Await StartVibratorBmpMonitorAsync(Path.Combine(DOJAPATH, "lib", "skin", "device1", "vibrator.bmp"))
+                    End If
                 End If
 
             Catch ex As Exception
@@ -908,8 +940,11 @@ Namespace My.Managers
                     End If
                 End If
 
-                If Form1.chkbxEnableController.Checked Then
+                If Form1.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
+                    If Form1.chkboxControllerVibration.Checked = True Then
+                        Await StartVibratorBmpMonitorAsync(Path.Combine(STARPATH, "lib", "skin", "device1", "vibrator.bmp"))
+                    End If
                 End If
 
             Catch ex As ArgumentException
@@ -996,21 +1031,7 @@ Namespace My.Managers
                 Return
             End If
 
-            Dim selectedControllerGUID As Guid = Guid.Empty
-            Dim directInput As New DirectInput()
-            Dim gameControllers = directInput.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly)
-
-            For Each deviceInfo In gameControllers
-                If deviceInfo.InstanceName = selectedController Then
-                    selectedControllerGUID = deviceInfo.InstanceGuid
-                    Exit For
-                End If
-            Next
-
-            If selectedControllerGUID = Guid.Empty Then
-                logger.Logger.LogInfo($"Launch aborted: Controller '{selectedController}' not found.")
-                Return
-            End If
+            Dim controllerIndex As Integer = Form1.cbxGameControllers.SelectedIndex
 
             Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
             Dim appPath As String = Path.Combine(baseDir, "data", "tools", "antimicrox", "bin", "antimicrox.exe")
@@ -1027,13 +1048,13 @@ Namespace My.Managers
             End If
 
             Dim startInfo As New ProcessStartInfo() With {
-                .FileName = appPath,
-                .Arguments = $"--profile ""{argumentFile}"" --profile-controller {selectedControllerGUID} --hidden",
-                .UseShellExecute = True,
-                .WorkingDirectory = baseDir
-            }
+        .FileName = appPath,
+        .Arguments = $"--profile ""{argumentFile}"" --profile-controller {controllerIndex} --hidden",
+        .UseShellExecute = True,
+        .WorkingDirectory = baseDir
+    }
 
-            logger.Logger.LogInfo($"Launching AntimicroX with profile '{selectedProfile}' and controller '{selectedController}' ({selectedControllerGUID})")
+            logger.Logger.LogInfo($"Launching AntimicroX with profile '{selectedProfile}' and controller index {controllerIndex}")
             Try
                 Process.Start(startInfo)
             Catch ex As Exception
@@ -1098,6 +1119,80 @@ Namespace My.Managers
             Await File.WriteAllLinesAsync(filePath, lines)
         End Function
 
+        'Vibration Functions
+        Private _cancellationSource As CancellationTokenSource
+        Private _lastAccessTime As DateTime
+        Private _vibrationLock As New Object()
+        Private _vibrating As Boolean = False
+        Public Async Function StartVibratorBmpMonitorAsync(bmpPath As String) As Task
+            _lastAccessTime = File.GetLastAccessTime(bmpPath)
+            _cancellationSource = New CancellationTokenSource()
+            Dim token = _cancellationSource.Token
+
+            Try
+                While Not token.IsCancellationRequested
+                    Await Task.Delay(100, token)
+
+                    Dim currentAccess = File.GetLastAccessTime(bmpPath)
+                    If currentAccess > _lastAccessTime Then
+                        _lastAccessTime = currentAccess
+                        Await TriggerVibrationAsync(token)
+                    End If
+                End While
+            Catch ex As TaskCanceledException
+                ' Expected on cancel
+            End Try
+        End Function
+        Public Sub StopVibratorBmpMonitor()
+            Try
+                _cancellationSource?.Cancel()
+            Catch ex As ObjectDisposedException
+                ' Already disposed
+            End Try
+
+            _cancellationSource = Nothing
+
+            ' Force stop any vibration
+            Try
+                Dim controller As New Controller(UserIndex.One)
+                If controller.IsConnected Then
+                    controller.SetVibration(New Vibration())
+                End If
+            Catch
+                ' Ignore controller errors on shutdown
+            End Try
+        End Sub
+        Public Async Function TriggerVibrationAsync(token As CancellationToken) As Task
+            SyncLock _vibrationLock
+                If _vibrating Then Exit Function ' Skip if already vibrating
+                _vibrating = True
+            End SyncLock
+
+            Try
+                Dim controller As New Controller(UserIndex.One)
+                If controller.IsConnected Then
+                    controller.SetVibration(New Vibration With {
+                .LeftMotorSpeed = 65535,
+                .RightMotorSpeed = 65535
+            })
+
+                    Await Task.Delay(250, token) ' Respect cancellation
+                    controller.SetVibration(New Vibration())
+                Else
+                    Console.WriteLine("XInput controller not connected.")
+                End If
+            Catch ex As TaskCanceledException
+                ' If cancelled mid-vibration, stop the motor
+                Dim controller As New Controller(UserIndex.One)
+                If controller.IsConnected Then
+                    controller.SetVibration(New Vibration())
+                End If
+            Finally
+                SyncLock _vibrationLock
+                    _vibrating = False
+                End SyncLock
+            End Try
+        End Function
 
         'Asynchronous method to wait for the "doja/star" process to start
         Private Async Function WaitForDojaToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
@@ -1265,7 +1360,7 @@ Namespace My.Managers
             If replacementCount > 0 Then
                 logger.Logger.LogInfo($"Replaced {replacementCount} occurrence(s) of 'NULLGWDOCOMO' with '{Form1.NetworkUID}' in {JamFile}")
             Else
-                    logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
+                logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
             End If
 
             File.WriteAllLines(JamFile, lines)

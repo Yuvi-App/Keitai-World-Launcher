@@ -89,6 +89,7 @@ Partial Class Form1
         MaterialTabControl1 = New ReaLTaiizor.Controls.MaterialTabControl()
         tpGames = New TabPage()
         GroupBox3 = New GroupBox()
+        chkboxControllerVibration = New CheckBox()
         cbxControllerProfile = New ComboBox()
         chkbxEnableController = New CheckBox()
         cbxGameControllers = New ComboBox()
@@ -690,6 +691,7 @@ Partial Class Form1
         ' 
         ' GroupBox3
         ' 
+        GroupBox3.Controls.Add(chkboxControllerVibration)
         GroupBox3.Controls.Add(cbxControllerProfile)
         GroupBox3.Controls.Add(chkbxEnableController)
         GroupBox3.Controls.Add(cbxGameControllers)
@@ -713,6 +715,17 @@ Partial Class Form1
         GroupBox3.TabStop = False
         GroupBox3.Text = "Launch Settings"
         ' 
+        ' chkboxControllerVibration
+        ' 
+        chkboxControllerVibration.Enabled = False
+        chkboxControllerVibration.FlatStyle = FlatStyle.Flat
+        chkboxControllerVibration.Location = New Point(270, 57)
+        chkboxControllerVibration.Name = "chkboxControllerVibration"
+        chkboxControllerVibration.Size = New Size(72, 19)
+        chkboxControllerVibration.TabIndex = 15
+        chkboxControllerVibration.Text = "Vibration"
+        chkboxControllerVibration.UseVisualStyleBackColor = True
+        ' 
         ' cbxControllerProfile
         ' 
         cbxControllerProfile.DropDownStyle = ComboBoxStyle.DropDownList
@@ -723,7 +736,7 @@ Partial Class Form1
         cbxControllerProfile.Location = New Point(149, 108)
         cbxControllerProfile.Margin = New Padding(2)
         cbxControllerProfile.Name = "cbxControllerProfile"
-        cbxControllerProfile.Size = New Size(183, 23)
+        cbxControllerProfile.Size = New Size(193, 23)
         cbxControllerProfile.TabIndex = 7
         ' 
         ' chkbxEnableController
@@ -732,7 +745,7 @@ Partial Class Form1
         chkbxEnableController.FlatStyle = FlatStyle.Flat
         chkbxEnableController.Location = New Point(149, 57)
         chkbxEnableController.Name = "chkbxEnableController"
-        chkbxEnableController.Size = New Size(183, 19)
+        chkbxEnableController.Size = New Size(115, 19)
         chkbxEnableController.TabIndex = 5
         chkbxEnableController.Text = "Enable Controller"
         chkbxEnableController.UseVisualStyleBackColor = True
@@ -747,7 +760,7 @@ Partial Class Form1
         cbxGameControllers.Location = New Point(149, 81)
         cbxGameControllers.Margin = New Padding(2)
         cbxGameControllers.Name = "cbxGameControllers"
-        cbxGameControllers.Size = New Size(183, 23)
+        cbxGameControllers.Size = New Size(193, 23)
         cbxGameControllers.TabIndex = 6
         ' 
         ' Label2
@@ -922,4 +935,5 @@ Partial Class Form1
     Friend WithEvents chkbxEnableController As CheckBox
     Friend WithEvents cbxGameControllers As ComboBox
     Friend WithEvents cbxControllerProfile As ComboBox
+    Friend WithEvents chkboxControllerVibration As CheckBox
 End Class

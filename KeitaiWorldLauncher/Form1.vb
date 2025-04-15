@@ -1,11 +1,12 @@
-﻿Imports System.IO
-Imports System.Reflection.Metadata.Ecma335
+﻿Imports System.Diagnostics.Eventing.Reader
+Imports System.IO
 Imports System.Text
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
 Imports ReaLTaiizor.[Enum].Poison
-Imports SharpDX.DirectInput
+Imports SharpDX.XInput
+
 
 Public Class Form1
     'Global Vars
@@ -21,6 +22,7 @@ Public Class Form1
     Dim config As Dictionary(Of String, String)
     Dim games As List(Of Game)
     Dim machicharas As List(Of MachiChara)
+    Private XInputDevices As New Dictionary(Of String, Integer)
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -57,9 +59,15 @@ Public Class Form1
     Public MachiCharaExe As String
 
     ' FORM LOAD
+    Private Sub Form1_FormClosing(sender As Object, e As EventArgs) Handles MyBase.FormClosing
+        UtilManager.CheckAndCloseDoja()
+        UtilManager.CheckAndCloseStar()
+        UtilManager.CheckAndCloseAMX()
+    End Sub
     Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
         UtilManager.CheckAndCloseDoja()
         UtilManager.CheckAndCloseStar()
+        UtilManager.CheckAndCloseAMX()
     End Sub
     Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Opacity = 0
@@ -938,12 +946,19 @@ Public Class Form1
         Next
     End Sub
     Public Function LoadConnectedControllers() As Boolean
-        Dim directInput = New DirectInput()
-        Dim devices = directInput.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly)
+        cbxGameControllers.Items.Clear()
+        XInputDevices.Clear()
 
-        For Each deviceInfo In devices
-            cbxGameControllers.Items.Add(deviceInfo.InstanceName)
-            Logger.LogInfo($"Detected controller: {deviceInfo.InstanceName}")
+        ' Loop through 4 possible XInput devices (0 to 3)
+        For i As Integer = 0 To 3
+            Dim controller As New Controller(CType(i, UserIndex))
+            If controller.IsConnected Then
+                Dim capabilities = controller.GetCapabilities(DeviceQueryType.Gamepad)
+                Dim controllerName As String = $"XInput Controller {i + 1}"
+                cbxGameControllers.Items.Add(controllerName)
+                XInputDevices(controllerName) = i ' Save the controller index
+                Logger.LogInfo($"Detected controller: {controllerName}")
+            End If
         Next
 
         If cbxGameControllers.Items.Count > 0 Then
@@ -951,7 +966,7 @@ Public Class Form1
             cbxGameControllers.Enabled = True
             Return True
         Else
-            MessageBox.Show("No controllers detected... Please connect one and try again.")
+            MessageBox.Show("No XInput controllers detected... Please connect one and try again.")
             Return False
         End If
     End Function
@@ -1008,7 +1023,6 @@ Public Class Form1
         DownloadMachiChara(selectedMachiChara)
     End Sub
 
-
     ' CheckBox Changes
     Private Sub chkbxHidePhoneUI_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxHidePhoneUI.CheckedChanged
         configManager.UpdateDOJAHideUISetting(chkbxHidePhoneUI.Checked)
@@ -1024,6 +1038,8 @@ Public Class Form1
             cbxGameControllers.Items.Clear()
             cbxGameControllers.Enabled = False
             cbxControllerProfile.Enabled = False
+            chkboxControllerVibration.Enabled = False
+            chkboxControllerVibration.Checked = False
             Return
         End If
 
@@ -1035,13 +1051,20 @@ Public Class Form1
         If Not LoadConnectedControllers() Then
             Logger.LogInfo("No controllers detected. Disabling controller support.")
             chkbxEnableController.Checked = False
+            chkboxControllerVibration.Checked = False
+            chkboxControllerVibration.Enabled = False
             Return
         End If
 
         If Not LoadControllerProfiles() Then
             Logger.LogInfo("No controller profiles found. Disabling controller support.")
             chkbxEnableController.Checked = False
+            chkboxControllerVibration.Checked = False
+            chkboxControllerVibration.Enabled = False
+            Return
         End If
+        chkboxControllerVibration.Checked = True
+        chkboxControllerVibration.Enabled = True
     End Sub
 
     ' ComboBox Changes
@@ -1087,6 +1110,34 @@ Public Class Form1
             End If
         End If
     End Sub
+    Private Async Sub cbxGameControllers_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxGameControllers.SelectedIndexChanged
+        Dim selectedName = cbxGameControllers.SelectedItem?.ToString()
+
+        If Not String.IsNullOrEmpty(selectedName) AndAlso XInputDevices.ContainsKey(selectedName) Then
+            Dim controllerIndex As Integer = XInputDevices(selectedName)
+            Dim controller As New Controller(CType(controllerIndex, UserIndex))
+
+            If controller.IsConnected Then
+                ' Set vibration - values range from 0 to 65535
+                Dim vibration As New Vibration() With {
+                .LeftMotorSpeed = 65535,
+                .RightMotorSpeed = 65535
+            }
+
+                controller.SetVibration(vibration)
+
+                ' Wait 250ms before turning vibration off
+                Await Task.Delay(250)
+
+                controller.SetVibration(New Vibration())
+            Else
+                MessageBox.Show("Controller is not connected.")
+            End If
+        Else
+            MessageBox.Show("Selected controller does not support XInput vibration.")
+        End If
+    End Sub
+
 
     'Textbox Changes
     Private Async Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged
@@ -1162,6 +1213,7 @@ Public Class Form1
             Process.Start("explorer.exe", gameFolder)
         End If
     End Sub
+
     'MachiChara CMS
     Private Sub DownloadCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DownloadCMS_MachiChara.Click
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
@@ -1177,6 +1229,9 @@ Public Class Form1
     Private Async Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         Try
             Logger.LogInfo("Attempting to launch game...")
+            If chkbxEnableController.Checked Then
+                utilManager.StopVibratorBmpMonitor()
+            End If
 
             ' Ensure a game is selected
             If ListViewGames.SelectedItems.Count = 0 Then
@@ -1833,4 +1888,5 @@ Public Class Form1
             UtilManager.ProcessMachiChara_CFDFiles(FolderBrowserDialog1.SelectedPath)
         End If
     End Sub
+
 End Class
