@@ -5,6 +5,8 @@ VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "KeitaiWorldLauncher", "KeitaiWorldLauncher\KeitaiWorldLauncher.vbproj", "{DDF822BD-D2B5-44C5-BEE1-A5680FF49088}"
 EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "KWL-Updater", "KWL-Updater\KWL-Updater.vbproj", "{AC140E87-35CC-4EB3-8BA4-DC2204565CFF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,8 +17,15 @@ Global
 		{DDF822BD-D2B5-44C5-BEE1-A5680FF49088}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DDF822BD-D2B5-44C5-BEE1-A5680FF49088}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DDF822BD-D2B5-44C5-BEE1-A5680FF49088}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC140E87-35CC-4EB3-8BA4-DC2204565CFF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC140E87-35CC-4EB3-8BA4-DC2204565CFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC140E87-35CC-4EB3-8BA4-DC2204565CFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC140E87-35CC-4EB3-8BA4-DC2204565CFF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {43AF4900-6C1C-4F6D-9B3C-D78D23E7AD9E}
 	EndGlobalSection
 EndGlobal

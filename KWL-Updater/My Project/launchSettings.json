@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "KWL-Updater": {
+      "commandName": "Project",
+      "commandLineArgs": "https://scratchpad.keitaiwiki.com/public.php/dav/files/AxTty326itLfEwE/Utilities/KeitaiWorldLauncher.zip C:\\Users\\darks\\source\\repos\\Yuvi-App\\Keitai-World-Launcher\\KeitaiWorldLauncher\\bin\\Debug\\net8.0-windows C:\\Users\\darks\\source\\repos\\Yuvi-App\\Keitai-World-Launcher\\KeitaiWorldLauncher\\bin\\Debug\\net8.0-windows\\KeitaiWorldLauncher.exe"
+    }
+  }
+}

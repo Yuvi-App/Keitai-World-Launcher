@@ -155,7 +155,7 @@ Public Class Form1
             ' Check for App update
             Logger.LogInfo("Getting App Update")
             If autoUpdate = True Then
-                Await UtilManager.CheckForUpdatesAsync(versionCheckUrl)
+                Await UpdateManager.CheckAndLaunchUpdaterAsync(versionCheckUrl, SplashScreen)
             End If
 
             ' Get Updated Game List  

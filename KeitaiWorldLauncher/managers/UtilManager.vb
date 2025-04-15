@@ -403,23 +403,6 @@ Namespace My.Managers
             snackBar.Show(Form1)
         End Function
 
-        'Check for APP Updates
-        Public Shared Async Function CheckForUpdatesAsync(latestVersionUrl As String) As Task
-            Dim currentVersion As String = KeitaiWorldLauncher.My.Application.Info.Version.ToString ' Get current version
-
-            Try
-                Using client As New Net.Http.HttpClient()
-                    Dim latestVersion As String = (Await client.GetStringAsync(latestVersionUrl)).Trim()
-
-                    If currentVersion <> latestVersion Then
-                        MessageBox.Show(owner:=SplashScreen, $"You are running an outdated version ({currentVersion}){vbCrLf}A new version ({latestVersion}) is available to download.")
-                    End If
-                End Using
-            Catch ex As Exception
-                MessageBox.Show(owner:=SplashScreen, $"Failed to check for updates. Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
-        End Function
-
         'Generate Controls
         Public Shared Sub GenerateDynamicControlsFromLines(JAMFile As String, container As Panel)
             Try

@@ -8,8 +8,8 @@
     <MyType>WindowsForms</MyType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ForceDesignerDPIUnaware>true</ForceDesignerDPIUnaware>
-    <AssemblyVersion>0.2.1</AssemblyVersion>
-    <FileVersion>0.2.1</FileVersion>
+    <AssemblyVersion>0.2.2</AssemblyVersion>
+    <FileVersion>0.2.2</FileVersion>
     <ApplicationIcon>kwl.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -26,9 +26,10 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="ReaLTaiizor" Version="3.8.1.2" />
-    <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
     <PackageReference Include="SharpDX.XInput" Version="4.2.0" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.4" />
+    <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
   </ItemGroup>
 
   <ItemGroup>
