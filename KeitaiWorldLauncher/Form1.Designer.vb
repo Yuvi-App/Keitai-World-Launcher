@@ -719,9 +719,9 @@ Partial Class Form1
         ' 
         chkboxControllerVibration.Enabled = False
         chkboxControllerVibration.FlatStyle = FlatStyle.Flat
-        chkboxControllerVibration.Location = New Point(270, 57)
+        chkboxControllerVibration.Location = New Point(263, 57)
         chkboxControllerVibration.Name = "chkboxControllerVibration"
-        chkboxControllerVibration.Size = New Size(72, 19)
+        chkboxControllerVibration.Size = New Size(79, 19)
         chkboxControllerVibration.TabIndex = 15
         chkboxControllerVibration.Text = "Vibration"
         chkboxControllerVibration.UseVisualStyleBackColor = True
@@ -733,19 +733,19 @@ Partial Class Form1
         cbxControllerProfile.FlatStyle = FlatStyle.Flat
         cbxControllerProfile.Font = New Font("Segoe UI", 9F)
         cbxControllerProfile.FormattingEnabled = True
-        cbxControllerProfile.Location = New Point(149, 108)
+        cbxControllerProfile.Location = New Point(132, 108)
         cbxControllerProfile.Margin = New Padding(2)
         cbxControllerProfile.Name = "cbxControllerProfile"
-        cbxControllerProfile.Size = New Size(193, 23)
+        cbxControllerProfile.Size = New Size(210, 23)
         cbxControllerProfile.TabIndex = 7
         ' 
         ' chkbxEnableController
         ' 
         chkbxEnableController.Enabled = False
         chkbxEnableController.FlatStyle = FlatStyle.Flat
-        chkbxEnableController.Location = New Point(149, 57)
+        chkbxEnableController.Location = New Point(132, 57)
         chkbxEnableController.Name = "chkbxEnableController"
-        chkbxEnableController.Size = New Size(115, 19)
+        chkbxEnableController.Size = New Size(125, 19)
         chkbxEnableController.TabIndex = 5
         chkbxEnableController.Text = "Enable Controller"
         chkbxEnableController.UseVisualStyleBackColor = True
@@ -757,10 +757,10 @@ Partial Class Form1
         cbxGameControllers.FlatStyle = FlatStyle.Flat
         cbxGameControllers.Font = New Font("Segoe UI", 9F)
         cbxGameControllers.FormattingEnabled = True
-        cbxGameControllers.Location = New Point(149, 81)
+        cbxGameControllers.Location = New Point(132, 81)
         cbxGameControllers.Margin = New Padding(2)
         cbxGameControllers.Name = "cbxGameControllers"
-        cbxGameControllers.Size = New Size(193, 23)
+        cbxGameControllers.Size = New Size(210, 23)
         cbxGameControllers.TabIndex = 6
         ' 
         ' Label2

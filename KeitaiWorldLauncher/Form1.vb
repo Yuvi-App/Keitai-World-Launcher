@@ -29,6 +29,7 @@ Public Class Form1
     Public ToolsFolder As String = "data\tools"
     Public ConfigsFolder As String = "configs"
     Public LogFolder As String = "logs"
+    Public NetworkUIDTxtFile As String = Path.Combine(ConfigsFolder, "networkuid.txt")
     Public FavoritesTxtFile As String = Path.Combine(ConfigsFolder, "favorites.txt")
     Public CustomGamesTxtFile As String = Path.Combine(ConfigsFolder, "customgames.txt")
 
@@ -114,7 +115,6 @@ Public Class Form1
         machicharaListUrl = config("MachiCharalistURL")
         autoUpdatemachicharaList = Boolean.Parse(config("AutoUpdateMachiCharaList"))
         UseShaderGlass = Boolean.Parse(config("UseShaderGlass"))
-        NetworkUID = config("NetworkUID")
         Dojapath = config("DOJAPath")
         DojaAppPath = Dojapath & "\app"
         DojaEXE = config("DOJAEXEPath")
@@ -125,6 +125,16 @@ Public Class Form1
         StarEXE = config("STAREXEPath")
         MachiCharapath = config("MachiCharaPath")
         MachiCharaExe = config("MachiCharaEXEPath")
+
+        ' Get NetworkUIDConfig
+        If File.Exists(NetworkUIDTxtFile) = False Then
+            Using sw As StreamWriter = New StreamWriter(File.Open(NetworkUIDTxtFile, FileMode.Create))
+                sw.WriteLine("NULLGWDOCOMO")
+                sw.Flush()
+                sw.Close()
+            End Using
+        End If
+        NetworkUID = File.ReadAllText(NetworkUIDTxtFile).Trim
 
         ' Check PreREQs if First Run
         Await UtilManager.CheckForSpacesInPathAsync()

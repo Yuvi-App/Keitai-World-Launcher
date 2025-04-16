@@ -1,4 +1,5 @@
-﻿Imports System.Xml
+﻿Imports System.IO
+Imports System.Xml
 Imports KeitaiWorldLauncher.My.logger
 Imports ReaLTaiizor.Controls
 
@@ -16,7 +17,6 @@ Namespace My.Managers
         {"MachiCharalistURL", "machicharalist.xml"},
         {"AutoUpdateMachiCharaList", "true"},
         {"UseShaderGlass", "true"},
-        {"NetworkUID", "NULLGWDOCOMO"},
         {"DOJAPath", "c:\doja"},
         {"DOJAEXEPath", "doja.exe"},
         {"DOJAHideUI", "true"},
@@ -109,15 +109,10 @@ Namespace My.Managers
         End Sub
         Public Sub UpdateNetworkUIDSetting(NewNetworkUID As String)
             Try
-                ' Load the XML document
-                Dim doc As New XmlDocument()
-                doc.Load(ConfigFilePath)
-                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='NetworkUID']")
-                If settingNode IsNot Nothing Then
-                    settingNode.InnerText = NewNetworkUID
-                    doc.Save(ConfigFilePath)
-                Else
-                End If
+                Dim CurrentNetworkUID = Form1.NetworkUID
+                NewNetworkUID = NewNetworkUID.Trim
+                File.WriteAllText(Form1.NetworkUIDTxtFile, NewNetworkUID)
+                logger.Logger.LogInfo($"Updated NetworkUID from {CurrentNetworkUID} to {NewNetworkUID}")
             Catch ex As Exception
                 MessageBox.Show($"Failed to update the NetworkUID setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 logger.Logger.LogError($"Failed to update the NetworkUID setting: {ex.Message}")
