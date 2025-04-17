@@ -22,8 +22,7 @@ Public Class Form1
     Dim config As Dictionary(Of String, String)
     Dim games As List(Of Game)
     Dim machicharas As List(Of MachiChara)
-    Private XInputDevices As New Dictionary(Of String, Integer)
-    Dim Java32BinFolderPath As String
+    Dim XInputDevices As New Dictionary(Of String, Integer)
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -37,6 +36,7 @@ Public Class Form1
     'Index Vars Can Change
     Dim CurrentSelectedGameJAM As String
     Dim CurrentSelectedGameJAR As String
+    Dim CurrentSelectedGameSP As String
     Dim CurrentSelectedMachiCharaCFD As String
 
     'Config Vars
@@ -50,15 +50,14 @@ Public Class Form1
     Public UseShaderGlass As Boolean
     Public NetworkUID As String
     Public Dojapath As String
-    Public DojaAppPath As String
     Public DojaEXE As String
     Public DojaHideUI As Boolean
     Public DOJASoundType As String
     Public Starpath As String
-    Public StarAppPath As String
     Public StarEXE As String
     Public MachiCharapath As String
     Public MachiCharaExe As String
+    Public Java32BinFolderPath As String
 
     ' FORM LOAD
     Private Sub Form1_FormClosing(sender As Object, e As EventArgs) Handles MyBase.FormClosing
@@ -117,12 +116,10 @@ Public Class Form1
         autoUpdatemachicharaList = Boolean.Parse(config("AutoUpdateMachiCharaList"))
         UseShaderGlass = Boolean.Parse(config("UseShaderGlass"))
         Dojapath = config("DOJAPath")
-        DojaAppPath = Dojapath & "\app"
         DojaEXE = config("DOJAEXEPath")
         DojaHideUI = Boolean.Parse(config("DOJAHideUI"))
         DOJASoundType = config("DOJASoundType")
         Starpath = config("STARPath")
-        StarAppPath = StarAppPath & "\app"
         StarEXE = config("STAREXEPath")
         MachiCharapath = config("MachiCharaPath")
         MachiCharaExe = config("MachiCharaEXEPath")
@@ -563,12 +560,15 @@ Public Class Form1
         If GameVariants Is Nothing Or GameVariants = "" Then
             CurrentSelectedGameJAM = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
             CurrentSelectedGameJAR = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
+            CurrentSelectedGameSP = $"{gameBasePath}\sp\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.sp"
         ElseIf ListViewGamesVariants.SelectedItems.Count > 0 Then
             CurrentSelectedGameJAM = $"{gameBasePath}\{selectedGameVariants}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
             CurrentSelectedGameJAR = $"{gameBasePath}\{selectedGameVariants}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
+            CurrentSelectedGameSP = $"{gameBasePath}\{selectedGameVariants}\sp\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.sp"
         Else
             CurrentSelectedGameJAM = $"{gameBasePath}\{GameVariantsSplit(0)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
             CurrentSelectedGameJAR = $"{gameBasePath}\{GameVariantsSplit(0)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
+            CurrentSelectedGameSP = $"{gameBasePath}\{GameVariantsSplit(0)}\sp\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.sp"
         End If
 
         ' Check if the game is already downloaded

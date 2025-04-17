@@ -564,150 +564,7 @@ Namespace My.Managers
             End If
         End Sub
 
-        'Launch App
-        Public Function IsProcessRunning(processName As String) As Boolean
-            ' Get the list of all processes with the given name
-            Dim runningProcesses As Process() = Process.GetProcessesByName(processName)
-
-            ' Return true if any matching process is found, otherwise false
-            Return runningProcesses.Length > 0
-        End Function
-        Shared Function CheckAndCloseDoja() As Boolean
-            Dim dojaProcesses = Process.GetProcessesByName("doja")
-
-            If dojaProcesses.Length = 0 Then
-                logger.Logger.LogInfo("doja.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {dojaProcesses.Length} instance(s) of doja.exe running.")
-            Dim result = MessageBox.Show("doja.exe is currently running. Do you want to close it?",
-                                 "Confirm Close",
-                                 MessageBoxButtons.YesNo,
-                                 MessageBoxIcon.Question)
-
-            If result = DialogResult.Yes Then
-                Try
-                    logger.Logger.LogInfo("User agreed to close doja.exe.")
-                    CheckAndCloseShaderGlass()
-                    CheckAndCloseAMX()
-
-                    For Each process As Process In dojaProcesses
-                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                        process.Kill()
-                        process.WaitForExit()
-                    Next
-
-                    logger.Logger.LogInfo("All doja.exe processes closed successfully.")
-                    Return False ' No longer running
-                Catch ex As Exception
-                    logger.Logger.LogError("Error while closing doja.exe: " & ex.ToString())
-                    MessageBox.Show("An error occurred while trying to close doja.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                    Return True ' Still running
-                End Try
-            Else
-                logger.Logger.LogInfo("User chose not to close doja.exe.")
-                Return True ' Still running
-            End If
-        End Function
-        Shared Function CheckAndCloseStar() As Boolean
-            Dim starProcesses = Process.GetProcessesByName("star")
-
-            If starProcesses.Length = 0 Then
-                logger.Logger.LogInfo("star.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {starProcesses.Length} instance(s) of star.exe running.")
-            Dim result = MessageBox.Show("star.exe is currently running. Do you want to close it?",
-                                 "Confirm Close",
-                                 MessageBoxButtons.YesNo,
-                                 MessageBoxIcon.Question)
-
-            If result = DialogResult.Yes Then
-                Try
-                    logger.Logger.LogInfo("User agreed to close star.exe.")
-                    CheckAndCloseShaderGlass()
-                    CheckAndCloseAMX()
-
-                    For Each process As Process In starProcesses
-                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                        process.Kill()
-                        process.WaitForExit()
-                    Next
-
-                    logger.Logger.LogInfo("All star.exe processes closed successfully.")
-                    Return False ' No longer running
-                Catch ex As Exception
-                    logger.Logger.LogError("Error while closing star.exe: " & ex.ToString())
-                    MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                    Return True ' Still running
-                End Try
-            Else
-                logger.Logger.LogInfo("User chose not to close star.exe.")
-                Return True ' Still running
-            End If
-        End Function
-        Shared Function CheckAndCloseAMX() As Boolean
-            Dim AMXProcesses = Process.GetProcessesByName("antimicrox")
-            If AMXProcesses.Length = 0 Then
-                logger.Logger.LogInfo("antimicrox.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {AMXProcesses.Length} instance(s) of antimicrox.exe running.")
-            Try
-                For Each process As Process In AMXProcesses
-                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                    process.Kill()
-                    process.WaitForExit()
-                Next
-
-                logger.Logger.LogInfo("All antimicrox.exe processes closed successfully.")
-                Return False ' No longer running
-            Catch ex As Exception
-                logger.Logger.LogError("Error while closing antimicrox.exe: " & ex.ToString())
-                MessageBox.Show("An error occurred while trying to close antimicrox.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                Return True ' Still running
-            End Try
-        End Function
-        Shared Function CheckAndCloseShaderGlass() As Boolean
-            Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
-
-            If shaderglassProcesses.Length = 0 Then
-                logger.Logger.LogInfo("shaderglass.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {shaderglassProcesses.Length} instance(s) of shaderglass.exe running.")
-
-            Try
-                For Each process As Process In shaderglassProcesses
-                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                    process.Kill()
-                    process.WaitForExit()
-                Next
-
-                logger.Logger.LogInfo("All shaderglass.exe processes closed successfully.")
-                Return False ' No longer running
-            Catch ex As Exception
-                logger.Logger.LogError("Error while closing shaderglass.exe: " & ex.ToString())
-                MessageBox.Show("An error occurred while trying to close shaderglass.exe: " & ex.Message,
-                        "Error",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error)
-                Return True ' Still running
-            End Try
-        End Function
+        'Launch App Functions
         Public Async Sub LaunchCustomDOJAGameCommand(DOJAPATH As String, DOJAEXELocation As String, GameJAM As String)
             Try
                 ' Validate inputs
@@ -1060,179 +917,8 @@ Namespace My.Managers
                 logger.Logger.LogInfo("Failed to launch AntimicroX: " & ex.Message)
             End Try
         End Function
-        Public Async Function ModifyCaptureWindow(filePath As String, AppName As String) As Task
-            If Not File.Exists(filePath) Then
-                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
-                Return
-            End If
 
-            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(filePath)).ToList()
-
-            For i As Integer = 0 To lines.Count - 1
-                If lines(i).StartsWith("CaptureWindow") Then
-                    lines(i) = $"CaptureWindow ""{AppName}"""
-                    Exit For
-                End If
-            Next
-
-            Await File.WriteAllLinesAsync(filePath, lines)
-        End Function
-        Public Async Function ModifyScalingWindow(filePath As String) As Task
-            Dim selectedValue As String = Form1.cbxShaderGlassScaling.SelectedItem.ToString()
-            Dim scaleValue As Integer
-
-            Select Case selectedValue
-                Case "1x"
-                    scaleValue = 100
-                Case "1.5x"
-                    scaleValue = 150
-                Case "2x"
-                    scaleValue = 200
-                Case "2.5x"
-                    scaleValue = 250
-                Case "3x"
-                    scaleValue = 300
-                Case "3.5x"
-                    scaleValue = 350
-                Case "4x"
-                    scaleValue = 400
-                Case Else
-                    scaleValue = 100 ' default value
-            End Select
-
-            If Not File.Exists(filePath) Then
-                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
-                Return
-            End If
-
-            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(filePath)).ToList()
-
-            For i As Integer = 0 To lines.Count - 1
-                If lines(i).StartsWith("OutputScale") Then
-                    lines(i) = $"OutputScale ""{scaleValue}"""
-                    Exit For
-                End If
-            Next
-
-            Await File.WriteAllLinesAsync(filePath, lines)
-        End Function
-
-        'Vibration Functions
-        Private _cancellationSource As CancellationTokenSource
-        Private _lastAccessTime As DateTime
-        Private _vibrationLock As New Object()
-        Private _vibrating As Boolean = False
-        Public Async Function StartVibratorBmpMonitorAsync(bmpPath As String) As Task
-            _lastAccessTime = File.GetLastAccessTime(bmpPath)
-            _cancellationSource = New CancellationTokenSource()
-            Dim token = _cancellationSource.Token
-
-            Try
-                While Not token.IsCancellationRequested
-                    Await Task.Delay(100, token)
-
-                    Dim currentAccess = File.GetLastAccessTime(bmpPath)
-                    If currentAccess > _lastAccessTime Then
-                        _lastAccessTime = currentAccess
-                        Await TriggerVibrationAsync(token)
-                    End If
-                End While
-            Catch ex As TaskCanceledException
-                ' Expected on cancel
-            End Try
-        End Function
-        Public Sub StopVibratorBmpMonitor()
-            Try
-                _cancellationSource?.Cancel()
-            Catch ex As ObjectDisposedException
-                ' Already disposed
-            End Try
-
-            _cancellationSource = Nothing
-
-            ' Force stop any vibration
-            Try
-                Dim controller As New Controller(UserIndex.One)
-                If controller.IsConnected Then
-                    controller.SetVibration(New Vibration())
-                End If
-            Catch
-                ' Ignore controller errors on shutdown
-            End Try
-        End Sub
-        Public Async Function TriggerVibrationAsync(token As CancellationToken) As Task
-            SyncLock _vibrationLock
-                If _vibrating Then Exit Function ' Skip if already vibrating
-                _vibrating = True
-            End SyncLock
-
-            Try
-                Dim controller As New Controller(UserIndex.One)
-                If controller.IsConnected Then
-                    controller.SetVibration(New Vibration With {
-                .LeftMotorSpeed = 65535,
-                .RightMotorSpeed = 65535
-            })
-
-                    Await Task.Delay(250, token) ' Respect cancellation
-                    controller.SetVibration(New Vibration())
-                Else
-                    Console.WriteLine("XInput controller not connected.")
-                End If
-            Catch ex As TaskCanceledException
-                ' If cancelled mid-vibration, stop the motor
-                Dim controller As New Controller(UserIndex.One)
-                If controller.IsConnected Then
-                    controller.SetVibration(New Vibration())
-                End If
-            Finally
-                SyncLock _vibrationLock
-                    _vibrating = False
-                End SyncLock
-            End Try
-        End Function
-
-        'Asynchronous method to wait for the "doja/star" process to start
-        Private Async Function WaitForDojaToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
-            Dim startTime As DateTime = DateTime.Now
-
-            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
-                Dim dojaProcesses As Process() = Process.GetProcessesByName("doja")
-
-                For Each proc In dojaProcesses
-                    If proc.MainWindowHandle <> IntPtr.Zero Then
-                        logger.Logger.LogInfo("[WaitForDojaToStart] DOJA process ready with MainWindowHandle.")
-                        Return True
-                    End If
-                Next
-
-                Await Task.Delay(500)
-            End While
-
-            logger.Logger.LogError("[WaitForDojaToStart] Timed out waiting for DOJA window.")
-            Return False
-        End Function
-        Private Async Function WaitForSTARToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
-            Dim startTime As DateTime = DateTime.Now
-
-            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
-                Dim dojaProcesses As Process() = Process.GetProcessesByName("star")
-
-                For Each proc In dojaProcesses
-                    If proc.MainWindowHandle <> IntPtr.Zero Then
-                        logger.Logger.LogInfo("[WaitForSTARToStart] STAR process ready with MainWindowHandle.")
-                        Return True
-                    End If
-                Next
-
-                Await Task.Delay(500)
-            End While
-
-            logger.Logger.LogError("[WaitForSTARToStart] Timed out waiting for STAR window.")
-            Return False
-        End Function
-
-        'Helpers
+        'Launche App Helpers
         Public Async Function LaunchEmulatorWithRetry(
             fileName As String,
             arguments As String,
@@ -1330,6 +1016,186 @@ Namespace My.Managers
                 LaunchOverlay.Visible = False
             End If
         End Sub
+
+        'Check and Close Functions
+        Shared Function CheckAndCloseDoja() As Boolean
+            Dim dojaProcesses = Process.GetProcessesByName("doja")
+
+            If dojaProcesses.Length = 0 Then
+                logger.Logger.LogInfo("doja.exe is not currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {dojaProcesses.Length} instance(s) of doja.exe running.")
+            Dim result = MessageBox.Show("doja.exe is currently running. Do you want to close it?",
+                                 "Confirm Close",
+                                 MessageBoxButtons.YesNo,
+                                 MessageBoxIcon.Question)
+
+            If result = DialogResult.Yes Then
+                Try
+                    logger.Logger.LogInfo("User agreed to close doja.exe.")
+                    CheckAndCloseShaderGlass()
+                    CheckAndCloseAMX()
+
+                    For Each process As Process In dojaProcesses
+                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
+                        process.Kill()
+                        process.WaitForExit()
+                    Next
+
+                    logger.Logger.LogInfo("All doja.exe processes closed successfully.")
+                    Return False ' No longer running
+                Catch ex As Exception
+                    logger.Logger.LogError("Error while closing doja.exe: " & ex.ToString())
+                    MessageBox.Show("An error occurred while trying to close doja.exe: " & ex.Message,
+                            "Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                    Return True ' Still running
+                End Try
+            Else
+                logger.Logger.LogInfo("User chose not to close doja.exe.")
+                Return True ' Still running
+            End If
+        End Function
+        Shared Function CheckAndCloseStar() As Boolean
+            Dim starProcesses = Process.GetProcessesByName("star")
+
+            If starProcesses.Length = 0 Then
+                logger.Logger.LogInfo("star.exe is not currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {starProcesses.Length} instance(s) of star.exe running.")
+            Dim result = MessageBox.Show("star.exe is currently running. Do you want to close it?",
+                                 "Confirm Close",
+                                 MessageBoxButtons.YesNo,
+                                 MessageBoxIcon.Question)
+
+            If result = DialogResult.Yes Then
+                Try
+                    logger.Logger.LogInfo("User agreed to close star.exe.")
+                    CheckAndCloseShaderGlass()
+                    CheckAndCloseAMX()
+
+                    For Each process As Process In starProcesses
+                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
+                        process.Kill()
+                        process.WaitForExit()
+                    Next
+
+                    logger.Logger.LogInfo("All star.exe processes closed successfully.")
+                    Return False ' No longer running
+                Catch ex As Exception
+                    logger.Logger.LogError("Error while closing star.exe: " & ex.ToString())
+                    MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
+                            "Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                    Return True ' Still running
+                End Try
+            Else
+                logger.Logger.LogInfo("User chose not to close star.exe.")
+                Return True ' Still running
+            End If
+        End Function
+        Shared Function CheckAndCloseAMX() As Boolean
+            Dim AMXProcesses = Process.GetProcessesByName("antimicrox")
+            If AMXProcesses.Length = 0 Then
+                logger.Logger.LogInfo("antimicrox.exe is not currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {AMXProcesses.Length} instance(s) of antimicrox.exe running.")
+            Try
+                For Each process As Process In AMXProcesses
+                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
+                    process.Kill()
+                    process.WaitForExit()
+                Next
+
+                logger.Logger.LogInfo("All antimicrox.exe processes closed successfully.")
+                Return False ' No longer running
+            Catch ex As Exception
+                logger.Logger.LogError("Error while closing antimicrox.exe: " & ex.ToString())
+                MessageBox.Show("An error occurred while trying to close antimicrox.exe: " & ex.Message,
+                            "Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                Return True ' Still running
+            End Try
+        End Function
+        Shared Function CheckAndCloseShaderGlass() As Boolean
+            Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
+
+            If shaderglassProcesses.Length = 0 Then
+                logger.Logger.LogInfo("shaderglass.exe is not currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {shaderglassProcesses.Length} instance(s) of shaderglass.exe running.")
+
+            Try
+                For Each process As Process In shaderglassProcesses
+                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
+                    process.Kill()
+                    process.WaitForExit()
+                Next
+
+                logger.Logger.LogInfo("All shaderglass.exe processes closed successfully.")
+                Return False ' No longer running
+            Catch ex As Exception
+                logger.Logger.LogError("Error while closing shaderglass.exe: " & ex.ToString())
+                MessageBox.Show("An error occurred while trying to close shaderglass.exe: " & ex.Message,
+                        "Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error)
+                Return True ' Still running
+            End Try
+        End Function
+
+        'Asynchronous method to wait for the "doja/star" process to start
+        Private Async Function WaitForDojaToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
+            Dim startTime As DateTime = DateTime.Now
+
+            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
+                Dim dojaProcesses As Process() = Process.GetProcessesByName("doja")
+
+                For Each proc In dojaProcesses
+                    If proc.MainWindowHandle <> IntPtr.Zero Then
+                        logger.Logger.LogInfo("[WaitForDojaToStart] DOJA process ready with MainWindowHandle.")
+                        Return True
+                    End If
+                Next
+
+                Await Task.Delay(500)
+            End While
+
+            logger.Logger.LogError("[WaitForDojaToStart] Timed out waiting for DOJA window.")
+            Return False
+        End Function
+        Private Async Function WaitForSTARToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
+            Dim startTime As DateTime = DateTime.Now
+
+            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
+                Dim dojaProcesses As Process() = Process.GetProcessesByName("star")
+
+                For Each proc In dojaProcesses
+                    If proc.MainWindowHandle <> IntPtr.Zero Then
+                        logger.Logger.LogInfo("[WaitForSTARToStart] STAR process ready with MainWindowHandle.")
+                        Return True
+                    End If
+                Next
+
+                Await Task.Delay(500)
+            End While
+
+            logger.Logger.LogError("[WaitForSTARToStart] Timed out waiting for STAR window.")
+            Return False
+        End Function
+
+        'Iappli Helpers
         Public Shared Function UpdateNetworkUIDinJAM(JamFile As String) As Boolean
             If Not File.Exists(JamFile) Then
                 logger.Logger.LogError($"ERROR Did Not find {JamFile} to update networkUID")
@@ -1366,7 +1232,7 @@ Namespace My.Managers
             Return True
         End Function
 
-        'DOJA EXTRAS
+        'DOJA Helpers
         Public Async Function UpdateDOJADeviceSkin(DOJALOCATION As String, hideUI As Boolean) As Task(Of Boolean)
             Return Await Task.Run(Function()
                                       Try
@@ -1619,7 +1485,7 @@ Namespace My.Managers
             End If
         End Function
 
-        'STAR EXTRAS
+        'STAR Helpers
         Public Async Function UpdateSTARDeviceSkin(STARLOCATION As String, hideUI As Boolean) As Task(Of Boolean)
             Return Await Task.Run(Function()
                                       Try
@@ -1660,7 +1526,7 @@ Namespace My.Managers
                                       End Try
                                   End Function)
         End Function
-        Function ExtractSTARWidthHeight(filePath As String) As (Integer, Integer)
+        Public Function ExtractSTARWidthHeight(filePath As String) As (Integer, Integer)
             Dim width As Integer = 0
             Dim height As Integer = 0
 
@@ -1805,7 +1671,139 @@ Namespace My.Managers
         End Function
 
 
-        'MISC
+        'ShaderGlass Helpers
+        Public Async Function ModifyCaptureWindow(filePath As String, AppName As String) As Task
+            If Not File.Exists(filePath) Then
+                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
+                Return
+            End If
+
+            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(filePath)).ToList()
+
+            For i As Integer = 0 To lines.Count - 1
+                If lines(i).StartsWith("CaptureWindow") Then
+                    lines(i) = $"CaptureWindow ""{AppName}"""
+                    Exit For
+                End If
+            Next
+
+            Await File.WriteAllLinesAsync(filePath, lines)
+        End Function
+        Public Async Function ModifyScalingWindow(filePath As String) As Task
+            Dim selectedValue As String = Form1.cbxShaderGlassScaling.SelectedItem.ToString()
+            Dim scaleValue As Integer
+
+            Select Case selectedValue
+                Case "1x"
+                    scaleValue = 100
+                Case "1.5x"
+                    scaleValue = 150
+                Case "2x"
+                    scaleValue = 200
+                Case "2.5x"
+                    scaleValue = 250
+                Case "3x"
+                    scaleValue = 300
+                Case "3.5x"
+                    scaleValue = 350
+                Case "4x"
+                    scaleValue = 400
+                Case Else
+                    scaleValue = 100 ' default value
+            End Select
+
+            If Not File.Exists(filePath) Then
+                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
+                Return
+            End If
+
+            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(filePath)).ToList()
+
+            For i As Integer = 0 To lines.Count - 1
+                If lines(i).StartsWith("OutputScale") Then
+                    lines(i) = $"OutputScale ""{scaleValue}"""
+                    Exit For
+                End If
+            Next
+
+            Await File.WriteAllLinesAsync(filePath, lines)
+        End Function
+
+        'AMX - Vibration Functions
+        Private _cancellationSource As CancellationTokenSource
+        Private _lastAccessTime As DateTime
+        Private _vibrationLock As New Object()
+        Private _vibrating As Boolean = False
+        Public Async Function StartVibratorBmpMonitorAsync(bmpPath As String) As Task
+            _lastAccessTime = File.GetLastAccessTime(bmpPath)
+            _cancellationSource = New CancellationTokenSource()
+            Dim token = _cancellationSource.Token
+
+            Try
+                While Not token.IsCancellationRequested
+                    Await Task.Delay(100, token)
+
+                    Dim currentAccess = File.GetLastAccessTime(bmpPath)
+                    If currentAccess > _lastAccessTime Then
+                        _lastAccessTime = currentAccess
+                        Await TriggerVibrationAsync(token)
+                    End If
+                End While
+            Catch ex As TaskCanceledException
+                ' Expected on cancel
+            End Try
+        End Function
+        Public Sub StopVibratorBmpMonitor()
+            Try
+                _cancellationSource?.Cancel()
+            Catch ex As ObjectDisposedException
+                ' Already disposed
+            End Try
+
+            _cancellationSource = Nothing
+
+            ' Force stop any vibration
+            Try
+                Dim controller As New Controller(UserIndex.One)
+                If controller.IsConnected Then
+                    controller.SetVibration(New Vibration())
+                End If
+            Catch
+                ' Ignore controller errors on shutdown
+            End Try
+        End Sub
+        Public Async Function TriggerVibrationAsync(token As CancellationToken) As Task
+            SyncLock _vibrationLock
+                If _vibrating Then Exit Function ' Skip if already vibrating
+                _vibrating = True
+            End SyncLock
+
+            Try
+                Dim controller As New Controller(UserIndex.One)
+                If controller.IsConnected Then
+                    controller.SetVibration(New Vibration With {
+                .LeftMotorSpeed = 65535,
+                .RightMotorSpeed = 65535
+            })
+
+                    Await Task.Delay(250, token) ' Respect cancellation
+                    controller.SetVibration(New Vibration())
+                Else
+                    Console.WriteLine("XInput controller not connected.")
+                End If
+            Catch ex As TaskCanceledException
+                ' If cancelled mid-vibration, stop the motor
+                Dim controller As New Controller(UserIndex.One)
+                If controller.IsConnected Then
+                    controller.SetVibration(New Vibration())
+                End If
+            Finally
+                SyncLock _vibrationLock
+                    _vibrating = False
+                End SyncLock
+            End Try
+        End Function
+
         'Generate XML for List
         Dim BadFolders As New List(Of String)
         Dim emulator As String = "doja"
