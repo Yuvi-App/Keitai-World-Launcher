@@ -21,7 +21,7 @@ Namespace My.logger
         ' Method to log errors
         Public Shared Sub LogError(message As String, Optional ex As Exception = Nothing)
             If ex IsNot Nothing Then
-                Log("ERROR", $"{message}: {ex.Message}{vbNewLine}{ex.StackTrace}")
+                Log("ERROR", $"{message}: {ex.Message}{vbCrLf}{ex.StackTrace}")
             Else
                 Log("ERROR", message)
             End If

@@ -23,6 +23,7 @@ Public Class Form1
     Dim games As List(Of Game)
     Dim machicharas As List(Of MachiChara)
     Private XInputDevices As New Dictionary(Of String, Integer)
+    Dim Java32BinFolderPath As String
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -153,6 +154,9 @@ Public Class Form1
             MessageBox.Show("Invalid FirstStart paramete in AppConfig.xml, Please set to true and relaunch app.")
             Form1.QuitApplication()
         End If
+
+        'Updated Java32bit Path
+        Java32BinFolderPath = Path.Combine(Await UtilManager.GetJava8Update152InstallPathAsync(), "bin")
 
         'Needs Internet If none we skip and use local file
         Dim uri As New Uri(versionCheckUrl)
@@ -391,9 +395,11 @@ Public Class Form1
                     End If
                 Next
                 lblMachiCharaTotalCount.Text = $"Total: {ListViewMachiChara.Items.Count}"
+                Return True
             End If
         Catch ex As Exception
             Logger.LogError("Failed to Load MachiChara List", ex)
+            Return False
         End Try
     End Function
     Private Sub EnableButtons()
@@ -485,7 +491,6 @@ Public Class Form1
         lblFilteredGameCount.Text = $"Filtered: {filteredItems.Count}"
         ListViewGames.EndUpdate()
     End Function
-
     Private Async Function LoadGameVariantsAsync() As Task
         ' Ensure the ListView view mode is set to Details
         ListViewGamesVariants.View = View.Details
@@ -525,7 +530,7 @@ Public Class Form1
 
         ' Get the selected game title from the ListViewGames
         Dim selectedGameTitle As String
-        Dim selectedGame As Game
+        Dim selectedGame As Game = Nothing
         Try
             selectedGameTitle = ListViewGames.SelectedItems(0).Text
             selectedGame = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
@@ -846,18 +851,27 @@ Public Class Form1
                                   Return False
                               End Function)
     End Function
-    Public Function VerifyEmulatorType(GameJAM As String)
-        ' Extract emulator details from the .jam file
-        If Not String.IsNullOrEmpty(GameJAM) Then
+    Public Function VerifyEmulatorType_JAM(GameJAM As String) As String
+        Try
+            If String.IsNullOrWhiteSpace(GameJAM) OrElse Not File.Exists(GameJAM) Then
+                Return "unknown"
+            End If
+
             Dim jamLines As String() = File.ReadAllLines(GameJAM, Encoding.GetEncoding("shift-jis"))
-            Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.StartsWith("AppType = "))
+            Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.TrimStart().StartsWith("AppType =", StringComparison.OrdinalIgnoreCase))
+
             If Not String.IsNullOrEmpty(appTypeLine) Then
                 Return "star"
             Else
                 Return "doja"
             End If
-        End If
+        Catch ex As Exception
+            ' Log the error if needed
+            Console.WriteLine($"Error reading JAM file: {ex.Message}")
+            Return "unknown"
+        End Try
     End Function
+
     Public Async Function LoadCustomGamesAsync() As Task
         Dim customGamesFile As String = Path.Combine(ConfigsFolder, "customgames.txt")
 
@@ -1256,7 +1270,6 @@ Public Class Form1
                 MessageBox.Show("Please select a Doja SDK before launching.")
                 Return
             End If
-
             If cbxStarSDK.SelectedItem Is Nothing Then
                 Logger.LogWarning("Launch failed: No Star SDK selected.")
                 MessageBox.Show("Please select a Star SDK before launching.")
@@ -1278,7 +1291,6 @@ Public Class Form1
             ' Get the selected game
             Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
             Logger.LogInfo($"Selected Game: {selectedGameTitle}")
-
             Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
             If selectedGame Is Nothing Then
                 Logger.LogError("Game not found in the games list.")
@@ -1287,7 +1299,7 @@ Public Class Form1
             End If
 
             ' Determine correct emulator
-            Dim CorrectedEmulator = VerifyEmulatorType(CurrentSelectedGameJAM)
+            Dim CorrectedEmulator = VerifyEmulatorType_JAM(CurrentSelectedGameJAM)
             Logger.LogInfo($"Detected emulator type: {CorrectedEmulator}")
 
             ' Get Game Directory Path

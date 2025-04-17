@@ -1,20 +1,14 @@
 ﻿Imports System.Net
 Imports System.IO
-Imports System.Diagnostics
 Imports System.Text
-Imports Windows.Win32.UI
 Imports System.IO.Compression
 Imports System.Xml
-Imports System.Xml.Xsl
 Imports System.Text.RegularExpressions
-Imports System.Runtime.InteropServices
 Imports System.Threading
-Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.Win32
 Imports System.Security.Principal
 Imports System.Reflection
-Imports SharpDX.DirectInput
 Imports SharpDX.XInput
 
 Namespace My.Managers
@@ -137,6 +131,27 @@ Namespace My.Managers
                                       Return False ' Java 8 Update 152 is not installed
                                   End Function)
         End Function
+        Public Shared Async Function GetJava8Update152InstallPathAsync() As Task(Of String)
+            Return Await Task.Run(Function()
+                                      Dim javaVersions As String() = {
+                                  "SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_152",
+                                  "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8.0_152"
+                              }
+
+                                      For Each regPath In javaVersions
+                                          Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                                              If key IsNot Nothing Then
+                                                  Dim javaHome As Object = key.GetValue("JavaHome")
+                                                  If javaHome IsNot Nothing Then
+                                                      Return javaHome.ToString()
+                                                  End If
+                                              End If
+                                          End Using
+                                      Next
+
+                                      Return Nothing
+                                  End Function)
+        End Function
         Public Shared Async Function IsVCRuntime2022InstalledAsync() As Task(Of Boolean)
             Return Await Task.Run(Function()
                                       Dim vcPaths As String() = {
@@ -224,7 +239,7 @@ Namespace My.Managers
         End Function
 
         ' Stats
-        Public Shared Function SendKWLLaunchStats()
+        Public Shared Sub SendKWLLaunchStats()
             Dim whUrl = "https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec"
             Dim dotNetVersion As String = Environment.Version.ToString()
             Dim javaVersion As String = GetJavaVersion()
@@ -239,7 +254,7 @@ Namespace My.Managers
             Catch ex As Exception
                 ' Fail silently
             End Try
-        End Function
+        End Sub
         Public Shared Sub SendAppLaunch(inputAppName As String)
             Dim telemetryUrl As String = "https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec"
 
@@ -398,10 +413,10 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
-        Public Shared Function ShowSnackBar(InputString As String) As Task
+        Public Shared Sub ShowSnackBar(InputString As String)
             Dim snackBar As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
             snackBar.Show(Form1)
-        End Function
+        End Sub
 
         'Generate Controls
         Public Shared Sub GenerateDynamicControlsFromLines(JAMFile As String, container As Panel)
