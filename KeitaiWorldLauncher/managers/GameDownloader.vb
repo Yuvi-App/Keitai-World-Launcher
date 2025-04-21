@@ -97,53 +97,23 @@ Namespace My.Managers
                     ZipFile.ExtractToDirectory(savePath, extractTo, True)
                     logger.Logger.LogInfo($"[Download] Extraction complete. Deleting ZIP: {savePath}")
                     File.Delete(savePath)
-                    If Not BatchDownload Then
-                        logger.Logger.LogInfo($"[Download] Generating dynamic controls from: {JAMLocation}")
-                        UtilManager.GenerateDynamicControlsFromLines(JAMLocation, Form1.panelDynamic)
-                    End If
-                    logger.Logger.LogInfo("[Download] Refreshing game highlighting.")
-                    Form1.RefreshGameHighlighting()
-                    logger.Logger.LogInfo("[Download] Extracting and resizing app icon.")
-                    utilManager.ExtractAndResizeAppIcon(JARLocation, JAMLocation, Inputgame)
-
                 Catch ex As Exception
                     logger.Logger.LogError($"[Download] Failed to extract or process game files: {ex}")
                     MessageBox.Show($"Failed to extract the game: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 End Try
 
-                ' Handle optional SD Card data
-                If Not String.IsNullOrWhiteSpace(Inputgame.SDCardDataURL) Then
-                    SDCardDownloadFile = $"data\downloads\{Path.GetFileName(Inputgame.SDCardDataURL)}"
-                    logger.Logger.LogInfo($"[Download] Downloading SD Card Data from: {Inputgame.SDCardDataURL}")
+                ' Handle optional SD Card dataPrivate Shared isDownloadingSDData As Boolean = False
+                Await HandleSDCardDataAsync(Inputgame)
 
-                    Await client2.DownloadFileTaskAsync(New Uri(Inputgame.SDCardDataURL), SDCardDownloadFile)
-
-                    Try
-                        Dim destinationPath As String = ""
-                        Dim SDCardDataFolderName = $"SVC0000{Path.GetFileName(ReadJam)}"
-
-                        Select Case Inputgame.Emulator.ToLower()
-                            Case "doja"
-                                destinationPath = $"{Form1.Dojapath}\lib\storagedevice\ext0\SD_BIND\{SDCardDataFolderName}"
-                            Case "star"
-                                destinationPath = $"{Form1.Starpath}\lib\storagedevice\ext0\SD_BIND\{SDCardDataFolderName}"
-                            Case Else
-                                logger.Logger.LogWarning("[Download] Unknown emulator type when handling SD Card data.")
-                        End Select
-
-                        If Not String.IsNullOrEmpty(destinationPath) Then
-                            ZipFile.ExtractToDirectory(SDCardDownloadFile, destinationPath, Encoding.GetEncoding(932), True)
-                            logger.Logger.LogInfo($"[Download] SD Card data extracted to: {destinationPath}")
-                            File.Delete(SDCardDownloadFile)
-                            logger.Logger.LogInfo($"[Download] SD Card zip file deleted: {SDCardDownloadFile}")
-                        End If
-                    Catch ex As Exception
-                        logger.Logger.LogError($"[Download] Failed to handle SD Card data:{vbCrLf}{ex}")
-                        MessageBox.Show($"Failed to handle SD Card data:{vbCrLf}{ex}", "SD Card Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End Try
-                Else
-                    logger.Logger.LogInfo("[Download] No SD Card Data to download.")
+                'Finish Up Processing App DL
+                If Not BatchDownload Then
+                    logger.Logger.LogInfo($"[Download] Generating dynamic controls from: {JAMLocation}")
+                    UtilManager.GenerateDynamicControlsFromLines(JAMLocation, Form1.panelDynamic)
                 End If
+                logger.Logger.LogInfo("[Download] Refreshing game highlighting.")
+                Form1.RefreshGameHighlighting()
+                logger.Logger.LogInfo("[Download] Extracting and resizing app icon.")
+                Await utilManager.ExtractAndResizeAppIconAsync(JARLocation, JAMLocation, Inputgame)
 
             Catch ex As Exception
                 logger.Logger.LogError($"[Download] Exception occurred during download:{vbCrLf}{ex}")
@@ -156,6 +126,42 @@ Namespace My.Managers
                 If progressBar IsNot Nothing Then
                     progressBar.Visible = False
                 End If
+            End Try
+        End Function
+        Private Async Function HandleSDCardDataAsync(game As Game) As Task
+            If String.IsNullOrWhiteSpace(game.SDCardDataURL) Then
+                logger.Logger.LogInfo("[Download] No SD Card Data to download.")
+                Return
+            End If
+
+            Dim sdDownloadPath = $"data\downloads\{Path.GetFileName(game.SDCardDataURL)}"
+            logger.Logger.LogInfo($"[Download] Downloading SD Card Data from: {game.SDCardDataURL}")
+            Await client2.DownloadFileTaskAsync(New Uri(game.SDCardDataURL), sdDownloadPath)
+
+            Try
+                Dim sdFolder = $"SVC0000{Path.GetFileName(ReadJam)}"
+                Dim destinationPath As String = ""
+
+                Select Case game.Emulator.ToLower()
+                    Case "doja"
+                        destinationPath = $"{Form1.DOJApath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
+                    Case "star"
+                        destinationPath = $"{Form1.STARpath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
+                    Case "jsky"
+                        logger.Logger.LogWarning("[Download] JSKY SD Card URL Detected but we are not handling this yet.")
+                        Return
+                    Case Else
+                        logger.Logger.LogWarning("[Download] Unknown emulator type when handling SD Card data.")
+                        Return
+                End Select
+
+                ZipFile.ExtractToDirectory(sdDownloadPath, destinationPath, Encoding.GetEncoding(932), True)
+                logger.Logger.LogInfo($"[Download] SD Card data extracted to: {destinationPath}")
+                File.Delete(sdDownloadPath)
+                logger.Logger.LogInfo($"[Download] SD Card zip file deleted: {sdDownloadPath}")
+            Catch ex As Exception
+                logger.Logger.LogError($"[Download] Failed to handle SD Card data:{vbCrLf}{ex}")
+                MessageBox.Show($"Failed to handle SD Card data:{vbCrLf}{ex}", "SD Card Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Function
         Private Async Sub DownloadFileCompleted(sender As Object, e As System.ComponentModel.AsyncCompletedEventArgs)
@@ -186,7 +192,7 @@ Namespace My.Managers
                     End If
 
                     Form1.RefreshGameHighlighting()
-                    utilManager.ExtractAndResizeAppIcon(ReadJar, ReadJam, SelectedGame)
+                    Await utilManager.ExtractAndResizeAppIconAsync(ReadJar, ReadJam, SelectedGame)
 
                 Catch ex As Exception
                     MessageBox.Show($"Failed to extract the game: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)

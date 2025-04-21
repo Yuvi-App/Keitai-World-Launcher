@@ -60,13 +60,19 @@
         End If
     End Sub
 
-    Public Shared Sub CloseSplash()
-        If splashForm IsNot Nothing AndAlso splashForm.IsHandleCreated Then
+    Public Shared Async Function CloseSplashAsync() As Task
+        If splashForm IsNot Nothing AndAlso Not splashForm.IsDisposed AndAlso splashForm.IsHandleCreated Then
+            Dim fadeOutTask As Task = Nothing
+
             splashForm.Invoke(Sub()
-                                  splashForm.FadeOutAndClose()
+                                  fadeOutTask = splashForm.FadeOutAndCloseAsync()
                               End Sub)
+
+            If fadeOutTask IsNot Nothing Then
+                Await fadeOutTask
+            End If
         End If
-    End Sub
+    End Function
 
     ' ----- Form Setup -----
     Private Sub SplashScreen_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -126,17 +132,11 @@
         lblPhrase.Text = loadingPhrases(currentPhraseIndex)
     End Sub
 
-    Private Sub FadeOutAndClose()
-        Dim fadeOutTimer As New Timer With {.Interval = 50}
-        AddHandler fadeOutTimer.Tick,
-            Sub()
-                If Me.Opacity > 0 Then
-                    Me.Opacity -= 0.05
-                Else
-                    fadeOutTimer.Stop()
-                    Me.Close()
-                End If
-            End Sub
-        fadeOutTimer.Start()
-    End Sub
+    Public Async Function FadeOutAndCloseAsync() As Task
+        While Me.Opacity > 0
+            Me.Opacity -= 0.05
+            Await Task.Delay(50)
+        End While
+        Me.Close()
+    End Function
 End Class

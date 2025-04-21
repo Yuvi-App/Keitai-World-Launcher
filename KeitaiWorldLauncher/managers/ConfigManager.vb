@@ -23,6 +23,10 @@ Namespace My.Managers
         {"DOJASoundType", "standard"},
         {"STARPath", "c:\star"},
         {"STAREXEPath", "star.exe"},
+        {"JSKYPath", "c:\JSKY"},
+        {"JSKYEXEPath", "JSKY.exe"},
+        {"FlashPlayerPath", "c:\flashplayer"},
+        {"FlashPlayerEXEPath", "JSKY.exe"},
         {"MachiCharaPath", "c:\machichara"},
         {"MachiCharaEXEPath", "machicharaemu.exe"}
     }

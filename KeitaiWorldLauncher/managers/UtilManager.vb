@@ -430,20 +430,36 @@ Namespace My.Managers
             .AutoSize = True,
             .Dock = DockStyle.Top
         }
+
                 ' Define the column widths: first fixed, second fills remaining space
                 tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 150))
                 tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100))
 
-                ' Read the file lines (using the proper encoding)
-                Dim lines = File.ReadAllLines(JAMFile, Encoding.GetEncoding(932))
-                Dim rowIndex As Integer = 0
+                ' Read the file lines and choose the right delimiter
+                Dim lines As String()
+                Dim delimiter As Char
+                If JAMFile.EndsWith(".jam", StringComparison.OrdinalIgnoreCase) Then
+                    lines = File.ReadAllLines(JAMFile, Encoding.GetEncoding(932))
+                    delimiter = "="c
+                ElseIf JAMFile.EndsWith(".jad", StringComparison.OrdinalIgnoreCase) Then
+                    lines = File.ReadAllLines(JAMFile, Encoding.UTF8)
+                    delimiter = ":"c
+                ElseIf JAMFile.EndsWith(".swf", StringComparison.OrdinalIgnoreCase) Then
+                    'logger.Logger.LogInfo("SWF File unable to generate controls.")
+                    Return
+                Else
+                    logger.Logger.LogInfo($"Uknown File Type ({JAMFile}) unable to generate controls.")
+                    MessageBox.Show("Unsupported file type.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Return
+                End If
 
+                Dim rowIndex As Integer = 0
                 For Each line As String In lines
                     ' Skip empty lines
                     If String.IsNullOrWhiteSpace(line) Then Continue For
 
-                    ' Split the line into key and value
-                    Dim parts As String() = line.Split(New Char() {"="c}, 2)
+                    ' Split by appropriate delimiter
+                    Dim parts As String() = line.Split(New Char() {delimiter}, 2)
                     If parts.Length <> 2 Then Continue For ' Skip invalid lines
 
                     Dim key As String = parts(0).Trim()
@@ -451,90 +467,143 @@ Namespace My.Managers
 
                     ' Create a label for the key
                     Dim lbl As New Label() With {
-                        .Text = key,
-                        .Width = 150,
-                        .AutoSize = False,
-                        .AutoEllipsis = True,
-                        .Anchor = AnchorStyles.Left
-                    }
+                .Text = key,
+                .Width = 150,
+                .AutoSize = False,
+                .AutoEllipsis = True,
+                .Anchor = AnchorStyles.Left
+            }
 
                     ' Create a textbox for the value
                     Dim txt As New TextBox() With {
-                        .Text = value,
-                        .Dock = DockStyle.Fill,
-                        .ReadOnly = True
-                    }
+                .Text = value,
+                .Dock = DockStyle.Fill,
+                .ReadOnly = True
+            }
 
-                    ' Increase row count and add a new row style for each row
+                    ' Increase row count and add a new row style
                     tableLayout.RowCount = rowIndex + 1
                     tableLayout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
 
-                    ' Add controls to the tableLayoutPanel
+                    ' Add the label and textbox to the layout
                     tableLayout.Controls.Add(lbl, 0, rowIndex)
                     tableLayout.Controls.Add(txt, 1, rowIndex)
                     rowIndex += 1
                 Next
 
-                ' Add the TableLayoutPanel to the container (Panel)
+                ' Add the layout to the container
                 container.Controls.Add(tableLayout)
             Catch ex As Exception
-                MessageBox.Show($"Error generating controls for JAM: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show($"Error generating controls for JAM/JAD: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
 
         'Get App Icons
-        Public Sub ExtractAndResizeAppIcon(jarFilePath As String, jamFilePath As String, SelectedGame As Game)
+        Public Async Function ExtractAndResizeAppIconAsync(jarFilePath As String, jamFilePath As String, SelectedGame As Game) As Task
             Try
-                ' Define the target icon path
                 Dim iconOutputFolder As String = "data\tools\icons"
                 If Not Directory.Exists(iconOutputFolder) Then
                     Directory.CreateDirectory(iconOutputFolder)
                 End If
 
-                ' Read the JAM file and extract the AppIcon line
-                Dim appIconLine As String = File.ReadLines(jamFilePath).FirstOrDefault(Function(line) line.StartsWith("AppIcon"))
-                If appIconLine Is Nothing Then
-                    logger.Logger.LogError("No AppIcon entry found in the JAM file.")
+                If jamFilePath.EndsWith(".swf") Then
                     Return
                 End If
 
-                ' Extract the first icon filename using regex or string parsing
-                Dim iconFileName As String = appIconLine.Split("="c)(1).Split(","c)(0).Trim()
+                Using archive As ZipArchive = Await Task.Run(Function() ZipFile.OpenRead(jarFilePath))
+                    ' Check for JSky emulator
+                    If SelectedGame.Emulator?.ToLower() = "jsky" Then
+                        ' Look for MIDlet-Icon entry in the JAM file
+                        Dim iconLine As String = Await Task.Run(Function()
+                                                                    Return File.ReadLines(jamFilePath).
+                                                                FirstOrDefault(Function(line) line.StartsWith("MIDlet-Icon:", StringComparison.OrdinalIgnoreCase))
+                                                                End Function)
 
-                ' Open the .jar file (ZIP archive)
-                Using archive As ZipArchive = ZipFile.OpenRead(jarFilePath)
-                    ' Find the icon inside the .jar using the filename extracted from the JAM file
-                    Dim iconEntry As ZipArchiveEntry = archive.GetEntry(iconFileName)
+                        If iconLine Is Nothing Then
+                            logger.Logger.LogWarning("No MIDlet-Icon entry found in the JAM file.")
+                            Return
+                        End If
+
+                        Dim iconFileName As String = iconLine.Split(":"c)(1).Trim()
+                        Dim pngEntry As ZipArchiveEntry = archive.GetEntry(iconFileName)
+
+                        If pngEntry IsNot Nothing Then
+                            Using originalStream As Stream = pngEntry.Open()
+                                Dim originalIcon As Image = Await Task.Run(Function() Image.FromStream(originalStream))
+
+                                ' Resize to 36x36
+                                Dim resizedIcon As New Bitmap(36, 36)
+                                Using graphics As Graphics = Graphics.FromImage(resizedIcon)
+                                    graphics.InterpolationMode = Drawing2D.InterpolationMode.HighQualityBicubic
+                                    graphics.DrawImage(originalIcon, 0, 0, 36, 36)
+                                End Using
+
+                                ' Save as .gif
+                                Dim outputFileName As String = Path.GetFileNameWithoutExtension(jarFilePath) & ".gif"
+                                Dim outputFilePath As String = Path.Combine(iconOutputFolder, outputFileName)
+                                Await Task.Run(Sub() resizedIcon.Save(outputFilePath, Imaging.ImageFormat.Gif))
+
+                                UpdateListViewItemIcon(SelectedGame.ENTitle, outputFilePath)
+                                logger.Logger.LogInfo($"JSky icon extracted and resized: {outputFilePath}")
+                            End Using
+                            Return
+                        Else
+                            logger.Logger.LogWarning($"Icon file '{iconFileName}' not found in the archive.")
+                            Return
+                        End If
+                    End If
+
+                    ' Continue with normal DoJa/Star icon extraction
+                    Dim appIconLine As String = Await Task.Run(Function()
+                                                                   Return File.ReadLines(jamFilePath).
+                                                               FirstOrDefault(Function(line) line.StartsWith("AppIcon"))
+                                                               End Function)
+
+                    If appIconLine Is Nothing Then
+                        logger.Logger.LogError("No AppIcon entry found in the JAM file.")
+                        Return
+                    End If
+
+                    Dim iconFileNameDoja As String = appIconLine.Split("="c)(1).Split(","c)(0).Trim()
+                    Dim iconEntry As ZipArchiveEntry = archive.GetEntry(iconFileNameDoja)
 
                     If iconEntry IsNot Nothing Then
-                        ' Extract the icon and load it as an image
                         Using originalStream As Stream = iconEntry.Open()
-                            Dim originalIcon As Image = Image.FromStream(originalStream)
+                            Dim originalIcon As Image = Await Task.Run(Function() Image.FromStream(originalStream))
 
-                            ' Resize the icon to 24x24
                             Dim resizedIcon As New Bitmap(36, 36)
                             Using graphics As Graphics = Graphics.FromImage(resizedIcon)
                                 graphics.InterpolationMode = Drawing2D.InterpolationMode.HighQualityBicubic
                                 graphics.DrawImage(originalIcon, 0, 0, 36, 36)
                             End Using
 
-                            ' Generate the output path and save the resized icon
                             Dim outputFileName As String = Path.GetFileNameWithoutExtension(jarFilePath) & ".gif"
                             Dim outputFilePath As String = Path.Combine(iconOutputFolder, outputFileName)
-                            resizedIcon.Save(outputFilePath, System.Drawing.Imaging.ImageFormat.Gif)
+
+                            ' Ensure directory exists
+                            Directory.CreateDirectory(Path.GetDirectoryName(outputFilePath))
+
+                            ' Delete file if already exists (avoid overwrite error)
+                            If File.Exists(outputFilePath) Then
+                                File.Delete(outputFilePath)
+                            End If
+
+                            Await Task.Run(Sub()
+                                               resizedIcon.Save(outputFilePath, Imaging.ImageFormat.Gif)
+                                           End Sub)
+
                             UpdateListViewItemIcon(SelectedGame.ENTitle, outputFilePath)
                             logger.Logger.LogInfo($"Icon successfully extracted and resized: {outputFilePath}")
                         End Using
                     Else
-                        logger.Logger.LogInfo($"Icon '{iconFileName}' not found in the .jar file.")
-                        MessageBox.Show($"Icon '{iconFileName}' not found in the .jar file.", "Icon Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                        logger.Logger.LogInfo($"Icon '{iconFileNameDoja}' not found in the .jar file.")
                     End If
                 End Using
             Catch ex As Exception
                 logger.Logger.LogError($"Error extracting and resizing the icon: {ex.Message}")
                 MessageBox.Show($"Error extracting and resizing the icon: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
-        End Sub
+        End Function
         Private Sub UpdateListViewItemIcon(gameTitle As String, newIconPath As String)
             ' Ensure the ImageList exists
             If Form1.ListViewGames.SmallImageList Is Nothing Then
@@ -642,7 +711,7 @@ Namespace My.Managers
                     Await EnsureDOJAJamFileEntries(jamPath)
                     logger.Logger.LogInfo("[Launch] Ensured DOJA jam entries")
                 End If
-                UpdateNetworkUIDinJAM(GameJAM)
+                Await UpdateNetworkUIDinJAMAsync(GameJAM)
 
                 ' Let filesystem settle (especially important on slower drives)
                 Await Task.Delay(500)
@@ -753,7 +822,7 @@ Namespace My.Managers
                 Await UpdateSTARAppconfig(STARPATH, GameJAM)
                 Await EnsureSTARJamFileEntries(GameJAM)
                 logger.Logger.LogInfo("[Launch] STAR app configuration and JAM entries updated.")
-                UpdateNetworkUIDinJAM(GameJAM)
+                Await UpdateNetworkUIDinJAMAsync(GameJAM)
 
                 Await Task.Delay(500) ' Let the filesystem settle
 
@@ -802,6 +871,163 @@ Namespace My.Managers
                     End If
                 End If
 
+            Catch ex As ArgumentException
+                logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
+                MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
+                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Public Async Sub LaunchCustomJSKYGameCommand(JSKYPATH As String, JSKYEXELocation As String, GameJAM As String)
+            Try
+                logger.Logger.LogInfo("[Launch] Starting JSKY game launch sequence...")
+
+                ' Validate inputs
+                If String.IsNullOrWhiteSpace(JSKYPATH) OrElse String.IsNullOrWhiteSpace(JSKYEXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
+                    Throw New ArgumentException("One or more required parameters are missing.")
+                End If
+
+                'Start overlay
+                UtilManager.ShowLaunchOverlay(Form1)
+
+                ' Prepare all paths
+                Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
+                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim appPath As String
+                Dim arguments As String
+
+                ' Make Full Paths
+                Dim Java32EXE As String = Path.Combine(Form1.Java32BinFolderPath, "java.exe")
+                Dim exePath As String = JSKYEXELocation.Trim
+                Dim jadPath As String = Path.Combine(baseDir, GameJAM).Trim()
+
+                If jadPath.Length > 240 Then
+                    logger.Logger.LogWarning($"[Launch] JAD file path exceeds 240 characters: {jadPath}")
+                    MessageBox.Show("The file path length exceeds 240 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                ' Form arguments based on launch method
+                appPath = Java32EXE
+                arguments = $"{Path.GetFileName(exePath)} ""{jadPath}"""
+                logger.Logger.LogInfo($"[Launch] Launching JSKY directly without Locale Emulator: {arguments}")
+
+                ' Config updates
+                Await UpdateJADJarURLAsync(jadPath)
+
+                Await Task.Delay(500) ' Let the filesystem settle
+
+                ' Launch JSKY JAVA with retry logic
+                Dim success = Await LaunchJSkyAppAsync(Java32EXE, JSKYEXELocation, jadPath)
+                If Not success Then
+                    HideLaunchOverlay()
+                    MessageBox.Show("Failed to launch JSKY after retrying.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End If
+
+                ' ShaderGlass launch if enabled
+                If Form1.chkbxShaderGlass.Checked Then
+                    logger.Logger.LogInfo("[ShaderGlass] Waiting for JSKY to become idle...")
+                    If Await WaitForJAVAToStart() Then
+                        Await LaunchShaderGlass("J-SKY Application Emulator")
+                        ProcessManager.StartMonitoring()
+                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
+                    Else
+                        logger.Logger.LogError("[ShaderGlass] Failed to detect JSKY running.")
+                        MessageBox.Show("Failed to detect JSKY running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    End If
+                End If
+
+                If Form1.chkbxEnableController.Checked = True Then
+                    Await LaunchControllerProfileAMGP()
+                End If
+                HideLaunchOverlay()
+            Catch ex As ArgumentException
+                logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
+                MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
+                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Public Async Sub LaunchCustomFLASHGameCommand(FLASHPATH As String, FLASHEXELocation As String, GameJAM As String)
+            Try
+                logger.Logger.LogInfo("[Launch] Starting FLASH game launch sequence...")
+
+                ' Validate inputs
+                If String.IsNullOrWhiteSpace(FLASHPATH) OrElse String.IsNullOrWhiteSpace(FLASHEXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
+                    Throw New ArgumentException("One or more required parameters are missing.")
+                End If
+
+                'Start overlay
+                UtilManager.ShowLaunchOverlay(Form1)
+
+                ' Prepare all paths
+                Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
+                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim appPath As String
+                Dim arguments As String
+
+                ' Make Full Paths
+                Dim exePath As String = FLASHEXELocation.Trim
+                Dim swfPath As String = Path.Combine(baseDir, GameJAM).Trim()
+
+                If FLASHPATH.Length > 240 Then
+                    logger.Logger.LogWarning($"[Launch] JAD file path exceeds 240 characters: {FLASHPATH}")
+                    MessageBox.Show("The file path length exceeds 240 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                ' Form arguments based on launch method
+                appPath = exePath
+                arguments = $"""{swfPath}"""
+                logger.Logger.LogInfo($"[Launch] Launching FLASH directly without Locale Emulator: {arguments}")
+
+                Await Task.Delay(500) ' Let the filesystem settle
+
+                ' Launch FLASHPLAYER with retry logic
+                Dim startInfo As New ProcessStartInfo With {
+                    .FileName = appPath,
+                    .Arguments = arguments,
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True,
+                    .RedirectStandardError = True,
+                    .RedirectStandardOutput = True,
+                    .WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+                }
+
+                ' Launch FlashPlayer with retry logic
+                Dim success As Boolean = Await LaunchEmulatorWithRetry(
+                    appPath,
+                    arguments,
+                    "flashplayer",
+                    baseDir,
+                    AddressOf WaitForFlashPlayerToStart
+                )
+                If Not success Then
+                    HideLaunchOverlay()
+                    MessageBox.Show("Failed to launch FLASH after retrying.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End If
+
+                ' ShaderGlass launch if enabled
+                If Form1.chkbxShaderGlass.Checked Then
+                    logger.Logger.LogInfo("[ShaderGlass] Waiting for FLASH to become idle...")
+                    If Await WaitForFlashPlayerToStart() Then
+                        Await LaunchShaderGlass("Adobe Flash Player 10")
+                        ProcessManager.StartMonitoring()
+                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
+                    Else
+                        logger.Logger.LogError("[ShaderGlass] Failed to detect FLASH running.")
+                        MessageBox.Show("Failed to detect FLASH running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    End If
+                End If
+
+                If Form1.chkbxEnableController.Checked = True Then
+                    Await LaunchControllerProfileAMGP()
+                End If
+                HideLaunchOverlay()
             Catch ex As ArgumentException
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
                 MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
@@ -917,8 +1143,33 @@ Namespace My.Managers
                 logger.Logger.LogInfo("Failed to launch AntimicroX: " & ex.Message)
             End Try
         End Function
+        Public Async Function LaunchJSkyAppAsync(javapath As String, JskyExePath As String, jadPath As String) As Task(Of Boolean)
+            Try
+                ' Proper quoting for cmd.exe
+                Dim arguments As String = $"/C """"{javapath}"" -jar ""{Path.GetFileName(JskyExePath)}"" ""{jadPath}"""""
 
-        'Launche App Helpers
+                Dim psi As New ProcessStartInfo("cmd.exe", arguments) With {
+                    .UseShellExecute = True,
+                    .WorkingDirectory = Path.GetDirectoryName(JskyExePath)
+                }
+
+                Dim process As Process = Process.Start(psi)
+
+                ' Optional delay to allow Java process to spawn
+                Await Task.Delay(1000)
+
+                ' Check for any java process
+                Dim javaRunning As Boolean = Process.GetProcessesByName("java").Any()
+
+                Return javaRunning
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[JavaLaunch] Failed to start Java app: {ex.Message}")
+                Return False
+            End Try
+        End Function
+
+        'Launch App Helpers
         Public Async Function LaunchEmulatorWithRetry(
             fileName As String,
             arguments As String,
@@ -1100,6 +1351,66 @@ Namespace My.Managers
                 Return True ' Still running
             End If
         End Function
+        Shared Function CheckAndCloseJava() As Boolean
+            Dim targets As String() = {"java", "javaw", "jbime"}
+            Dim allProcesses As New List(Of Process)
+
+            ' Collect matching processes
+            For Each target In targets
+                allProcesses.AddRange(Process.GetProcessesByName(target))
+            Next
+
+            If allProcesses.Count = 0 Then
+                logger.Logger.LogInfo("No java/javaw/jbime processes are currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {allProcesses.Count} instance(s) of java/javaw/jbime running.")
+            Dim result = MessageBox.Show("Jsky is currently running. Do you want to close it?",
+                                 "Confirm Termination",
+                                 MessageBoxButtons.YesNo,
+                                 MessageBoxIcon.Question)
+
+            If result = DialogResult.Yes Then
+                Try
+                    logger.Logger.LogInfo("User agreed to close all related processes.")
+                    CheckAndCloseShaderGlass()
+                    CheckAndCloseAMX()
+
+                    Dim currentPid = Process.GetCurrentProcess().Id
+                    Dim closedCount As Integer = 0
+
+                    For Each process As Process In allProcesses
+                        Try
+                            If process.Id = currentPid Then
+                                logger.Logger.LogInfo($"Skipping self (PID={process.Id})")
+                                Continue For
+                            End If
+
+                            logger.Logger.LogInfo($"Attempting to close PID={process.Id} Name={process.ProcessName}")
+                            process.Kill()
+                            process.WaitForExit()
+                            closedCount += 1
+                        Catch ex As Exception
+                            logger.Logger.LogError($"Failed to close PID={process.Id} ({process.ProcessName}) - {ex.Message}")
+                        End Try
+                    Next
+
+                    logger.Logger.LogInfo($"Closed {closedCount} of {allProcesses.Count} process(es).")
+                    Return False ' All closed or attempted
+                Catch ex As Exception
+                    logger.Logger.LogError("Error while closing Java-related processes: " & ex.ToString())
+                    MessageBox.Show("An error occurred while trying to close Java-related processes: " & ex.Message,
+                            "Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                    Return True ' Some may still be running
+                End Try
+            Else
+                logger.Logger.LogInfo("User chose not to close Java-related processes.")
+                Return True ' Still running
+            End If
+        End Function
         Shared Function CheckAndCloseAMX() As Boolean
             Dim AMXProcesses = Process.GetProcessesByName("antimicrox")
             If AMXProcesses.Length = 0 Then
@@ -1125,6 +1436,47 @@ Namespace My.Managers
                             MessageBoxIcon.Error)
                 Return True ' Still running
             End Try
+        End Function
+        Shared Function CheckAndCloseFlashPlayer() As Boolean
+            Dim flashplayerProcesses = Process.GetProcessesByName("flashplayer")
+
+            If flashplayerProcesses.Length = 0 Then
+                logger.Logger.LogInfo("flashplayer.exe is not currently running.")
+                Return False
+            End If
+
+            logger.Logger.LogWarning($"Found {flashplayerProcesses.Length} instance(s) of flashplayer.exe running.")
+            Dim result = MessageBox.Show("flashplayer.exe is currently running. Do you want to close it?",
+                                 "Confirm Close",
+                                 MessageBoxButtons.YesNo,
+                                 MessageBoxIcon.Question)
+
+            If result = DialogResult.Yes Then
+                Try
+                    logger.Logger.LogInfo("User agreed to close flashplayer.exe.")
+                    CheckAndCloseShaderGlass()
+                    CheckAndCloseAMX()
+
+                    For Each process As Process In flashplayerProcesses
+                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
+                        process.Kill()
+                        process.WaitForExit()
+                    Next
+
+                    logger.Logger.LogInfo("All flashplayer.exe processes closed successfully.")
+                    Return False ' No longer running
+                Catch ex As Exception
+                    logger.Logger.LogError("Error while closing flashplayer.exe: " & ex.ToString())
+                    MessageBox.Show("An error occurred while trying to close flashplayer.exe: " & ex.Message,
+                            "Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                    Return True ' Still running
+                End Try
+            Else
+                logger.Logger.LogInfo("User chose not to close flashplayer.exe.")
+                Return True ' Still running
+            End If
         End Function
         Shared Function CheckAndCloseShaderGlass() As Boolean
             Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
@@ -1194,9 +1546,47 @@ Namespace My.Managers
             logger.Logger.LogError("[WaitForSTARToStart] Timed out waiting for STAR window.")
             Return False
         End Function
+        Private Async Function WaitForJAVAToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
+            Dim startTime As DateTime = DateTime.Now
+
+            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
+                Dim dojaProcesses As Process() = Process.GetProcessesByName("java")
+
+                For Each proc In dojaProcesses
+                    If proc.MainWindowHandle <> IntPtr.Zero Then
+                        logger.Logger.LogInfo("[WaitForJAVAToStart] java process ready with MainWindowHandle.")
+                        Return True
+                    End If
+                Next
+
+                Await Task.Delay(500)
+            End While
+
+            logger.Logger.LogError("[WaitForJAVAToStart] Timed out waiting for java window.")
+            Return False
+        End Function
+        Private Async Function WaitForFlashPlayerToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
+            Dim startTime As DateTime = DateTime.Now
+
+            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
+                Dim dojaProcesses As Process() = Process.GetProcessesByName("flashplayer")
+
+                For Each proc In dojaProcesses
+                    If proc.MainWindowHandle <> IntPtr.Zero Then
+                        logger.Logger.LogInfo("[WaitForFlashPlayerToStart] flashplayer process ready with MainWindowHandle.")
+                        Return True
+                    End If
+                Next
+
+                Await Task.Delay(500)
+            End While
+
+            logger.Logger.LogError("[WaitForFlashPlayerToStart] Timed out waiting for flashplayer window.")
+            Return False
+        End Function
 
         'Iappli Helpers
-        Public Shared Function UpdateNetworkUIDinJAM(JamFile As String) As Boolean
+        Public Shared Async Function UpdateNetworkUIDinJAMAsync(JamFile As String) As Task(Of Boolean)
             If Not File.Exists(JamFile) Then
                 logger.Logger.LogError($"ERROR Did Not find {JamFile} to update networkUID")
                 Return False
@@ -1207,7 +1597,7 @@ Namespace My.Managers
                 Return True
             End If
 
-            Dim originalLines = File.ReadAllLines(JamFile)
+            Dim originalLines As String() = Await File.ReadAllLinesAsync(JamFile)
             Dim lines As New List(Of String)
             Dim replacementCount As Integer = 0
 
@@ -1227,7 +1617,7 @@ Namespace My.Managers
                 logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
             End If
 
-            File.WriteAllLines(JamFile, lines)
+            Await File.WriteAllLinesAsync(JamFile, lines)
             logger.Logger.LogInfo($"Successfully updated {JamFile}")
             Return True
         End Function
@@ -1670,6 +2060,45 @@ Namespace My.Managers
             End If
         End Function
 
+        'JSKY Helpers
+        Public Shared Async Function UpdateJADJarURLAsync(jadFilePath As String) As Task(Of Boolean)
+            If Not File.Exists(jadFilePath) Then
+                logger.Logger.LogError($"JAD file not found: {jadFilePath}")
+                Return False
+            End If
+
+            Try
+                Dim lines As String() = Await File.ReadAllLinesAsync(jadFilePath)
+                Dim updatedLines As New List(Of String)
+                Dim updatedJarUrl As Boolean = False
+                Dim updatedDescription As Boolean = False
+                Dim jarFileName As String = Path.GetFileNameWithoutExtension(jadFilePath) & ".jar"
+
+                For Each line In lines
+                    If line.StartsWith("MIDlet-Jar-URL", StringComparison.OrdinalIgnoreCase) Then
+                        updatedLines.Add($"MIDlet-Jar-URL: {jarFileName}")
+                        updatedJarUrl = True
+                    ElseIf line.StartsWith("MIDlet-Description", StringComparison.OrdinalIgnoreCase) Then
+                        updatedLines.Add("MIDlet-Description:")
+                        updatedDescription = True
+                    Else
+                        updatedLines.Add(line)
+                    End If
+                Next
+
+                If updatedJarUrl OrElse updatedDescription Then
+                    Await File.WriteAllLinesAsync(jadFilePath, updatedLines)
+                    logger.Logger.LogInfo($"Updated JAD file: MIDlet-Jar-URL set to {jarFileName}, MIDlet-Description cleared in {jadFilePath}")
+                    Return True
+                Else
+                    logger.Logger.LogWarning($"No changes made to {jadFilePath}. Required entries not found.")
+                    Return False
+                End If
+            Catch ex As Exception
+                logger.Logger.LogError($"Failed to update JAD file: {ex.Message}")
+                Return False
+            End Try
+        End Function
 
         'ShaderGlass Helpers
         Public Async Function ModifyCaptureWindow(filePath As String, AppName As String) As Task

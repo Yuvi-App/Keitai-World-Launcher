@@ -21,9 +21,10 @@ Namespace My.Managers
                 While monitoring
                     Dim dojaRunning As Boolean = Process.GetProcessesByName("doja").Length > 0
                     Dim starRunning As Boolean = Process.GetProcessesByName("star").Length > 0
-
+                    Dim javaRunning As Boolean = Process.GetProcessesByName("java").Length > 0
+                    Dim flashplayerRunning As Boolean = Process.GetProcessesByName("flashplayer").Length > 0
                     ' Only close shaderglass.exe if both processes are NOT running
-                    If Not dojaRunning AndAlso Not starRunning Then
+                    If Not dojaRunning AndAlso Not starRunning AndAlso Not javaRunning AndAlso Not flashplayerRunning Then
                         CloseProcess("shaderglass")
                         monitoring = False
                         Exit While

@@ -14,6 +14,8 @@
   <Setting name="DOJASoundType">Standard</Setting>
   <Setting name="STARPath">c:/star</Setting>
   <Setting name="STAREXEPath">star.exe</Setting>
+  <Setting name="JSKYPath">c:/JSKY</Setting>
+  <Setting name="JSKYEXEPath">JSKY.exe</Setting>
   <Setting name="MachiCharaPath">c:/machichara</Setting>
   <Setting name="MachiCharaEXEPath">machicharaemu.exe</Setting>
 </Config>

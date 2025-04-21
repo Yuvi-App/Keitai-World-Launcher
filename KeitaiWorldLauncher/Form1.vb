@@ -1,12 +1,12 @@
-﻿Imports System.Diagnostics.Eventing.Reader
+﻿Imports System.DirectoryServices.ActiveDirectory
 Imports System.IO
 Imports System.Text
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
+Imports ReaLTaiizor.Controls
 Imports ReaLTaiizor.[Enum].Poison
 Imports SharpDX.XInput
-
 
 Public Class Form1
     'Global Vars
@@ -23,6 +23,7 @@ Public Class Form1
     Dim games As List(Of Game)
     Dim machicharas As List(Of MachiChara)
     Dim XInputDevices As New Dictionary(Of String, Integer)
+    Private Shared isGameDownloadInProgress As Boolean = False
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -49,12 +50,16 @@ Public Class Form1
     Public autoUpdatemachicharaList As Boolean
     Public UseShaderGlass As Boolean
     Public NetworkUID As String
-    Public Dojapath As String
-    Public DojaEXE As String
-    Public DojaHideUI As Boolean
+    Public DOJApath As String
+    Public DOJAEXE As String
+    Public DOJAHideUI As Boolean
     Public DOJASoundType As String
-    Public Starpath As String
-    Public StarEXE As String
+    Public STARpath As String
+    Public STAREXE As String
+    Public JSKYpath As String
+    Public JSKYEXE As String
+    Public FlashPlayerpath As String
+    Public FlashPlayerEXE As String
     Public MachiCharapath As String
     Public MachiCharaExe As String
     Public Java32BinFolderPath As String
@@ -63,6 +68,7 @@ Public Class Form1
     Private Sub Form1_FormClosing(sender As Object, e As EventArgs) Handles MyBase.FormClosing
         UtilManager.CheckAndCloseDoja()
         UtilManager.CheckAndCloseStar()
+        UtilManager.CheckAndCloseJava()
         UtilManager.CheckAndCloseAMX()
     End Sub
     Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
@@ -73,6 +79,9 @@ Public Class Form1
     Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Opacity = 0
         Application.EnableVisualStyles()
+
+        'Set Labels
+        SetupLabelsinOptions()
 
         'Summon Splash
         SplashScreen.ShowSplash()
@@ -86,12 +95,6 @@ Public Class Form1
         ' Check if Debug
 #If DEBUG Then
         isDebug = True
-        XMLUpdateToolStripMenuItem.Visible = True
-        XMLCreationToolStripMenuItem.Visible = True
-        BatchDownloadToolStripMenuItem.Visible = True
-        XMLUpdateToolStripMenuItem.Enabled = True
-        XMLCreationToolStripMenuItem.Enabled = True
-        BatchDownloadToolStripMenuItem.Enabled = True
 #End If
 
         ' Setup DIRs
@@ -115,12 +118,16 @@ Public Class Form1
         machicharaListUrl = config("MachiCharalistURL")
         autoUpdatemachicharaList = Boolean.Parse(config("AutoUpdateMachiCharaList"))
         UseShaderGlass = Boolean.Parse(config("UseShaderGlass"))
-        Dojapath = config("DOJAPath")
-        DojaEXE = config("DOJAEXEPath")
-        DojaHideUI = Boolean.Parse(config("DOJAHideUI"))
+        DOJApath = config("DOJAPath")
+        DOJAEXE = config("DOJAEXEPath")
+        DOJAHideUI = Boolean.Parse(config("DOJAHideUI"))
         DOJASoundType = config("DOJASoundType")
-        Starpath = config("STARPath")
-        StarEXE = config("STAREXEPath")
+        STARpath = config("STARPath")
+        STAREXE = config("STAREXEPath")
+        JSKYpath = config("JSKYPath")
+        JSKYEXE = config("JSKYEXEPath")
+        FlashPlayerpath = config("FlashPlayerPath")
+        FlashPlayerEXE = config("FlashPlayerEXEPath")
         MachiCharapath = config("MachiCharaPath")
         MachiCharaExe = config("MachiCharaEXEPath")
 
@@ -202,7 +209,7 @@ Public Class Form1
         Await GetSDKsAsync()
 
         ' Setup any Config Suff
-        chkbxHidePhoneUI.Checked = DojaHideUI
+        chkbxHidePhoneUI.Checked = DOJAHideUI
         Dim atindex As Integer = cobxAudioType.FindStringExact(DOJASoundType)
         cobxAudioType.SelectedIndex = atindex
         chkbxShaderGlass.Checked = UseShaderGlass
@@ -210,17 +217,48 @@ Public Class Form1
         cbxShaderGlassScaling.SelectedIndex = 2
 
         ' Close the splash screen
-        SplashScreen.CloseSplash()
-        Await Task.Delay(300)
+        Await SplashScreen.CloseSplashAsync()
         Me.Opacity = 1
     End Sub
 
     ' General Other Function
+    Private Sub EnableButtons(SelectedGame As Game)
+        ' Enable game launch button and checkbox
+        btnLaunchGame.Enabled = True
+        chkbxHidePhoneUI.Enabled = True
+        cobxAudioType.Enabled = True
+        chkbxShaderGlass.Enabled = True
+        cbxShaderGlassScaling.Enabled = True
+        cbxDojaSDK.Enabled = True
+        cbxStarSDK.Enabled = True
+        chkbxLocalEmulator.Enabled = True
+        chkbxEnableController.Enabled = True
+
+        ' Check if we can support LocaleEmu
+        Select Case SelectedGame.Emulator.ToLower()
+            Case "doja", "star"
+                chkbxLocalEmulator.Enabled = True
+
+            Case "jsky", "flash"
+                If chkbxLocalEmulator.Enabled AndAlso chkbxLocalEmulator.Checked Then
+                    chkbxLocalEmulator.Enabled = False
+                End If
+
+                If chkboxControllerVibration.Enabled AndAlso chkboxControllerVibration.Checked Then
+                    chkboxControllerVibration.Enabled = False
+                End If
+        End Select
+
+    End Sub
     Private Async Function GetSDKsAsync() As Task
         Dim dojaDefault As String = "iDKDoJa5.1"
         Dim starDefault As String = "iDKStar2.0"
+        Dim jskyDefault As String = "JSky_0.1.5B"
+        Dim FlashDefault As String = "FlashPlayer"
         Dim dojaFound As Boolean = False
         Dim starFound As Boolean = False
+        Dim jskyFound As Boolean = False
+        Dim flashFound As Boolean = False
 
         ' Run the directory check on a background thread
         Dim sdkFolders As String() = Await Task.Run(Function() Directory.GetDirectories(ToolsFolder))
@@ -228,6 +266,8 @@ Public Class Form1
         ' Clear existing items on the UI thread
         cbxDojaSDK.Items.Clear()
         cbxStarSDK.Items.Clear()
+        cbxJSKYSDK.Items.Clear()
+        cbxFlashSDK.Items.Clear()
 
         For Each SSDK In sdkFolders
             Dim folder As String = Path.GetFileName(SSDK)
@@ -241,6 +281,16 @@ Public Class Form1
                 cbxDojaSDK.Items.Add(folder)
                 If folder.Equals(dojaDefault, StringComparison.OrdinalIgnoreCase) Then
                     dojaFound = True
+                End If
+            ElseIf folder.StartsWith("JSky_", StringComparison.OrdinalIgnoreCase) Then
+                cbxJSKYSDK.Items.Add(folder)
+                If folder.Equals(jskyDefault, StringComparison.OrdinalIgnoreCase) Then
+                    jskyFound = True
+                End If
+            ElseIf folder.StartsWith("Flash", StringComparison.OrdinalIgnoreCase) Then
+                cbxFlashSDK.Items.Add(folder)
+                If folder.Equals(FlashDefault, StringComparison.OrdinalIgnoreCase) Then
+                    flashFound = True
                 End If
             End If
         Next
@@ -257,14 +307,28 @@ Public Class Form1
         Else
             MessageBox.Show(owner:=SplashScreen, $"The default SDK '{dojaDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
+
+        If jskyFound Then
+            cbxJSKYSDK.SelectedItem = jskyDefault
+        Else
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{jskyDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+
+        If flashFound Then
+            cbxFlashSDK.SelectedItem = FlashDefault
+        Else
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{FlashDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
     End Function
     Private Async Function LoadGameIconsAsync() As Task
         Dim DojaIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "doja.gif")
         Dim StarIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "star.gif")
+        Dim JskyIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "jsky.gif")
+        Dim FlashIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")
 
         ' Validate default icons
-        If Not File.Exists(DojaIconPath) OrElse Not File.Exists(StarIconPath) Then
-            MessageBox.Show("Missing Doja/Star Default icons.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        If Not File.Exists(DojaIconPath) OrElse Not File.Exists(StarIconPath) OrElse Not File.Exists(JskyIconPath) Then
+            MessageBox.Show("Missing Doja/Star/Jsky/Flash Default icons.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Exit Function
         End If
 
@@ -273,8 +337,8 @@ Public Class Form1
                                                                            Dim result As New Dictionary(Of String, Image)(StringComparer.OrdinalIgnoreCase)
 
                                                                            Dim availableIcons As HashSet(Of String) = Directory.GetFiles(Path.Combine(ToolsFolder, "icons")).
-            Select(Function(iconPath) Path.GetFileNameWithoutExtension(iconPath).ToLower()).
-            ToHashSet()
+                   Select(Function(iconPath) Path.GetFileNameWithoutExtension(iconPath).ToLower()).
+                   ToHashSet()
 
                                                                            For Each game In games
                                                                                Dim iconFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName).ToLower()
@@ -288,7 +352,21 @@ Public Class Form1
                                                                                            iconToUse = Image.FromStream(fs)
                                                                                        End Using
                                                                                    Else
-                                                                                       Dim defaultIconPath As String = If(game.Emulator.Equals("doja", StringComparison.OrdinalIgnoreCase), DojaIconPath, StarIconPath)
+                                                                                       Dim defaultIconPath As String
+
+                                                                                       Select Case game.Emulator.ToLower()
+                                                                                           Case "doja"
+                                                                                               defaultIconPath = DojaIconPath
+                                                                                           Case "star"
+                                                                                               defaultIconPath = StarIconPath
+                                                                                           Case "jsky"
+                                                                                               defaultIconPath = JskyIconPath
+                                                                                           Case "flash"
+                                                                                               defaultIconPath = FlashIconPath
+                                                                                           Case Else
+                                                                                               defaultIconPath = DojaIconPath ' fallback
+                                                                                       End Select
+
                                                                                        Using fs As New FileStream(defaultIconPath, FileMode.Open, FileAccess.Read)
                                                                                            iconToUse = Image.FromStream(fs)
                                                                                        End Using
@@ -322,6 +400,15 @@ Public Class Form1
 
             ' Load games on a background thread
             games = Await Task.Run(Function() gameListManager.LoadGamesAsync())
+
+            ' Sort games A-Z by ENTitle
+            games = games.OrderBy(Function(g)
+                                      If g.ENTitle.StartsWith("[") Then
+                                          Return "ZZZZZZZZZ" & g.ENTitle ' Push to bottom
+                                      Else
+                                          Return g.ENTitle
+                                      End If
+                                  End Function).ToList()
 
             lblTotalGameCount.Text = $"Total: {games.Count}"
 
@@ -399,18 +486,6 @@ Public Class Form1
             Return False
         End Try
     End Function
-    Private Sub EnableButtons()
-        ' Enable game launch button and checkbox
-        btnLaunchGame.Enabled = True
-        chkbxHidePhoneUI.Enabled = True
-        cobxAudioType.Enabled = True
-        chkbxShaderGlass.Enabled = True
-        cbxShaderGlassScaling.Enabled = True
-        cbxDojaSDK.Enabled = True
-        cbxStarSDK.Enabled = True
-        chkbxLocalEmulator.Enabled = True
-        chkbxEnableController.Enabled = True
-    End Sub
     Private Async Function FilterAndHighlightGamesAsync() As Task
         ' Get filter and search term from UI (must be done on UI thread)
         Dim selectedFilter As String = cbxFilterType.SelectedItem?.ToString().ToLower()
@@ -493,11 +568,14 @@ Public Class Form1
         ListViewGamesVariants.View = View.Details
         ListViewGamesVariants.Items.Clear()
         ListViewGamesVariants.Columns.Clear()
-        ListViewGamesVariants.Columns.Add("Game Variants", ListViewGamesVariants.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
+        ListViewGamesVariants.Columns.Add("Appli Variants", ListViewGamesVariants.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
         ListViewGamesVariants.BackColor = SystemColors.Window
 
         ' Ensure a game is selected
-        If ListViewGames.SelectedItems.Count = 0 Then Return
+        If ListViewGames.SelectedItems.Count = 0 Then
+            lblTotalVariantCount.Text = "Variants: 0"
+            Return
+        End If
 
         ' Get selected game title
         Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
@@ -507,7 +585,10 @@ Public Class Form1
                                                       Return games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
                                                   End Function)
 
-        If selectedGame Is Nothing OrElse String.IsNullOrWhiteSpace(selectedGame.Variants) Then Return
+        If selectedGame Is Nothing OrElse String.IsNullOrWhiteSpace(selectedGame.Variants) Then
+            lblTotalVariantCount.Text = "Variants: 0"
+            Return
+        End If
 
         ' Split the variants string safely
         Dim variants As String() = selectedGame.Variants.Split(","c)
@@ -521,55 +602,84 @@ Public Class Form1
             ListViewGamesVariants.Items(0).Selected = True
         End If
 
-        lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count.ToString}"
+        lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count}"
     End Function
     Private Async Function DownloadGames(ContextDownload As Boolean) As Task
+        ' Ensure a game is selected
+        If ListViewGames.SelectedItems.Count = 0 Then
+            MessageBox.Show("Please select a game", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
 
-        ' Get the selected game title from the ListViewGames
-        Dim selectedGameTitle As String
-        Dim selectedGame As Game = Nothing
-        Try
-            selectedGameTitle = ListViewGames.SelectedItems(0).Text
-            selectedGame = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-        Catch ex As Exception
-            MessageBox.Show("Please select a game")
-        End Try
+        ' Get the selected game
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
 
-        ' Get the selected game title from the ListViewVariants
-        Dim selectedGameVariants As String = String.Empty
-        Try
-            ' Determine if a variant is selected
-            If ListViewGamesVariants.SelectedItems.Count > 0 Then
-                selectedGameVariants = ListViewGamesVariants.SelectedItems(0).Text.Trim()
-            End If
-        Catch ex As Exception
-
-        End Try
-
-        'Check if its nothing
         If selectedGame Is Nothing Then
             MessageBox.Show("Selected game could not be found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Return
         End If
 
-        ' Construct paths for game files
-        Dim gameBasePath As String = $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}"
-        Dim downloadFileZipPath As String = $"{DownloadsFolder}\{selectedGame.ZIPName}"
-        Dim GameVariants = selectedGame.Variants
-        Dim GameVariantsSplit = selectedGame.Variants.Split(",")
-        If GameVariants Is Nothing Or GameVariants = "" Then
-            CurrentSelectedGameJAM = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
-            CurrentSelectedGameJAR = $"{gameBasePath}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
-            CurrentSelectedGameSP = $"{gameBasePath}\sp\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.sp"
-        ElseIf ListViewGamesVariants.SelectedItems.Count > 0 Then
-            CurrentSelectedGameJAM = $"{gameBasePath}\{selectedGameVariants}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
-            CurrentSelectedGameJAR = $"{gameBasePath}\{selectedGameVariants}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
-            CurrentSelectedGameSP = $"{gameBasePath}\{selectedGameVariants}\sp\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.sp"
-        Else
-            CurrentSelectedGameJAM = $"{gameBasePath}\{GameVariantsSplit(0)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jam"
-            CurrentSelectedGameJAR = $"{gameBasePath}\{GameVariantsSplit(0)}\bin\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.jar"
-            CurrentSelectedGameSP = $"{gameBasePath}\{GameVariantsSplit(0)}\sp\{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}.sp"
+        ' Get the selected variant (if any)
+        Dim selectedGameVariant As String = String.Empty
+        If ListViewGamesVariants.SelectedItems.Count > 0 Then
+            selectedGameVariant = ListViewGamesVariants.SelectedItems(0).Text.Trim()
         End If
+
+        ' Get emulator type
+        Dim emulator As String = selectedGame.Emulator
+
+        ' Construct paths for game files
+        ' Build shared paths
+        Dim zipNameNoExt As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+        Dim gameBasePath As String = Path.Combine(DownloadsFolder, zipNameNoExt)
+        Dim gameVariantsRaw As String = selectedGame.Variants
+        Dim gameVariantsSplit() As String = If(Not String.IsNullOrEmpty(gameVariantsRaw), gameVariantsRaw.Split(","c), {})
+        Dim downloadFileZipPath As String = $"{DownloadsFolder}\{selectedGame.ZIPName}"
+
+        ' Determine fallback variant (if needed)
+        Dim fallbackVariant As String = If(gameVariantsSplit.Length > 0, gameVariantsSplit(0), "")
+
+        ' Select the correct variant path
+        Dim variantPath As String = ""
+        If String.IsNullOrWhiteSpace(gameVariantsRaw) Then
+            variantPath = "" ' No variant structure
+        ElseIf Not String.IsNullOrWhiteSpace(selectedGameVariant) Then
+            variantPath = selectedGameVariant
+        Else
+            variantPath = fallbackVariant
+        End If
+
+        ' Set paths based on emulator
+        If emulator = "doja" OrElse emulator = "star" Then
+            CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, "bin", $"{zipNameNoExt}.jam")
+            CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, "bin", $"{zipNameNoExt}.jar")
+            CurrentSelectedGameSP = Path.Combine(gameBasePath, variantPath, "sp", $"{zipNameNoExt}.sp")
+
+        ElseIf emulator = "jsky" Then
+            If String.IsNullOrWhiteSpace(variantPath) Then
+                CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.jad")
+                CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.jar")
+            Else
+                CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.jad")
+                CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.jar")
+            End If
+        ElseIf emulator = "flash" Then
+            If String.IsNullOrWhiteSpace(variantPath) Then
+                CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.swf")
+                CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.swf")
+            Else
+                CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.swf")
+                CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.swf")
+            End If
+        End If
+
+        'Check if download is happening already.
+        If isGameDownloadInProgress Then
+            Logger.LogInfo("Skipping game file check — a download is already in progress.")
+            Return
+        End If
+
 
         ' Check if the game is already downloaded
         If isOnline = False Then
@@ -579,45 +689,63 @@ Public Class Form1
         If File.Exists(CurrentSelectedGameJAR) Then
             If ContextDownload Then
                 Dim result As DialogResult = MessageBox.Show(
-                    $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is already downloaded. Would you like to download it again?{vbCrLf}{vbCrLf}" &
+                    $"The game '{selectedGame.ENTitle}' is already downloaded. Would you like to download it again?{vbCrLf}{vbCrLf}" &
                     "This could delete your save data, so please be careful.",
                     "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
-
-                If result = DialogResult.Yes Then
-                    Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
-                    Logger.LogInfo($"Starting redownload for {selectedGame.DownloadURL}")
-                    MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                End If
-                If File.Exists(CurrentSelectedGameJAM) Then
-                    UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
-                    ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
-                Else
-                    Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
-                End If
+                Try
+                    If result = DialogResult.Yes Then
+                        isGameDownloadInProgress = True
+                        Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
+                        Logger.LogInfo($"Starting redownload for {selectedGame.DownloadURL}")
+                        MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                    End If
+                    If File.Exists(CurrentSelectedGameJAM) Then
+                        UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+                        ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
+                    Else
+                        Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
+                    End If
+                Catch ex As Exception
+                    Logger.LogError($"[UI] Error during game download: {ex.Message}")
+                    MessageBox.Show("An error occurred while downloading the game. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Finally
+                    isGameDownloadInProgress = False
+                End Try
             End If
             UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
         Else
-            If selectedGame.ZIPName = String.Empty Or selectedGame.ZIPName Is Nothing Then
+            If selectedGame.ZIPName = String.Empty OrElse selectedGame.ZIPName Is Nothing Then
                 Logger.LogError($"{selectedGame.ENTitle} has invalid gamelist values, unable to download.")
                 MessageBox.Show($"{selectedGame.ENTitle} has invalid gamelist values, unable to download.")
                 Return
             End If
+
             ' Game not downloaded - prompt user to download it
             Dim result As DialogResult = MessageBox.Show(
                 $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?",
                 "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 
             If result = DialogResult.Yes Then
-                Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
-                Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
-                If File.Exists(CurrentSelectedGameJAM) Then
-                    UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
-                    ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
-                Else
-                    Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
-                End If
+                isGameDownloadInProgress = True
+                Try
+                    Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
+                    Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
+
+                    If File.Exists(CurrentSelectedGameJAM) Then
+                        UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+                        ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
+                    Else
+                        Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
+                    End If
+                Catch ex As Exception
+                    Logger.LogError($"[UI] Error during game download: {ex.Message}")
+                    MessageBox.Show("An error occurred while downloading the game. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Finally
+                    isGameDownloadInProgress = False
+                End Try
             End If
         End If
+
     End Function
     Private Async Function StartGameDownload(
         selectedGame As Game,
@@ -626,6 +754,7 @@ Public Class Form1
         jamFilePath As String,
         jarFilePath As String
     ) As Task
+
         Try
             Dim gameDownloader As New GameDownloader(pbGameDL)
             Await gameDownloader.DownloadGameAsync(
@@ -871,7 +1000,19 @@ Public Class Form1
             Return "unknown"
         End Try
     End Function
+    Public Function VerifyEmulatorType_JAD(GameJAD As String) As String
+        Try
+            If String.IsNullOrWhiteSpace(GameJAD) OrElse Not File.Exists(GameJAD) Then
+                Return "unknown"
+            End If
 
+            Return "jsky"
+        Catch ex As Exception
+            ' Log the error if needed
+            Console.WriteLine($"Error reading JAD file: {ex.Message}")
+            Return "unknown"
+        End Try
+    End Function
     Public Async Function LoadCustomGamesAsync() As Task
         Dim customGamesFile As String = Path.Combine(ConfigsFolder, "customgames.txt")
 
@@ -921,21 +1062,18 @@ Public Class Form1
             Dim dpiScale As Single = g.DpiX / 96.0F ' 96 DPI is default (100%)
             g.Dispose()
 
-            ' Get the menu bar height dynamically (if a MenuStrip exists)
-            Dim menuHeight As Integer = If(Me.MainMenuStrip IsNot Nothing, Me.MainMenuStrip.Height, 0)
-
             ' Calculate adjusted top padding based on DPI
             Dim adjustedPadding As Integer
             If dpiScale = 1 Then
-                adjustedPadding = 65
+                adjustedPadding = 63
             ElseIf dpiScale = 1.25 Then
-                adjustedPadding = 65
+                adjustedPadding = 63
             ElseIf dpiScale = 1.5 Then
-                adjustedPadding = 65
+                adjustedPadding = 63
             ElseIf dpiScale = 1.75 Then
-                adjustedPadding = 65
+                adjustedPadding = 63
             ElseIf dpiScale = 2 Then
-                adjustedPadding = 65
+                adjustedPadding = 63
             End If
 
             ' Apply padding to the form
@@ -943,12 +1081,10 @@ Public Class Form1
 
             ' Adjust TabControl position
             If MaterialTabControl1 IsNot Nothing Then
-                MaterialTabControl1.Top = Me.MainMenuStrip.Bottom
-                MaterialTabControl1.Left = Me.MainMenuStrip.Left
-
+                MaterialTabControl1.Top = MaterialTabSelector1.Top + 35
                 ' Now, adjust the form's client size so that MaterialTabControl1 has 3 pixels of space on the right and bottom.
                 Dim newClientWidth As Integer = MaterialTabControl1.Left + MaterialTabControl1.Width - 8
-                Dim newClientHeight As Integer = MaterialTabControl1.Top + MaterialTabControl1.Height - 16
+                Dim newClientHeight As Integer = MaterialTabControl1.Top + MaterialTabControl1.Height - 30
 
                 Me.ClientSize = New Size(newClientWidth, newClientHeight)
             End If
@@ -1019,7 +1155,6 @@ Public Class Form1
         End If
     End Function
 
-
     ' LISTBOX/LISTVIEW CHANGES
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
         ' Restart the timer on selection change
@@ -1032,10 +1167,18 @@ Public Class Form1
         ' Check if any items are selected
         If ListViewGames.SelectedItems.Count = 0 Then Return
 
+        ' Get selected game title
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+
+        ' Find the game on a background thread
+        Dim selectedGame As Game = Await Task.Run(Function()
+                                                      Return games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+                                                  End Function)
+
         ' Perform actions once after all selections are done
         Await LoadGameVariantsAsync()
         Await DownloadGames(False)
-        EnableButtons()
+        EnableButtons(selectedGame)
     End Sub
     Private Async Sub ListViewGamesVariants_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGamesVariants.SelectedIndexChanged
         Await DownloadGames(False)
@@ -1048,7 +1191,7 @@ Public Class Form1
     End Sub
 
     ' CheckBox Changes
-    Private Sub chkbxHidePhoneUI_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxHidePhoneUI.CheckedChanged
+    Private Sub chkbxHidePhoneUI_CheckedChanged(sender As Object, e As EventArgs)
         configManager.UpdateDOJAHideUISetting(chkbxHidePhoneUI.Checked)
     End Sub
     Private Sub chkbxShaderGlass_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxShaderGlass.CheckedChanged
@@ -1092,7 +1235,7 @@ Public Class Form1
     End Sub
 
     ' ComboBox Changes
-    Private Sub cobxAudioType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cobxAudioType.SelectedIndexChanged
+    Private Sub cobxAudioType_SelectedIndexChanged(sender As Object, e As EventArgs)
         If cobxAudioType.SelectedItem.ToString = "Standard" Or cobxAudioType.SelectedItem.ToString = "903i" Then
             configManager.UpdateDOJASoundSetting(cobxAudioType.SelectedItem.ToString)
             If cobxAudioType.SelectedItem.ToString = "903i" Then
@@ -1105,34 +1248,45 @@ Public Class Form1
     Private Async Sub cbxEmuType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxFilterType.SelectedIndexChanged
         Await FilterAndHighlightGamesAsync()
     End Sub
-    Private Sub cbxStarSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxStarSDK.SelectedIndexChanged
+    Private Sub cbxStarSDK_SelectedIndexChanged(sender As Object, e As EventArgs)
         ' Ensure the SDKs are selected
         If cbxStarSDK.SelectedItem Is Nothing Then
             MessageBox.Show("Please select a Star SDK before launching.")
             Return
         End If
         ' Store selected SDKs in variables
-        Dim selectedStarSDK As String = cbxStarSDK.SelectedItem.ToString()
-        Starpath = Path.Combine(ToolsFolder, selectedStarSDK)
-        StarEXE = Path.Combine(ToolsFolder, selectedStarSDK, "bin", "star.exe")
+        Dim selectedStarSDK = cbxStarSDK.SelectedItem.ToString
+        STARpath = Path.Combine(ToolsFolder, selectedStarSDK)
+        STAREXE = Path.Combine(ToolsFolder, selectedStarSDK, "bin", "star.exe")
     End Sub
-    Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxDojaSDK.SelectedIndexChanged
+    Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs)
         ' Ensure the SDKs are selected
         If cbxDojaSDK.SelectedItem Is Nothing Then
             MessageBox.Show("Please select a Doja SDK before launching.")
             Return
         End If
         ' Store selected SDKs in variables
-        Dim selectedDojaSDK As String = cbxDojaSDK.SelectedItem.ToString()
-        Dojapath = Path.Combine(ToolsFolder, selectedDojaSDK)
-        DojaEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "bin", "doja.exe")
+        Dim selectedDojaSDK = cbxDojaSDK.SelectedItem.ToString
+        DOJApath = Path.Combine(ToolsFolder, selectedDojaSDK)
+        DOJAEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "bin", "doja.exe")
 
-        If cbxDojaSDK.SelectedItem.ToString().Contains("3.5") Then
+        If cbxDojaSDK.SelectedItem.ToString.Contains("3.5") Then
             If chkbxShaderGlass.Checked = True Then
                 MessageBox.Show("Doja 3.5 does not work with ShaderGlass Disabling.")
                 chkbxShaderGlass.Checked = False
             End If
         End If
+    End Sub
+    Private Sub cbxJSKYSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxJSKYSDK.SelectedIndexChanged
+        ' Ensure the SDKs are selected
+        If cbxJSKYSDK.SelectedItem Is Nothing Then
+            MessageBox.Show("Please select a JSKY SDK before launching.")
+            Return
+        End If
+        ' Store selected SDKs in variables
+        Dim selectedjskySDK = cbxJSKYSDK.SelectedItem.ToString
+        JSKYpath = Path.Combine(ToolsFolder, selectedjskySDK)
+        JSKYEXE = Path.Combine(ToolsFolder, selectedjskySDK, "jbmidp.jar")
     End Sub
     Private Async Sub cbxGameControllers_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxGameControllers.SelectedIndexChanged
         Dim selectedName = cbxGameControllers.SelectedItem?.ToString()
@@ -1161,7 +1315,6 @@ Public Class Form1
             MessageBox.Show("Selected controller does not support XInput vibration.")
         End If
     End Sub
-
 
     'Textbox Changes
     Private Async Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged
@@ -1279,8 +1432,12 @@ Public Class Form1
             ' Store selected SDKs in variables
             Dim selectedDojaSDK As String = cbxDojaSDK.SelectedItem.ToString()
             Dim selectedStarSDK As String = cbxStarSDK.SelectedItem.ToString()
+            Dim selectedJSKYSDK As String = cbxJSKYSDK.SelectedItem.ToString()
+            Dim selectedFlashSDK As String = cbxFlashSDK.SelectedItem.ToString()
             Logger.LogInfo($"Selected Doja SDK: {selectedDojaSDK}")
             Logger.LogInfo($"Selected Star SDK: {selectedStarSDK}")
+            Logger.LogInfo($"Selected JSKY SDK: {selectedJSKYSDK}")
+            Logger.LogInfo($"Selected Flash SDK: {selectedFlashSDK}")
 
             ' Verify the game is downloaded
             If Not Await VerifyGameDownloadedAsync() Then
@@ -1299,51 +1456,74 @@ Public Class Form1
             End If
 
             ' Determine correct emulator
-            Dim CorrectedEmulator = VerifyEmulatorType_JAM(CurrentSelectedGameJAM)
+            Dim CorrectedEmulator As String
+            If CurrentSelectedGameJAM.ToLower.EndsWith(".jam") Then
+                CorrectedEmulator = VerifyEmulatorType_JAM(CurrentSelectedGameJAM)
+            ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".jad") Then
+                CorrectedEmulator = VerifyEmulatorType_JAD(CurrentSelectedGameJAM)
+            ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".swf") Then
+                CorrectedEmulator = "flash"
+            End If
             Logger.LogInfo($"Detected emulator type: {CorrectedEmulator}")
 
             ' Get Game Directory Path
             Dim GameDirectory As String = ""
-            Dim binIndex As Integer = CurrentSelectedGameJAM.LastIndexOf("\bin")
-            If binIndex <> -1 Then
-                GameDirectory = CurrentSelectedGameJAM.Substring(0, binIndex)
-                Logger.LogInfo($"Game directory resolved to: {GameDirectory}")
-            Else
-                Logger.LogWarning("Could not determine GameDirectory: '\bin' not found in CurrentSelectedGameJAM path.")
+            If CorrectedEmulator = "doja" Or CorrectedEmulator = "star" Then
+                Dim binIndex As Integer = CurrentSelectedGameJAM.LastIndexOf("\bin")
+                If binIndex <> -1 Then
+                    GameDirectory = CurrentSelectedGameJAM.Substring(0, binIndex)
+                    Logger.LogInfo($"Game directory resolved to: {GameDirectory}")
+                Else
+                    Logger.LogWarning("Could not determine GameDirectory: '\bin' not found in CurrentSelectedGameJAM path.")
+                End If
             End If
 
             ' Check for Helper Scripts
             If selectedGame.ENTitle.Contains("Dirge of Cerberus") Then
                 Logger.LogInfo("Setting up FF7 Doja Helper Script...")
-                Await gameManager.FF7_DOCLE_SetupAsync(Dojapath, GameDirectory)
+                Await gameManager.FF7_DOCLE_SetupAsync(DOJApath, GameDirectory)
             End If
 
             ' Start Launching Game
             UtilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
+            Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
+            Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
+            Dim isJavaRunning As Boolean = UtilManager.CheckAndCloseJava()
+            Dim isFlashRunning As Boolean = UtilManager.CheckAndCloseFlashPlayer()
             Select Case CorrectedEmulator.ToLower()
                 Case "doja"
-                    Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
-                    Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
-                    If Not isDojaRunning AndAlso Not isStarRunning Then
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning Then
                         Logger.LogInfo("Launching game using DOJA emulator.")
-                        utilManager.LaunchCustomDOJAGameCommand(Dojapath, DojaEXE, CurrentSelectedGameJAM)
-                        Logger.LogInfo($"Launched with: DojaPath={Dojapath}, DojaEXE={DojaEXE}, GamePath={CurrentSelectedGameJAM}")
+                        utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
+                        Logger.LogInfo($"Launched with: DojaPath={DOJApath}, DojaEXE={DOJAEXE}, GamePath={CurrentSelectedGameJAM}")
                     Else
-                        Logger.LogWarning("DOJA emulator or STAR emulator is already running. Skipping launch.")
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator or FlashPlayer is already running. Skipping launch.")
                     End If
-
                 Case "star"
-                    Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
-                    Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
-                    If Not isStarRunning AndAlso Not isDojaRunning Then
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning Then
                         Logger.LogInfo("Launching game using STAR emulator.")
-                        utilManager.LaunchCustomSTARGameCommand(Starpath, StarEXE, CurrentSelectedGameJAM)
-                        Logger.LogInfo($"Launched with: StarPath={Starpath}, StarEXE={StarEXE}, GamePath={CurrentSelectedGameJAM}")
+                        utilManager.LaunchCustomSTARGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
+                        Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
                     Else
-                        Logger.LogWarning("STAR emulator or DOJA emulator is already running. Skipping launch.")
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator or FlashPlayer is already running. Skipping launch.")
                     End If
-
+                Case "jsky"
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning Then
+                        Logger.LogInfo("Launching game using JSKY emulator.")
+                        utilManager.LaunchCustomJSKYGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
+                        Logger.LogInfo($"Launched with: JSKYPath={JSKYpath}, JSKYEXE={JSKYEXE}, GamePath={CurrentSelectedGameJAM}")
+                    Else
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator or FlashPlayer is already running. Skipping launch.")
+                    End If
+                Case "flash"
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning Then
+                        Logger.LogInfo("Launching game using flash Player.")
+                        utilManager.LaunchCustomFlashGameCommand(FlashPlayerpath, FlashPlayerEXE, CurrentSelectedGameJAM)
+                        Logger.LogInfo($"Launched with: flashPath={FlashPlayerpath}, flashEXE={FlashPlayerEXE}, SWFPath={CurrentSelectedGameJAM}")
+                    Else
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator or FlashPlayer is already running. Skipping launch.")
+                    End If
                 Case Else
                     Logger.LogError($"Unknown emulator type: '{CorrectedEmulator}'. Aborting launch.")
                     MessageBox.Show("Unknown emulator type detected. Cannot launch the game.")
@@ -1372,7 +1552,7 @@ Public Class Form1
     End Sub
 
     'Menu Strip Items
-    Private Async Sub GamesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GamesToolStripMenuItem.Click
+    Private Async Sub GamesToolStripMenuItem_Click(sender As Object, e As EventArgs)
         'Batch Download all games in game List
         Dim result = MessageBox.Show($"This will download all games... This might take awhile are you sure?", "Download All Games", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
         If result = DialogResult.Yes Then
@@ -1402,7 +1582,7 @@ Public Class Form1
         Next
         MessageBox.Show($"Total Games Available {games.Count}{vbCrLf}Downloaded Successfully: {SuccessDLCount}{vbCrLf}Skipped: {SkippedCount}")
     End Function
-    Private Async Sub MachiCharaToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles MachiCharaToolStripMenuItem.Click
+    Private Async Sub MachiCharaToolStripMenuItem_Click(sender As Object, e As EventArgs)
         'Batch Download all MachiCharas in MC List
         Dim result = MessageBox.Show($"This will download all MachiChara's... This might take awhile are you sure?", "Download All MachiChara's", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
         If result = DialogResult.Yes Then
@@ -1431,113 +1611,33 @@ Public Class Form1
         Next
         MessageBox.Show($"Total MachiChara Available {machicharas.Count}{vbCrLf}Downloaded Successfully: {SuccessDLCount}{vbCrLf}Skipped: {SkippedCount}")
     End Function
-    Private Sub AboutToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AboutToolStripMenuItem.Click
-        ' Create a new MaterialForm for About
-        Dim aboutForm As New ReaLTaiizor.Forms.MaterialForm With {
-        .Text = "About",
-        .Size = New Size(400, 250),
-        .StartPosition = FormStartPosition.CenterScreen,
-        .Sizable = False,
-        .FormBorderStyle = FormBorderStyle.FixedDialog,
-        .MaximizeBox = False,
-        .MinimizeBox = False
-    }
-
-        ' Build the About text
-        Dim aboutText As String =
-        "Keitai World Launcher" & Environment.NewLine & Environment.NewLine &
-        $"Version: B{KeitaiWorldLauncher.My.Application.Info.Version.ToString}"
-
-        ' Create label for content
-        Dim lblAbout As New Label With {
-        .Text = aboutText,
-        .AutoSize = False,
-        .Left = 20,
-        .Top = 80,
-        .Width = aboutForm.ClientSize.Width - 40,
-        .Height = 80,
-        .Font = New Font("Segoe UI", 10, FontStyle.Regular),
-        .ForeColor = Color.Black
-    }
-
-        ' Create Close button
-        Dim btnClose As New ReaLTaiizor.Controls.MaterialButton With {
-        .Text = "Close",
-        .Width = 100,
-        .Height = 36,
-        .Left = aboutForm.ClientSize.Width - 120,
-        .Top = aboutForm.ClientSize.Height - 60,
-        .HighEmphasis = True,
-        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
-    }
-        AddHandler btnClose.Click, Sub() aboutForm.Close()
-
-        ' Add controls and show
-        aboutForm.Controls.Add(lblAbout)
-        aboutForm.Controls.Add(btnClose)
-        aboutForm.ShowDialog()
-    End Sub
-    Private Sub ExitToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ExitToolStripMenuItem.Click
+    Private Sub ExitToolStripMenuItem_Click(sender As Object, e As EventArgs)
         Application.Exit()
     End Sub
     Public Shared Sub QuitApplication()
         Application.Exit()
     End Sub
-    Private Async Sub GamelistToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles GamelistToolStripMenuItem.Click
+    Private Async Sub GamelistToolStripMenuItem_Click(sender As Object, e As EventArgs)
         OpenFileDialog1.Title = "Select Master Game Zip file"
         If OpenFileDialog1.ShowDialog = DialogResult.OK Then
             Await utilManager.ProcessZipFileforGamelistAsync(OpenFileDialog1.FileName)
         End If
     End Sub
-    Private Sub RefreshToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles RefreshToolStripMenuItem.Click
+    Private Sub RefreshToolStripMenuItem_Click(sender As Object, e As EventArgs)
         Application.Restart()
     End Sub
-    Private Sub KeyConfiguratorToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles KeyConfiguratorToolStripMenuItem.Click
-        Dim processName As String = "antimicrox" ' No .exe
-        Dim isRunning As Boolean = process.GetProcessesByName(processName).Length > 0
-
-        If isRunning = False Then
-            Dim Apppath = $"{ToolsFolder}\antimicrox\bin\antimicrox.exe"
-            Dim startInfo As New ProcessStartInfo()
-            startInfo.FileName = Apppath
-            startInfo.UseShellExecute = False
-            startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
-            Dim process As Process = Process.Start(startInfo)
-        Else
-            Dim Apppath = $"{ToolsFolder}\antimicrox\bin\antimicrox.exe"
-            Dim args = $"--show"
-            Dim startInfo As New ProcessStartInfo()
-            startInfo.FileName = Apppath
-            startInfo.Arguments = args
-            startInfo.UseShellExecute = False
-            startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
-            Dim process As Process = Process.Start(startInfo)
-        End If
-    End Sub
-    Private Sub AppConfigToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AppConfigToolStripMenuItem.Click
-        Dim Apppath = $"cmd"
-        Dim startInfo As New ProcessStartInfo()
-        startInfo.FileName = Apppath
-        startInfo.Arguments = $"/C {Chr(34)}notepad {AppDomain.CurrentDomain.BaseDirectory}\configs\appconfig.xml {Chr(34)}"
-        startInfo.UseShellExecute = False
-        startInfo.CreateNoWindow = True
-        startInfo.RedirectStandardOutput = True
-        startInfo.RedirectStandardError = True
-        startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
-        Dim process As Process = Process.Start(startInfo)
-    End Sub
-    Private Async Sub AddGameToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AddGameToolStripMenuItem.Click
-        Dim ENTitle = InputBox("Enter the English name of the game:", "English Game Name").Trim()
+    Private Async Sub AddGameToolStripMenuItem_Click(sender As Object, e As EventArgs)
+        Dim ENTitle = InputBox("Enter the English name of the game:", "English Game Name").Trim
 
         If String.IsNullOrWhiteSpace(ENTitle) Then
             MsgBox("The English game name cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
             Exit Sub
         End If
 
-        Dim JPTitle = InputBox("Enter the Japanese name of the game (leave blank if same as English):", "Japanese Game Name").Trim()
+        Dim JPTitle = InputBox("Enter the Japanese name of the game (leave blank if same as English):", "Japanese Game Name").Trim
         If String.IsNullOrWhiteSpace(JPTitle) Then JPTitle = ENTitle
 
-        Dim ZIPName = InputBox("Enter the name of the zip file (include .zip at the end):", "Zip File Name").Trim()
+        Dim ZIPName = InputBox("Enter the name of the zip file (include .zip at the end):", "Zip File Name").Trim
         If String.IsNullOrWhiteSpace(ZIPName) Then
             MsgBox("The ZIP file name cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
             Exit Sub
@@ -1546,18 +1646,18 @@ Public Class Form1
             ZIPName += ".zip"
         End If
 
-        Dim DownloadURL = InputBox("Enter the download URL for the zip file:", "Download URL").Trim()
+        Dim DownloadURL = InputBox("Enter the download URL for the zip file:", "Download URL").Trim
         If String.IsNullOrWhiteSpace(DownloadURL) Then
             MsgBox("The download URL cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
             Exit Sub
         End If
 
-        Dim AppIconURL = InputBox("Enter the URL of a custom app icon (24x24) or leave blank to use the default icon:", "App Icon URL").Trim()
-        Dim SDCardData = InputBox("Enter the SD Card data zip URL or leave blank if not applicable:", "SD Card Data URL").Trim()
-        Dim Emulator = InputBox("Enter the emulator type (doja or star):", "Emulator").Trim().ToLower()
+        Dim AppIconURL = InputBox("Enter the URL of a custom app icon (24x24) or leave blank to use the default icon:", "App Icon URL").Trim
+        Dim SDCardData = InputBox("Enter the SD Card data zip URL or leave blank if not applicable:", "SD Card Data URL").Trim
+        Dim Emulator = InputBox("Enter the emulator type (doja or star):", "Emulator").Trim.ToLower
 
         While Emulator <> "doja" AndAlso Emulator <> "star"
-            Emulator = InputBox("Invalid input. Please enter only 'doja' or 'star':", "Emulator").Trim().ToLower()
+            Emulator = InputBox("Invalid input. Please enter only 'doja' or 'star':", "Emulator").Trim.ToLower
             If String.IsNullOrWhiteSpace(Emulator) Then
                 MsgBox("The emulator type cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
                 Exit Sub
@@ -1579,7 +1679,50 @@ Public Class Form1
 
         MessageBox.Show("Added. Make sure you download this AppConfig and upload.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
     End Sub
-    Private Sub ShaderGlassConfigToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ShaderGlassConfigToolStripMenuItem.Click
+    Private Sub MachiCharaCreateXMLToolStripMenu_Click(sender As Object, e As EventArgs)
+        If FolderBrowserDialog1.ShowDialog = DialogResult.OK Then
+            UtilManager.ProcessMachiChara_CFDFiles(FolderBrowserDialog1.SelectedPath)
+        End If
+    End Sub
+
+
+
+    'Config Option in TabPage
+    Private Sub btnLaunchKey2Pad_Click(sender As Object, e As EventArgs) Handles btnLaunchKey2Pad.Click
+        Dim processName As String = "antimicrox" ' No .exe
+        Dim isRunning As Boolean = Process.GetProcessesByName(processName).Length > 0
+
+        If isRunning = False Then
+            Dim Apppath = $"{ToolsFolder}\antimicrox\bin\antimicrox.exe"
+            Dim startInfo As New ProcessStartInfo()
+            startInfo.FileName = Apppath
+            startInfo.UseShellExecute = False
+            startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+            Dim process As Process = Process.Start(startInfo)
+        Else
+            Dim Apppath = $"{ToolsFolder}\antimicrox\bin\antimicrox.exe"
+            Dim args = $"--show"
+            Dim startInfo As New ProcessStartInfo()
+            startInfo.FileName = Apppath
+            startInfo.Arguments = args
+            startInfo.UseShellExecute = False
+            startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
+            Dim process As Process = Process.Start(startInfo)
+        End If
+    End Sub
+    Private Sub btnLaunchAppConfig_Click(sender As Object, e As EventArgs) Handles btnLaunchAppConfig.Click
+        Dim Apppath = $"cmd"
+        Dim startInfo As New ProcessStartInfo()
+        startInfo.FileName = Apppath
+        startInfo.Arguments = $"/C {Chr(34)}notepad {AppDomain.CurrentDomain.BaseDirectory}\configs\appconfig.xml {Chr(34)}"
+        startInfo.UseShellExecute = False
+        startInfo.CreateNoWindow = True
+        startInfo.RedirectStandardOutput = True
+        startInfo.RedirectStandardError = True
+        startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+        Dim process As Process = Process.Start(startInfo)
+    End Sub
+    Private Sub btnLoadShaderGlassConfig_Click(sender As Object, e As EventArgs) Handles btnLoadShaderGlassConfig.Click
         Dim Apppath = $"cmd"
         Dim startInfo As New ProcessStartInfo()
         startInfo.FileName = Apppath
@@ -1591,57 +1734,57 @@ Public Class Form1
         startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
         Dim process As Process = Process.Start(startInfo)
     End Sub
-    Private Sub NetworkUIDConfigToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles NetworkUIDConfigToolStripMenuItem.Click
+    Private Sub btnUpdateNetworkUID_Click(sender As Object, e As EventArgs) Handles btnUpdateNetworkUID.Click
         Dim promptForm As New ReaLTaiizor.Forms.MaterialForm With {
-        .Text = "Enter Network UID",
-        .Size = New Size(540, 320),
-        .FormBorderStyle = FormBorderStyle.FixedDialog,
-        .StartPosition = FormStartPosition.CenterScreen,
-        .Sizable = False
-    }
+            .Text = "Enter Network UID",
+            .Size = New Size(540, 320),
+            .FormBorderStyle = FormBorderStyle.FixedDialog,
+            .StartPosition = FormStartPosition.CenterScreen,
+            .Sizable = False
+        }
 
         ' Push everything down by starting higher top margin
         Dim lblInstructions As New Label With {
-        .Text = "How to get your Network UID:" & Environment.NewLine &
-                "1. Join the Keitai Wiki Discord." & Environment.NewLine &
-                "2. Navigate to the #i-mode channel." & Environment.NewLine &
-                "3. Type '/get-uid' and ButlerSheep will DM you your UID.",
-        .AutoSize = False,
-        .Left = 20,
-        .Top = 80, ' increased spacing from top
-        .Width = 490,
-        .Height = 90
-    }
+            .Text = "How to get your Network UID:" & Environment.NewLine &
+                    "1. Join the Keitai Wiki Discord." & Environment.NewLine &
+                    "2. Navigate to the #i-mode channel." & Environment.NewLine &
+                    "3. Type '/get-uid' and ButlerSheep will DM you your UID.",
+            .AutoSize = False,
+            .Left = 20,
+            .Top = 80, ' increased spacing from top
+            .Width = 490,
+            .Height = 90
+        }
 
         Dim txtInput As New ReaLTaiizor.Controls.MaterialTextBoxEdit With {
-        .Left = 20,
-        .Top = lblInstructions.Top + lblInstructions.Height + 20,
-        .Size = New Size(490, 40),
-        .Text = NetworkUID,
-        .MaxLength = 50,
-        .UseSystemPasswordChar = False,
-        .Hint = "Enter your Network UID..."
-    }
+            .Left = 20,
+            .Top = lblInstructions.Top + lblInstructions.Height + 20,
+            .Size = New Size(490, 40),
+            .Text = NetworkUID,
+            .MaxLength = 50,
+            .UseSystemPasswordChar = False,
+            .Hint = "Enter your Network UID..."
+        }
 
         Dim btnOk As New ReaLTaiizor.Controls.MaterialButton With {
-        .Text = "OK",
-        .DialogResult = DialogResult.OK,
-        .Left = 290,
-        .Top = txtInput.Top + txtInput.Height + 25,
-        .Width = 100,
-        .HighEmphasis = True,
-        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
-    }
+            .Text = "OK",
+            .DialogResult = DialogResult.OK,
+            .Left = 290,
+            .Top = txtInput.Top + txtInput.Height + 25,
+            .Width = 100,
+            .HighEmphasis = True,
+            .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+        }
 
         Dim btnCancel As New ReaLTaiizor.Controls.MaterialButton With {
-        .Text = "CANCEL",
-        .DialogResult = DialogResult.Cancel,
-        .Left = 400,
-        .Top = txtInput.Top + txtInput.Height + 25,
-        .Width = 100,
-        .HighEmphasis = False,
-        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Text
-    }
+            .Text = "CANCEL",
+            .DialogResult = DialogResult.Cancel,
+            .Left = 400,
+            .Top = txtInput.Top + txtInput.Height + 25,
+            .Width = 100,
+            .HighEmphasis = False,
+            .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Text
+        }
 
         promptForm.Controls.Add(lblInstructions)
         promptForm.Controls.Add(txtInput)
@@ -1656,7 +1799,7 @@ Public Class Form1
             NetworkUID = newNetworkUID
         End If
     End Sub
-    Private Sub AddGamesToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles AddGamesToolStripMenuItem.Click
+    Private Sub btnAddCustomApps_Click(sender As Object, e As EventArgs) Handles btnAddCustomApps.Click
         Dim Result = MessageBox.Show($"Select the folder with the games you want to add.{vbCrLf}Ensure the .jar/.jam/.sp are named the same, and located in the same folder.", "Add Custom Games", MessageBoxButtons.OKCancel)
 
         If Result = DialogResult.Cancel Then
@@ -1760,7 +1903,154 @@ Public Class Form1
             End If
         End Using
     End Sub
-    Private Sub ControlsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ControlsToolStripMenuItem.Click
+    'Help Options in TabPage
+    Private Sub SetupLabelsinOptions()
+        Dim troubleshootingMessage As String =
+            "   TROUBLESHOOTING DOJA/STAR ISSUES" & vbCrLf & vbCrLf &
+        "Grey Screen After Launching App:" & vbCrLf &
+        "If the app launches and DOJA/STAR appears but the screen stays grey," & vbCrLf &
+        "it usually means the required registry entries are missing." & vbCrLf &
+        "To fix this:" & vbCrLf &
+        "  • Navigate to: data/tools/idkDOJA5.1" & vbCrLf &
+        "    → Run: doja.reg" & vbCrLf &
+        "  • Navigate to: data/tools/idkSTAR2.0" & vbCrLf &
+        "    → Run: star.reg" & vbCrLf & vbCrLf &
+        """Failed to Detect Doja/Star Running"" Error:" & vbCrLf &
+        "This error typically means one of the following:" & vbCrLf &
+        "  1. The download is corrupted" & vbCrLf &
+        "  2. Java is not correctly installed" & vbCrLf &
+        "  3. Your file path contains spaces" & vbCrLf & vbCrLf &
+        "Steps to fix:" & vbCrLf &
+        "  • Try redownloading the game:" & vbCrLf &
+        "    → Right-click the game title, choose 'Redownload'" & vbCrLf &
+        "  • Make sure Java 8 (32-bit) is installed" & vbCrLf &
+        "  • Ensure the folder path has NO spaces" & vbCrLf & vbCrLf &
+        "If you're still having trouble," & vbCrLf &
+        "ask for help in the #troubleshooting channel."
+        lblHelp_troubleshooting.Text = troubleshootingMessage
+
+        Dim aboutText As String =
+        "Keitai World Launcher" & Environment.NewLine & Environment.NewLine &
+        $"Version: B{KeitaiWorldLauncher.My.Application.Info.Version.ToString}"
+        lblHelp_AppVer.Text = aboutText
+
+    End Sub
+    Private Sub btnAboutApp_Click(sender As Object, e As EventArgs)
+        ' Create a new MaterialForm for About
+        Dim aboutForm As New ReaLTaiizor.Forms.MaterialForm With {
+        .Text = "About",
+        .Size = New Size(400, 250),
+        .StartPosition = FormStartPosition.CenterScreen,
+        .Sizable = False,
+        .FormBorderStyle = FormBorderStyle.FixedDialog,
+        .MaximizeBox = False,
+        .MinimizeBox = False
+    }
+
+        ' Build the About text
+        Dim aboutText =
+        "Keitai World Launcher" & Environment.NewLine & Environment.NewLine &
+        $"Version: B{My.Application.Info.Version.ToString}"
+
+        ' Create label for content
+        Dim lblAbout As New Label With {
+        .Text = aboutText,
+        .AutoSize = False,
+        .Left = 20,
+        .Top = 80,
+        .Width = aboutForm.ClientSize.Width - 40,
+        .Height = 80,
+        .Font = New Font("Segoe UI", 10, FontStyle.Regular),
+        .ForeColor = Color.Black
+    }
+
+        ' Create Close button
+        Dim btnClose As New MaterialButton With {
+        .Text = "Close",
+        .Width = 100,
+        .Height = 36,
+        .Left = aboutForm.ClientSize.Width - 120,
+        .Top = aboutForm.ClientSize.Height - 60,
+        .HighEmphasis = True,
+        .Type = MaterialButton.MaterialButtonType.Contained
+    }
+        AddHandler btnClose.Click, Sub() aboutForm.Close()
+
+        ' Add controls and show
+        aboutForm.Controls.Add(lblAbout)
+        aboutForm.Controls.Add(btnClose)
+        aboutForm.ShowDialog()
+    End Sub
+    Private Sub btnTroubleshooting_Click(sender As Object, e As EventArgs)
+        ' Create a new MaterialForm
+        Dim TroubleShootingForm As New ReaLTaiizor.Forms.MaterialForm With {
+            .Text = "Troubleshooting",
+            .Size = New Size(600, 500),
+            .StartPosition = FormStartPosition.CenterScreen,
+            .Sizable = False,
+            .FormBorderStyle = FormBorderStyle.FixedDialog,
+            .MaximizeBox = False,
+            .MinimizeBox = False
+        }
+
+        Dim troubleshootingMessage =
+            "   TROUBLESHOOTING DOJA/STAR ISSUES" & vbCrLf & vbCrLf &
+        "Grey Screen After Launching App:" & vbCrLf &
+        "If the app launches and DOJA/STAR appears but the screen stays grey," & vbCrLf &
+        "it usually means the required registry entries are missing." & vbCrLf &
+        "To fix this:" & vbCrLf &
+        "  • Navigate to: data/tools/idkDOJA5.1" & vbCrLf &
+        "    → Run: doja.reg" & vbCrLf &
+        "  • Navigate to: data/tools/idkSTAR2.0" & vbCrLf &
+        "    → Run: star.reg" & vbCrLf & vbCrLf &
+        """Failed to Detect Doja/Star Running"" Error:" & vbCrLf &
+        "This error typically means one of the following:" & vbCrLf &
+        "  1. The download is corrupted" & vbCrLf &
+        "  2. Java is not correctly installed" & vbCrLf &
+        "  3. Your file path contains spaces" & vbCrLf & vbCrLf &
+        "Steps to fix:" & vbCrLf &
+        "  • Try redownloading the game:" & vbCrLf &
+        "    → Right-click the game title, choose 'Redownload'" & vbCrLf &
+        "  • Make sure Java 8 (32-bit) is installed" & vbCrLf &
+        "  • Ensure the folder path has NO spaces" & vbCrLf & vbCrLf &
+        "If you're still having trouble," & vbCrLf &
+        "ask for help in the #troubleshooting channel."
+
+        Dim rtbMessage As New RichTextBox With {
+        .Text = troubleshootingMessage,
+        .ReadOnly = True,
+        .Multiline = True,
+        .ScrollBars = RichTextBoxScrollBars.Vertical,
+        .BorderStyle = BorderStyle.None,
+        .Font = New Font("Consolas", 10, FontStyle.Regular),
+        .ForeColor = Color.Black,
+        .BackColor = TroubleShootingForm.BackColor,
+        .Left = 20,
+        .Top = 70,
+        .Width = TroubleShootingForm.ClientSize.Width - 40,
+        .Height = TroubleShootingForm.ClientSize.Height - 80,
+        .Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Bottom
+    }
+
+        Dim btnClose As New MaterialButton With {
+            .Text = "Close",
+            .Width = 100,
+            .Height = 36,
+            .Left = TroubleShootingForm.ClientSize.Width - 120,
+            .Top = TroubleShootingForm.ClientSize.Height - 50,
+            .HighEmphasis = True,
+            .Type = MaterialButton.MaterialButtonType.Contained,
+            .Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        }
+
+        AddHandler btnClose.Click, Sub() TroubleShootingForm.Close()
+
+        ' Add controls to form and show
+        TroubleShootingForm.Controls.Add(rtbMessage)
+        TroubleShootingForm.Controls.Add(btnClose)
+        TroubleShootingForm.ShowDialog()
+    End Sub
+    Private Sub btnControls_Click(sender As Object, e As EventArgs) Handles btnControls.Click
         ' Create a new MaterialForm
         Dim keybindForm As New ReaLTaiizor.Forms.MaterialForm With {
         .Text = "Keybinds",
@@ -1835,80 +2125,6 @@ Public Class Form1
 
         ' Show the form
         keybindForm.ShowDialog()
-    End Sub
-    Private Sub TroubleshootingToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles TroubleshootingToolStripMenuItem.Click
-        ' Create a new MaterialForm
-        Dim TroubleShootingForm As New ReaLTaiizor.Forms.MaterialForm With {
-            .Text = "Troubleshooting",
-            .Size = New Size(600, 500),
-            .StartPosition = FormStartPosition.CenterScreen,
-            .Sizable = False,
-            .FormBorderStyle = FormBorderStyle.FixedDialog,
-            .MaximizeBox = False,
-            .MinimizeBox = False
-        }
-
-        Dim troubleshootingMessage As String =
-            "   TROUBLESHOOTING DOJA/STAR ISSUES" & vbCrLf & vbCrLf &
-        "Grey Screen After Launching App:" & vbCrLf &
-        "If the app launches and DOJA/STAR appears but the screen stays grey," & vbCrLf &
-        "it usually means the required registry entries are missing." & vbCrLf &
-        "To fix this:" & vbCrLf &
-        "  • Navigate to: data/tools/idkDOJA5.1" & vbCrLf &
-        "    → Run: doja.reg" & vbCrLf &
-        "  • Navigate to: data/tools/idkSTAR2.0" & vbCrLf &
-        "    → Run: star.reg" & vbCrLf & vbCrLf &
-        """Failed to Detect Doja/Star Running"" Error:" & vbCrLf &
-        "This error typically means one of the following:" & vbCrLf &
-        "  1. The download is corrupted" & vbCrLf &
-        "  2. Java is not correctly installed" & vbCrLf &
-        "  3. Your file path contains spaces" & vbCrLf & vbCrLf &
-        "Steps to fix:" & vbCrLf &
-        "  • Try redownloading the game:" & vbCrLf &
-        "    → Right-click the game title, choose 'Redownload'" & vbCrLf &
-        "  • Make sure Java 8 (32-bit) is installed" & vbCrLf &
-        "  • Ensure the folder path has NO spaces" & vbCrLf & vbCrLf &
-        "If you're still having trouble," & vbCrLf &
-        "ask for help in the #troubleshooting channel."
-
-        Dim rtbMessage As New RichTextBox With {
-        .Text = troubleshootingMessage,
-        .ReadOnly = True,
-        .Multiline = True,
-        .ScrollBars = RichTextBoxScrollBars.Vertical,
-        .BorderStyle = BorderStyle.None,
-        .Font = New Font("Consolas", 10, FontStyle.Regular),
-        .ForeColor = Color.Black,
-        .BackColor = TroubleShootingForm.BackColor,
-        .Left = 20,
-        .Top = 70,
-        .Width = TroubleShootingForm.ClientSize.Width - 40,
-        .Height = TroubleShootingForm.ClientSize.Height - 80,
-        .Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Bottom
-    }
-
-        Dim btnClose As New ReaLTaiizor.Controls.MaterialButton With {
-            .Text = "Close",
-            .Width = 100,
-            .Height = 36,
-            .Left = TroubleShootingForm.ClientSize.Width - 120,
-            .Top = TroubleShootingForm.ClientSize.Height - 50,
-            .HighEmphasis = True,
-            .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained,
-            .Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
-        }
-
-        AddHandler btnClose.Click, Sub() TroubleShootingForm.Close()
-
-        ' Add controls to form and show
-        TroubleShootingForm.Controls.Add(rtbMessage)
-        TroubleShootingForm.Controls.Add(btnClose)
-        TroubleShootingForm.ShowDialog()
-    End Sub
-    Private Sub MachiCharaCreateXMLToolStripMenu_Click(sender As Object, e As EventArgs) Handles MachiCharaCreateXMLToolStripMenu.Click
-        If FolderBrowserDialog1.ShowDialog = DialogResult.OK Then
-            UtilManager.ProcessMachiChara_CFDFiles(FolderBrowserDialog1.SelectedPath)
-        End If
     End Sub
 
 End Class
