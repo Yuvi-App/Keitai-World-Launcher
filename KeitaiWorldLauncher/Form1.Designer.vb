@@ -30,6 +30,7 @@ Partial Class Form1
         cmsGameLV_Download = New ToolStripMenuItem()
         cmsGameLV_Delete = New ToolStripMenuItem()
         cmsGameLV_Favorite = New ToolStripMenuItem()
+        BackupSaveToolStripMenuItem = New ToolStripMenuItem()
         OpenGameFolderToolStripMenuItem = New ToolStripMenuItem()
         OpenFileDialog1 = New OpenFileDialog()
         selectionTimer = New Timer(components)
@@ -58,6 +59,7 @@ Partial Class Form1
         MaterialTabControl1 = New ReaLTaiizor.Controls.MaterialTabControl()
         tpAppli = New TabPage()
         GroupBox3 = New GroupBox()
+        chkbxDialpadNumpad = New CheckBox()
         chkboxControllerVibration = New CheckBox()
         cbxControllerProfile = New ComboBox()
         chkbxEnableController = New CheckBox()
@@ -69,6 +71,7 @@ Partial Class Form1
         chkboxMachiCharaLocalEmulator = New CheckBox()
         tpConfig = New TabPage()
         GroupBox6 = New GroupBox()
+        btnSaveDataManagement = New Button()
         btnAddCustomApps = New Button()
         btnUpdateNetworkUID = New Button()
         btnLoadShaderGlassConfig = New Button()
@@ -125,9 +128,9 @@ Partial Class Form1
         ' cmsGameLV
         ' 
         cmsGameLV.ImageScalingSize = New Size(20, 20)
-        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite, OpenGameFolderToolStripMenuItem})
+        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite, BackupSaveToolStripMenuItem, OpenGameFolderToolStripMenuItem})
         cmsGameLV.Name = "cmsGameLV"
-        cmsGameLV.Size = New Size(171, 114)
+        cmsGameLV.Size = New Size(171, 136)
         ' 
         ' cmsGameLV_Launch
         ' 
@@ -152,6 +155,12 @@ Partial Class Form1
         cmsGameLV_Favorite.Name = "cmsGameLV_Favorite"
         cmsGameLV_Favorite.Size = New Size(170, 22)
         cmsGameLV_Favorite.Text = "Favorite"
+        ' 
+        ' BackupSaveToolStripMenuItem
+        ' 
+        BackupSaveToolStripMenuItem.Name = "BackupSaveToolStripMenuItem"
+        BackupSaveToolStripMenuItem.Size = New Size(170, 22)
+        BackupSaveToolStripMenuItem.Text = "Backup Save (SP)"
         ' 
         ' OpenGameFolderToolStripMenuItem
         ' 
@@ -437,6 +446,7 @@ Partial Class Form1
         ' 
         ' GroupBox3
         ' 
+        GroupBox3.Controls.Add(chkbxDialpadNumpad)
         GroupBox3.Controls.Add(chkboxControllerVibration)
         GroupBox3.Controls.Add(cbxControllerProfile)
         GroupBox3.Controls.Add(chkbxEnableController)
@@ -452,6 +462,20 @@ Partial Class Form1
         GroupBox3.TabIndex = 2
         GroupBox3.TabStop = False
         GroupBox3.Text = "Launch Settings"
+        ' 
+        ' chkbxDialpadNumpad
+        ' 
+        chkbxDialpadNumpad.AutoSize = True
+        chkbxDialpadNumpad.Checked = True
+        chkbxDialpadNumpad.CheckState = CheckState.Checked
+        chkbxDialpadNumpad.Enabled = False
+        chkbxDialpadNumpad.FlatStyle = FlatStyle.Flat
+        chkbxDialpadNumpad.Location = New Point(84, 70)
+        chkbxDialpadNumpad.Name = "chkbxDialpadNumpad"
+        chkbxDialpadNumpad.Size = New Size(113, 19)
+        chkbxDialpadNumpad.TabIndex = 16
+        chkbxDialpadNumpad.Text = "Dialpad Numpad"
+        chkbxDialpadNumpad.UseVisualStyleBackColor = True
         ' 
         ' chkboxControllerVibration
         ' 
@@ -578,6 +602,7 @@ Partial Class Form1
         ' 
         ' GroupBox6
         ' 
+        GroupBox6.Controls.Add(btnSaveDataManagement)
         GroupBox6.Controls.Add(btnAddCustomApps)
         GroupBox6.Controls.Add(btnUpdateNetworkUID)
         GroupBox6.Controls.Add(btnLoadShaderGlassConfig)
@@ -590,9 +615,18 @@ Partial Class Form1
         GroupBox6.TabStop = False
         GroupBox6.Text = "General Config"
         ' 
+        ' btnSaveDataManagement
+        ' 
+        btnSaveDataManagement.Location = New Point(6, 22)
+        btnSaveDataManagement.Name = "btnSaveDataManagement"
+        btnSaveDataManagement.Size = New Size(93, 55)
+        btnSaveDataManagement.TabIndex = 5
+        btnSaveDataManagement.Text = "Save Data Management"
+        btnSaveDataManagement.UseVisualStyleBackColor = True
+        ' 
         ' btnAddCustomApps
         ' 
-        btnAddCustomApps.Location = New Point(92, 23)
+        btnAddCustomApps.Location = New Point(191, 22)
         btnAddCustomApps.Name = "btnAddCustomApps"
         btnAddCustomApps.Size = New Size(80, 55)
         btnAddCustomApps.TabIndex = 4
@@ -601,7 +635,7 @@ Partial Class Form1
         ' 
         ' btnUpdateNetworkUID
         ' 
-        btnUpdateNetworkUID.Location = New Point(6, 23)
+        btnUpdateNetworkUID.Location = New Point(105, 22)
         btnUpdateNetworkUID.Name = "btnUpdateNetworkUID"
         btnUpdateNetworkUID.Size = New Size(80, 55)
         btnUpdateNetworkUID.TabIndex = 3
@@ -610,7 +644,7 @@ Partial Class Form1
         ' 
         ' btnLoadShaderGlassConfig
         ' 
-        btnLoadShaderGlassConfig.Location = New Point(350, 23)
+        btnLoadShaderGlassConfig.Location = New Point(449, 22)
         btnLoadShaderGlassConfig.Name = "btnLoadShaderGlassConfig"
         btnLoadShaderGlassConfig.Size = New Size(80, 55)
         btnLoadShaderGlassConfig.TabIndex = 2
@@ -619,7 +653,7 @@ Partial Class Form1
         ' 
         ' btnLaunchAppConfig
         ' 
-        btnLaunchAppConfig.Location = New Point(264, 23)
+        btnLaunchAppConfig.Location = New Point(363, 22)
         btnLaunchAppConfig.Name = "btnLaunchAppConfig"
         btnLaunchAppConfig.Size = New Size(80, 55)
         btnLaunchAppConfig.TabIndex = 1
@@ -628,7 +662,7 @@ Partial Class Form1
         ' 
         ' btnLaunchKey2Pad
         ' 
-        btnLaunchKey2Pad.Location = New Point(178, 23)
+        btnLaunchKey2Pad.Location = New Point(277, 22)
         btnLaunchKey2Pad.Name = "btnLaunchKey2Pad"
         btnLaunchKey2Pad.Size = New Size(80, 55)
         btnLaunchKey2Pad.TabIndex = 0
@@ -1011,4 +1045,7 @@ Partial Class Form1
     Friend WithEvents GroupBox8 As GroupBox
     Friend WithEvents lblHelp_AppVer As Label
     Friend WithEvents lblHelp_troubleshooting As Label
+    Friend WithEvents BackupSaveToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents btnSaveDataManagement As Button
+    Friend WithEvents chkbxDialpadNumpad As CheckBox
 End Class

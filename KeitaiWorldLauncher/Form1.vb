@@ -18,6 +18,7 @@ Public Class Form1
     Dim gameListManager As New GameListManager()
     Dim gameManager As New GameManager()
     Dim machicharaListManager As New MachiCharaListManager()
+    Dim SaveDataManager As New SaveDataManager()
     Dim zipManager As New ZipManager()
     Dim config As Dictionary(Of String, String)
     Dim games As List(Of Game)
@@ -75,6 +76,7 @@ Public Class Form1
         UtilManager.CheckAndCloseDoja()
         UtilManager.CheckAndCloseStar()
         UtilManager.CheckAndCloseAMX()
+        UtilManager.CheckAndCloseAHK()
     End Sub
     Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Opacity = 0
@@ -233,6 +235,7 @@ Public Class Form1
         cbxStarSDK.Enabled = True
         chkbxLocalEmulator.Enabled = True
         chkbxEnableController.Enabled = True
+        chkbxDialpadNumpad.Enabled = True
 
         ' Check if we can support LocaleEmu
         Select Case SelectedGame.Emulator.ToLower()
@@ -680,7 +683,6 @@ Public Class Form1
             Return
         End If
 
-
         ' Check if the game is already downloaded
         If isOnline = False Then
             Exit Function
@@ -690,10 +692,12 @@ Public Class Form1
             If ContextDownload Then
                 Dim result As DialogResult = MessageBox.Show(
                     $"The game '{selectedGame.ENTitle}' is already downloaded. Would you like to download it again?{vbCrLf}{vbCrLf}" &
-                    "This could delete your save data, so please be careful.",
+                    "This could delete your save data, we will attempt to backup you're save, so please be careful.",
                     "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 Try
                     If result = DialogResult.Yes Then
+                        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
+                        Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
                         isGameDownloadInProgress = True
                         Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
                         Logger.LogInfo($"Starting redownload for {selectedGame.DownloadURL}")
@@ -1233,6 +1237,46 @@ Public Class Form1
         chkboxControllerVibration.Checked = True
         chkboxControllerVibration.Enabled = True
     End Sub
+    Private Sub chkbxDialpadNumpad_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxDialpadNumpad.CheckedChanged
+        Dim AHKFolder = Path.Combine(ToolsFolder, "autohotkey")
+        Dim AHKScript = Path.Combine(AHKFolder, "AutoHotkey32.ahk")
+        Dim AHKExe = Path.Combine(AHKFolder, "AutoHotkey32.exe") ' Assuming you bundled AutoHotkey32.exe with your app
+
+        If chkbxDialpadNumpad.Checked = True Then
+            ' Create the AHK script if it doesn't exist
+            If Not File.Exists(AHKScript) Then
+                Dim scriptContent As String =
+                "Numpad7::Send 1" & vbCrLf &
+                "Numpad8::Send 2" & vbCrLf &
+                "Numpad9::Send 3" & vbCrLf &
+                "Numpad4::Send 4" & vbCrLf &
+                "Numpad5::Send 5" & vbCrLf &
+                "Numpad6::Send 6" & vbCrLf &
+                "Numpad1::Send 7" & vbCrLf &
+                "Numpad2::Send 8" & vbCrLf &
+                "Numpad3::Send 9" & vbCrLf &
+                "Numpad0::Send 0"
+                Directory.CreateDirectory(AHKFolder) ' Ensure the folder exists
+                File.WriteAllText(AHKScript, scriptContent)
+            End If
+
+            ' Start the AHK script
+            Try
+                Dim ahkProc As New Process()
+                ahkProc.StartInfo.FileName = AHKExe
+                ahkProc.StartInfo.Arguments = """" & AHKScript & """"
+                ahkProc.StartInfo.UseShellExecute = False
+                ahkProc.StartInfo.CreateNoWindow = True
+                ahkProc.Start()
+                ' You might want to store ahkProc somewhere to manage it later (optional)
+            Catch ex As Exception
+                MessageBox.Show("Failed to start AutoHotkey: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        Else
+            ' Kill any running AHK related processes
+            UtilManager.CheckAndCloseAHK()
+        End If
+    End Sub
 
     ' ComboBox Changes
     Private Sub cobxAudioType_SelectedIndexChanged(sender As Object, e As EventArgs)
@@ -1390,7 +1434,15 @@ Public Class Form1
             Process.Start("explorer.exe", gameFolder)
         End If
     End Sub
-
+    Private Async Sub BackupSaveToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles BackupSaveToolStripMenuItem.Click
+        If ListViewGames.SelectedItems.Count = 0 Then Return
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
+        If Directory.Exists(gameFolder) = True Then
+            Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
+        End If
+    End Sub
     'MachiChara CMS
     Private Sub DownloadCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DownloadCMS_MachiChara.Click
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
@@ -1617,12 +1669,6 @@ Public Class Form1
     Public Shared Sub QuitApplication()
         Application.Exit()
     End Sub
-    Private Async Sub GamelistToolStripMenuItem_Click(sender As Object, e As EventArgs)
-        OpenFileDialog1.Title = "Select Master Game Zip file"
-        If OpenFileDialog1.ShowDialog = DialogResult.OK Then
-            Await utilManager.ProcessZipFileforGamelistAsync(OpenFileDialog1.FileName)
-        End If
-    End Sub
     Private Sub RefreshToolStripMenuItem_Click(sender As Object, e As EventArgs)
         Application.Restart()
     End Sub
@@ -1679,13 +1725,6 @@ Public Class Form1
 
         MessageBox.Show("Added. Make sure you download this AppConfig and upload.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
     End Sub
-    Private Sub MachiCharaCreateXMLToolStripMenu_Click(sender As Object, e As EventArgs)
-        If FolderBrowserDialog1.ShowDialog = DialogResult.OK Then
-            UtilManager.ProcessMachiChara_CFDFiles(FolderBrowserDialog1.SelectedPath)
-        End If
-    End Sub
-
-
 
     'Config Option in TabPage
     Private Sub btnLaunchKey2Pad_Click(sender As Object, e As EventArgs) Handles btnLaunchKey2Pad.Click
@@ -1902,6 +1941,9 @@ Public Class Form1
                 Application.Restart()
             End If
         End Using
+    End Sub
+    Private Sub btnSaveDataManagement_Click(sender As Object, e As EventArgs) Handles btnSaveDataManagement.Click
+        SaveDataManagerForm.ShowDialog()
     End Sub
     'Help Options in TabPage
     Private Sub SetupLabelsinOptions()
