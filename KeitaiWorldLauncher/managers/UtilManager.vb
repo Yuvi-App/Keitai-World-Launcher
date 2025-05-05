@@ -10,10 +10,13 @@ Imports Microsoft.Win32
 Imports System.Security.Principal
 Imports System.Reflection
 Imports SharpDX.XInput
+Imports ReaLTaiizor.Extension
 
 Namespace My.Managers
     Public Class UtilManager
         Private Shared LaunchOverlay As Panel = Nothing
+        Dim gameManager As New GameManager()
+
 
         'PreReq Check
         Public Shared Async Function CheckforPreReqAsync() As Task(Of Boolean)
@@ -111,6 +114,15 @@ Namespace My.Managers
                 Form1.QuitApplication()
             End If
 
+            ' Check for .net 8 Runtime
+            My.logger.Logger.LogInfo("Checking for .Net 8.0.15+ Runtimes")
+            If Not Await IsDotNet8Installed() Then
+                MessageBox.Show(owner:=SplashScreen, "Unable to Detect .Net 8.0.15+ Runtimes... Download is required")
+                My.logger.Logger.LogInfo("Missing .Net 8.0.15+ Runtimes")
+                Await OpenURLAsync("https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-8.0.15-windows-x86-installer?cid=getdotnetcore")
+                Form1.QuitApplication()
+            End If
+
             Return True
         End Function
         Public Shared Async Function IsJava8Update152InstalledAsync() As Task(Of Boolean)
@@ -172,6 +184,42 @@ Namespace My.Managers
 
                                       Return False ' VC++ Runtime 2022 is NOT installed
                                   End Function)
+        End Function
+        Public Shared Async Function IsDotNet8Installed() As Task(Of Boolean)
+            Dim minVersion As New Version(8, 0, 15)
+
+            Try
+                Dim startInfo As New ProcessStartInfo()
+                startInfo.FileName = "dotnet"
+                startInfo.Arguments = "--list-runtimes"
+                startInfo.UseShellExecute = False
+                startInfo.RedirectStandardOutput = True
+                startInfo.CreateNoWindow = True
+
+                Using proc As Process = Process.Start(startInfo)
+                    Dim output As String = proc.StandardOutput.ReadToEnd()
+                    proc.WaitForExit()
+
+                    ' Regex to capture versions like 8.0.15
+                    Dim versionPattern As String = "\s(\d+\.\d+\.\d+)\s"
+                    Dim matches = Regex.Matches(output, versionPattern)
+
+                    For Each match As Match In matches
+                        Dim versionText As String = match.Groups(1).Value
+                        Dim parsedVersion As Version = Nothing
+                        If Version.TryParse(versionText, parsedVersion) Then
+                            If parsedVersion.Major = 8 AndAlso parsedVersion >= minVersion Then
+                                Return True
+                            End If
+                        End If
+                    Next
+                End Using
+
+            Catch ex As Exception
+                ' If dotnet is not found or any other error occurs, assume not installed.
+            End Try
+
+            Return False
         End Function
         Public Shared Async Function OpenURLAsync(url As String) As Task
             Await Task.Run(Sub()
@@ -699,18 +747,21 @@ Namespace My.Managers
                 logger.Logger.LogInfo($"[Launch] Updated DOJA sound config to {Form1.cobxAudioType.SelectedItem}")
 
                 ' Update app config and JAM entries
-                Await UpdateDOJAAppconfig(DOJAPATH, jamPath)
-                If DOJAVER = 3 Then
-                    Await RemoveDOJAJamFileEntries(jamPath)
-                    logger.Logger.LogInfo("[Launch] Removed DOJA3 jam entries")
-                    'convert SP to SCR
-                    Dim rootFolder As String = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(GameJAM), ".."))
-                    Dim gameName As String = Path.GetFileNameWithoutExtension(GameJAM)
-                    Dim SPFile As String = Path.Combine(rootFolder, "sp", gameName & ".sp")
-                    Await ProcessDoja3SPtoSCR(SPFile)
-                Else
-                    Await EnsureDOJAJamFileEntries(jamPath)
-                    logger.Logger.LogInfo("[Launch] Ensured DOJA jam entries")
+                Dim NoGameJameUpdatedList As List(Of String) = gameManager.NoUpdateJAMGames
+                If NoGameJameUpdatedList.Contains(Path.GetFileNameWithoutExtension(GameJAM)) = False Then
+                    Await UpdateDOJAAppconfig(DOJAPATH, jamPath)
+                    If DOJAVER = 3 Then
+                        Await RemoveDOJAJamFileEntries(jamPath)
+                        logger.Logger.LogInfo("[Launch] Removed DOJA3 jam entries")
+                        'convert SP to SCR
+                        Dim rootFolder As String = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(GameJAM), ".."))
+                        Dim gameName As String = Path.GetFileNameWithoutExtension(GameJAM)
+                        Dim SPFile As String = Path.Combine(rootFolder, "sp", gameName & ".sp")
+                        Await ProcessDoja3SPtoSCR(SPFile)
+                    Else
+                        Await EnsureDOJAJamFileEntries(jamPath)
+                        logger.Logger.LogInfo("[Launch] Ensured DOJA jam entries")
+                    End If
                 End If
                 Await UpdateNetworkUIDinJAMAsync(GameJAM)
 

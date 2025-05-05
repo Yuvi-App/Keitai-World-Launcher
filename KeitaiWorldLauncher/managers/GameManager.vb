@@ -4,6 +4,12 @@ Imports ReaLTaiizor.Forms
 
 Namespace My.Managers
     Public Class GameManager
+        'Games that cannot have there Jam Updated for reasons
+        Public Function NoUpdateJAMGames()
+            Dim NoUpdateJAMGameslist As New List(Of String) From {"One_Piece_Mugiwara_Wars"}
+            Return NoUpdateJAMGameslist
+        End Function
+
         'Game Specific Functions
         Public Async Function FF7_DOCLE_SetupAsync(DojaPath As String, GamePath As String) As Task(Of Boolean)
             logger.Logger.LogInfo("Starting FF7_DOCLE Helper Function")

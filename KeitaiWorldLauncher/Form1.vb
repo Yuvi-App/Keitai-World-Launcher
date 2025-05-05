@@ -161,8 +161,15 @@ Public Class Form1
             Form1.QuitApplication()
         End If
 
-        'Updated Java32bit Path
-        Java32BinFolderPath = Path.Combine(Await UtilManager.GetJava8Update152InstallPathAsync(), "bin")
+        'Check for Java8 32-bit and Updated Java32bit Path
+        Dim JavaPath As String = Await UtilManager.GetJava8Update152InstallPathAsync()
+        If String.IsNullOrEmpty(JavaPath) Then
+            MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 Update 152... Download is required")
+            My.logger.Logger.LogInfo("Missing JAVA 8 Update 152")
+            Await UtilManager.OpenURLAsync("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
+            Form1.QuitApplication()
+        End If
+        Java32BinFolderPath = Path.Combine(JavaPath, "bin")
 
         'Needs Internet If none we skip and use local file
         Dim uri As New Uri(versionCheckUrl)
