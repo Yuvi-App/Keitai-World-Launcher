@@ -219,8 +219,8 @@ Public Class Form1
 
         ' Setup any Config Suff
         chkbxHidePhoneUI.Checked = DOJAHideUI
-        Dim atindex As Integer = cobxAudioType.FindStringExact(DOJASoundType)
-        cobxAudioType.SelectedIndex = atindex
+        Dim atindex As Integer = cbxAudioType.FindStringExact(DOJASoundType)
+        cbxAudioType.SelectedIndex = atindex
         chkbxShaderGlass.Checked = UseShaderGlass
         cbxFilterType.SelectedIndex = 0
         cbxShaderGlassScaling.SelectedIndex = 2
@@ -235,7 +235,7 @@ Public Class Form1
         ' Enable game launch button and checkbox
         btnLaunchGame.Enabled = True
         chkbxHidePhoneUI.Enabled = True
-        cobxAudioType.Enabled = True
+        cbxAudioType.Enabled = True
         chkbxShaderGlass.Enabled = True
         cbxShaderGlassScaling.Enabled = True
         cbxDojaSDK.Enabled = True
@@ -1202,7 +1202,7 @@ Public Class Form1
     End Sub
 
     ' CheckBox Changes
-    Private Sub chkbxHidePhoneUI_CheckedChanged(sender As Object, e As EventArgs)
+    Private Sub chkbxHidePhoneUI_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxHidePhoneUI.CheckedChanged
         configManager.UpdateDOJAHideUISetting(chkbxHidePhoneUI.Checked)
     End Sub
     Private Sub chkbxShaderGlass_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxShaderGlass.CheckedChanged
@@ -1286,10 +1286,10 @@ Public Class Form1
     End Sub
 
     ' ComboBox Changes
-    Private Sub cobxAudioType_SelectedIndexChanged(sender As Object, e As EventArgs)
-        If cobxAudioType.SelectedItem.ToString = "Standard" Or cobxAudioType.SelectedItem.ToString = "903i" Then
-            configManager.UpdateDOJASoundSetting(cobxAudioType.SelectedItem.ToString)
-            If cobxAudioType.SelectedItem.ToString = "903i" Then
+    Private Sub cbxAudioType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxAudioType.SelectedIndexChanged
+        If cbxAudioType.SelectedItem.ToString = "Standard" Or cbxAudioType.SelectedItem.ToString = "903i" Then
+            configManager.UpdateDOJASoundSetting(cbxAudioType.SelectedItem.ToString)
+            If cbxAudioType.SelectedItem.ToString = "903i" Then
                 lblAudioWarning.Visible = True
             Else
                 lblAudioWarning.Visible = False
@@ -1299,7 +1299,7 @@ Public Class Form1
     Private Async Sub cbxEmuType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxFilterType.SelectedIndexChanged
         Await FilterAndHighlightGamesAsync()
     End Sub
-    Private Sub cbxStarSDK_SelectedIndexChanged(sender As Object, e As EventArgs)
+    Private Sub cbxStarSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxStarSDK.SelectedIndexChanged
         ' Ensure the SDKs are selected
         If cbxStarSDK.SelectedItem Is Nothing Then
             MessageBox.Show("Please select a Star SDK before launching.")
@@ -1310,7 +1310,7 @@ Public Class Form1
         STARpath = Path.Combine(ToolsFolder, selectedStarSDK)
         STAREXE = Path.Combine(ToolsFolder, selectedStarSDK, "bin", "star.exe")
     End Sub
-    Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs)
+    Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxDojaSDK.SelectedIndexChanged
         ' Ensure the SDKs are selected
         If cbxDojaSDK.SelectedItem Is Nothing Then
             MessageBox.Show("Please select a Doja SDK before launching.")
@@ -2175,5 +2175,4 @@ Public Class Form1
         ' Show the form
         keybindForm.ShowDialog()
     End Sub
-
 End Class

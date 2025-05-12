@@ -81,7 +81,7 @@ Partial Class Form1
         chkbxHidePhoneUI = New CheckBox()
         lblAudioWarning = New Label()
         Label1 = New Label()
-        cobxAudioType = New ComboBox()
+        cbxAudioType = New ComboBox()
         GroupBox4 = New GroupBox()
         cbxFlashSDK = New ComboBox()
         Label7 = New Label()
@@ -674,7 +674,7 @@ Partial Class Form1
         GroupBox5.Controls.Add(chkbxHidePhoneUI)
         GroupBox5.Controls.Add(lblAudioWarning)
         GroupBox5.Controls.Add(Label1)
-        GroupBox5.Controls.Add(cobxAudioType)
+        GroupBox5.Controls.Add(cbxAudioType)
         GroupBox5.Location = New Point(245, 93)
         GroupBox5.Name = "GroupBox5"
         GroupBox5.Size = New Size(315, 93)
@@ -722,18 +722,18 @@ Partial Class Form1
         Label1.Text = "Audio Type"
         Label1.TextAlign = ContentAlignment.MiddleLeft
         ' 
-        ' cobxAudioType
+        ' cbxAudioType
         ' 
-        cobxAudioType.DropDownStyle = ComboBoxStyle.DropDownList
-        cobxAudioType.FlatStyle = FlatStyle.Flat
-        cobxAudioType.Font = New Font("Segoe UI", 9F)
-        cobxAudioType.FormattingEnabled = True
-        cobxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
-        cobxAudioType.Location = New Point(95, 22)
-        cobxAudioType.Margin = New Padding(2)
-        cobxAudioType.Name = "cobxAudioType"
-        cobxAudioType.Size = New Size(85, 23)
-        cobxAudioType.TabIndex = 13
+        cbxAudioType.DropDownStyle = ComboBoxStyle.DropDownList
+        cbxAudioType.FlatStyle = FlatStyle.Flat
+        cbxAudioType.Font = New Font("Segoe UI", 9F)
+        cbxAudioType.FormattingEnabled = True
+        cbxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
+        cbxAudioType.Location = New Point(95, 22)
+        cbxAudioType.Margin = New Padding(2)
+        cbxAudioType.Name = "cbxAudioType"
+        cbxAudioType.Size = New Size(85, 23)
+        cbxAudioType.TabIndex = 13
         ' 
         ' GroupBox4
         ' 
@@ -1028,7 +1028,7 @@ Partial Class Form1
     Friend WithEvents GroupBox5 As GroupBox
     Friend WithEvents lblAudioWarning As Label
     Friend WithEvents Label1 As Label
-    Friend WithEvents cobxAudioType As ComboBox
+    Friend WithEvents cbxAudioType As ComboBox
     Friend WithEvents chkbxHidePhoneUI As CheckBox
     Friend WithEvents GroupBox6 As GroupBox
     Friend WithEvents btnLaunchKey2Pad As Button

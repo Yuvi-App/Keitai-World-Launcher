@@ -743,8 +743,8 @@ Namespace My.Managers
                 End If
 
                 ' Update sound config
-                Await UpdateDOJASoundConf(DOJAPATH, Form1.cobxAudioType.SelectedItem.ToString())
-                logger.Logger.LogInfo($"[Launch] Updated DOJA sound config to {Form1.cobxAudioType.SelectedItem}")
+                Await UpdateDOJASoundConf(DOJAPATH, Form1.cbxAudioType.SelectedItem.ToString())
+                logger.Logger.LogInfo($"[Launch] Updated DOJA sound config to {Form1.cbxAudioType.SelectedItem}")
 
                 ' Update app config and JAM entries
                 Dim NoGameJameUpdatedList As List(Of String) = gameManager.NoUpdateJAMGames
@@ -869,8 +869,8 @@ Namespace My.Managers
                 logger.Logger.LogInfo($"[Launch] STAR draw size set to {dimensions.Item1}x{dimensions.Item2}")
 
                 ' Config updates
-                Await UpdateSTARSoundConf(STARPATH, Form1.cobxAudioType.SelectedItem.ToString())
-                logger.Logger.LogInfo($"[Launch] STAR sound config set to {Form1.cobxAudioType.SelectedItem}")
+                Await UpdateSTARSoundConf(STARPATH, Form1.cbxAudioType.SelectedItem.ToString())
+                logger.Logger.LogInfo($"[Launch] STAR sound config set to {Form1.cbxAudioType.SelectedItem}")
                 Await UpdateSTARAppconfig(STARPATH, GameJAM)
                 Await EnsureSTARJamFileEntries(GameJAM)
                 logger.Logger.LogInfo("[Launch] STAR app configuration and JAM entries updated.")
