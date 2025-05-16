@@ -13,6 +13,7 @@ Public Class Form1
     Private splash As SplashScreen
     Dim isDebug As Boolean = False
     Dim isOnline As Boolean = False
+    Dim applitrackerManager As New AppliTrackerManager
     Dim configManager As New ConfigManager()
     Dim utilManager As New UtilManager
     Dim gameListManager As New GameListManager()
@@ -34,6 +35,7 @@ Public Class Form1
     Public NetworkUIDTxtFile As String = Path.Combine(ConfigsFolder, "networkuid.txt")
     Public FavoritesTxtFile As String = Path.Combine(ConfigsFolder, "favorites.txt")
     Public CustomGamesTxtFile As String = Path.Combine(ConfigsFolder, "customgames.txt")
+    Public PlaytimesTxtFile As String = Path.Combine(ConfigsFolder, "playtimes.txt")
 
     'Index Vars Can Change
     Dim CurrentSelectedGameJAM As String
@@ -50,6 +52,7 @@ Public Class Form1
     Public machicharaListUrl As String
     Public autoUpdatemachicharaList As Boolean
     Public UseShaderGlass As Boolean
+    Public UseDialPad As Boolean
     Public NetworkUID As String
     Public DOJApath As String
     Public DOJAEXE As String
@@ -99,6 +102,7 @@ Public Class Form1
         isDebug = True
 #End If
 
+
         ' Setup DIRs
         Await UtilManager.SetupDIRSAsync()
 
@@ -120,6 +124,7 @@ Public Class Form1
         machicharaListUrl = config("MachiCharalistURL")
         autoUpdatemachicharaList = Boolean.Parse(config("AutoUpdateMachiCharaList"))
         UseShaderGlass = Boolean.Parse(config("UseShaderGlass"))
+        UseDialPad = Boolean.Parse(config("UseDialPad"))
         DOJApath = config("DOJAPath")
         DOJAEXE = config("DOJAEXEPath")
         DOJAHideUI = Boolean.Parse(config("DOJAHideUI"))
@@ -175,7 +180,7 @@ Public Class Form1
         Dim uri As New Uri(versionCheckUrl)
         Dim domainOnly As String = uri.Scheme & "://" & uri.Host
         Logger.LogInfo("Checking internet connectivity...")
-        If Await UtilManager.IsInternetAvailableAsync("http://neverssl.com") Then
+        If Await UtilManager.IsInternetAvailableAsync("https://google.com") Then
             'Set the User to online
             isOnline = True
 
@@ -222,6 +227,7 @@ Public Class Form1
         Dim atindex As Integer = cbxAudioType.FindStringExact(DOJASoundType)
         cbxAudioType.SelectedIndex = atindex
         chkbxShaderGlass.Checked = UseShaderGlass
+        chkbxDialpadNumpad.Checked = UseDialPad
         cbxFilterType.SelectedIndex = 0
         cbxShaderGlassScaling.SelectedIndex = 2
 
@@ -1165,6 +1171,62 @@ Public Class Form1
             Return False
         End If
     End Function
+    Private Sub LoadPlaytimesToListView()
+        lvwPlaytimes.Items.Clear()
+        lvwPlaytimes.Columns.Clear()
+        lvwPlaytimes.Columns.Add("Appli Name", 750, HorizontalAlignment.Left)
+        lvwPlaytimes.Columns.Add("Play Time", 200, HorizontalAlignment.Left)
+        lvwPlaytimes.Columns.Add("Sessions", 100, HorizontalAlignment.Center)
+        lvwPlaytimes.Columns(0).Width = CInt(lvwPlaytimes.Width * 0.7)  ' App Name: 70%
+        lvwPlaytimes.Columns(1).Width = CInt(lvwPlaytimes.Width * 0.2)  ' Play Time: 20%
+        lvwPlaytimes.Columns(2).Width = CInt(lvwPlaytimes.Width * 0.1)  ' Sessions: 10%
+        lvwPlaytimes.Scrollable = True
+        lvwPlaytimes.FullRowSelect = True
+        lvwPlaytimes.View = View.Details
+        Dim filePath As String = PlaytimesTxtFile
+        If Not File.Exists(filePath) Then Exit Sub
+
+        Dim totalTime As TimeSpan = TimeSpan.Zero
+        Dim totalSessions As Integer = 0
+
+        For Each line In File.ReadLines(filePath)
+            Dim parts = line.Split("|"c)
+            If parts.Length >= 2 Then
+                Dim appName As String = parts(0)
+                Dim playTime As TimeSpan = TimeSpan.Zero
+                Dim sessionCount As Integer = If(parts.Length >= 3, Integer.Parse(parts(2)), 1)
+
+                If TimeSpan.TryParse(parts(1), playTime) Then
+                    totalTime = totalTime.Add(playTime)
+                    totalSessions += sessionCount
+
+                    Dim formattedTime As String = $"{Math.Floor(playTime.TotalHours)}h {playTime.Minutes}m {playTime.Seconds}s"
+
+                    Dim item As New ListViewItem(appName)
+                    item.SubItems.Add(formattedTime)
+                    item.SubItems.Add(sessionCount.ToString())
+                    lvwPlaytimes.Items.Add(item)
+                End If
+            End If
+        Next
+        Dim dividerItem As New ListViewItem(New String() {"", "", ""})
+        dividerItem.BackColor = Color.LightGray
+        lvwPlaytimes.Items.Add(dividerItem)
+        ' Add total row
+        Dim totalFormatted As String = $"{Math.Floor(totalTime.TotalHours)}h {totalTime.Minutes}m {totalTime.Seconds}s"
+        Dim totalItem As New ListViewItem("TOTAL")
+        totalItem.SubItems.Add(totalFormatted)
+        totalItem.SubItems.Add(totalSessions.ToString())
+
+        ' ✅ Standout styling
+        totalItem.ForeColor = Color.White
+        Dim totalBackColor As Color = ColorTranslator.FromHtml("#3f51b5")
+        totalItem.BackColor = totalBackColor
+        totalItem.Font = New Font(lvwPlaytimes.Font.FontFamily, lvwPlaytimes.Font.Size, FontStyle.Bold)
+
+        lvwPlaytimes.Items.Add(totalItem)
+    End Sub
+
 
     ' LISTBOX/LISTVIEW CHANGES
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
@@ -1247,7 +1309,7 @@ Public Class Form1
     Private Sub chkbxDialpadNumpad_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxDialpadNumpad.CheckedChanged
         Dim AHKFolder = Path.Combine(ToolsFolder, "autohotkey")
         Dim AHKScript = Path.Combine(AHKFolder, "AutoHotkey32.ahk")
-        Dim AHKExe = Path.Combine(AHKFolder, "AutoHotkey32.exe") ' Assuming you bundled AutoHotkey32.exe with your app
+        Dim AHKExe = Path.Combine(AHKFolder, "AutoHotkey32.exe")
 
         If chkbxDialpadNumpad.Checked = True Then
             ' Create the AHK script if it doesn't exist
@@ -1275,7 +1337,6 @@ Public Class Form1
                 ahkProc.StartInfo.UseShellExecute = False
                 ahkProc.StartInfo.CreateNoWindow = True
                 ahkProc.Start()
-                ' You might want to store ahkProc somewhere to manage it later (optional)
             Catch ex As Exception
                 MessageBox.Show("Failed to start AutoHotkey: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
@@ -1283,6 +1344,7 @@ Public Class Form1
             ' Kill any running AHK related processes
             UtilManager.CheckAndCloseAHK()
         End If
+        configManager.UpdateUseDialPadSetting(chkbxDialpadNumpad.Checked)
     End Sub
 
     ' ComboBox Changes
@@ -1515,7 +1577,7 @@ Public Class Form1
             End If
 
             ' Determine correct emulator
-            Dim CorrectedEmulator As String
+            Dim CorrectedEmulator As String = ""
             If CurrentSelectedGameJAM.ToLower.EndsWith(".jam") Then
                 CorrectedEmulator = VerifyEmulatorType_JAM(CurrentSelectedGameJAM)
             ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".jad") Then
@@ -2174,5 +2236,12 @@ Public Class Form1
 
         ' Show the form
         keybindForm.ShowDialog()
+    End Sub
+
+    'TabPage Changes
+    Private Sub tab(sender As Object, e As EventArgs) Handles MaterialTabControl1.SelectedIndexChanged
+        If MaterialTabControl1.SelectedTab Is tpStats Then
+            LoadPlaytimesToListView()
+        End If
     End Sub
 End Class

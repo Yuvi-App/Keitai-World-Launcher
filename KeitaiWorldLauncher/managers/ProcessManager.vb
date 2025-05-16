@@ -1,12 +1,12 @@
 ﻿Imports System.Threading
-Imports System.Xml
-Imports KeitaiWorldLauncher.My.logger
+
 
 Namespace My.Managers
     Public Class ProcessManager
+        Private Shared applitrackerManager As New AppliTrackerManager()
         Private Shared monitorThread As Thread = Nothing
         Private Shared monitoring As Boolean = False
-        Public Shared Sub StartMonitoring()
+        Public Shared Sub StartMonitoring(applipath As String)
             ' If already monitoring, or the thread is still alive, don't start another one
             If monitoring OrElse (monitorThread IsNot Nothing AndAlso monitorThread.IsAlive) Then Exit Sub
 
@@ -14,9 +14,11 @@ Namespace My.Managers
             monitorThread = New Thread(AddressOf MonitorProcesses)
             monitorThread.IsBackground = True
             monitorThread.Start()
+
+            applitrackerManager.StartTrackingAppli(applipath)
         End Sub
 
-        Private Shared Sub MonitorProcesses()
+        Private Shared Async Sub MonitorProcesses()
             Try
                 While monitoring
                     Dim dojaRunning As Boolean = Process.GetProcessesByName("doja").Length > 0
@@ -27,9 +29,9 @@ Namespace My.Managers
                     If Not dojaRunning AndAlso Not starRunning AndAlso Not javaRunning AndAlso Not flashplayerRunning Then
                         CloseProcess("shaderglass")
                         monitoring = False
+                        Await applitrackerManager.StopTrackingAppliAsync()
                         Exit While
                     End If
-
                     Thread.Sleep(2000) ' Check every 2 seconds
                 End While
             Catch ex As Exception

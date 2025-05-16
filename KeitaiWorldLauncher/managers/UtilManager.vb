@@ -11,12 +11,12 @@ Imports System.Security.Principal
 Imports System.Reflection
 Imports SharpDX.XInput
 Imports ReaLTaiizor.Extension
+Imports System.Diagnostics.Tracing
 
 Namespace My.Managers
     Public Class UtilManager
         Private Shared LaunchOverlay As Panel = Nothing
         Dim gameManager As New GameManager()
-
 
         'PreReq Check
         Public Shared Async Function CheckforPreReqAsync() As Task(Of Boolean)
@@ -30,8 +30,8 @@ Namespace My.Managers
             End If
 
             ' === Begin pre-req checks ===
-            Dim DOJAEmulator = Form1.DojaEXE
-            Dim StarEmulator = Form1.StarEXE
+            Dim DOJAEmulator = Form1.DOJAEXE
+            Dim StarEmulator = Form1.STAREXE
             Dim localeEmuLoc = "data\tools\locale_emulator\LEProc.exe"
             Dim ShaderGlassLoc = "data\tools\shaderglass\ShaderGlass.exe"
 
@@ -447,7 +447,6 @@ Namespace My.Managers
             Try
                 Using client As New Net.Http.HttpClient()
                     client.Timeout = TimeSpan.FromMilliseconds(timeout)
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64)") ' Common User-Agent
 
                     Dim response As Net.Http.HttpResponseMessage = Await client.GetAsync(InputUrl)
                     If response.IsSuccessStatusCode Then
@@ -475,10 +474,10 @@ Namespace My.Managers
 
                 ' Create and configure a TableLayoutPanel
                 Dim tableLayout As New TableLayoutPanel() With {
-            .ColumnCount = 2,
-            .AutoSize = True,
-            .Dock = DockStyle.Top
-        }
+                    .ColumnCount = 2,
+                    .AutoSize = True,
+                    .Dock = DockStyle.Top
+                }
 
                 ' Define the column widths: first fixed, second fills remaining space
                 tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 150))
@@ -516,19 +515,19 @@ Namespace My.Managers
 
                     ' Create a label for the key
                     Dim lbl As New Label() With {
-                .Text = key,
-                .Width = 150,
-                .AutoSize = False,
-                .AutoEllipsis = True,
-                .Anchor = AnchorStyles.Left
-            }
+                        .Text = key,
+                        .Width = 150,
+                        .AutoSize = False,
+                        .AutoEllipsis = True,
+                        .Anchor = AnchorStyles.Left
+                    }
 
                     ' Create a textbox for the value
                     Dim txt As New TextBox() With {
-                .Text = value,
-                .Dock = DockStyle.Fill,
-                .ReadOnly = True
-            }
+                        .Text = value,
+                        .Dock = DockStyle.Fill,
+                        .ReadOnly = True
+                    }
 
                     ' Increase row count and add a new row style
                     tableLayout.RowCount = rowIndex + 1
@@ -798,7 +797,7 @@ Namespace My.Managers
                     logger.Logger.LogInfo("[ShaderGlass] Waiting for DOJA to become idle...")
                     If Await WaitForDojaToStart() Then
                         Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
-                        ProcessManager.StartMonitoring()
+                        ProcessManager.StartMonitoring(jamPath)
                         logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                     Else
                         logger.Logger.LogError("[ShaderGlass] Failed to detect DOJA running.")
@@ -908,7 +907,7 @@ Namespace My.Managers
                     logger.Logger.LogInfo("[ShaderGlass] Waiting for STAR to become idle...")
                     If Await WaitForSTARToStart() Then
                         Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
-                        ProcessManager.StartMonitoring()
+                        ProcessManager.StartMonitoring(jamPath)
                         logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                     Else
                         logger.Logger.LogError("[ShaderGlass] Failed to detect STAR running.")
@@ -983,7 +982,7 @@ Namespace My.Managers
                     logger.Logger.LogInfo("[ShaderGlass] Waiting for JSKY to become idle...")
                     If Await WaitForJAVAToStart() Then
                         Await LaunchShaderGlass("J-SKY Application Emulator")
-                        ProcessManager.StartMonitoring()
+                        ProcessManager.StartMonitoring(jadPath)
                         logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                     Else
                         logger.Logger.LogError("[ShaderGlass] Failed to detect JSKY running.")
@@ -1068,7 +1067,7 @@ Namespace My.Managers
                     logger.Logger.LogInfo("[ShaderGlass] Waiting for FLASH to become idle...")
                     If Await WaitForFlashPlayerToStart() Then
                         Await LaunchShaderGlass("Adobe Flash Player 10")
-                        ProcessManager.StartMonitoring()
+                        ProcessManager.StartMonitoring(GameJAM)
                         logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                     Else
                         logger.Logger.LogError("[ShaderGlass] Failed to detect FLASH running.")
@@ -1137,7 +1136,6 @@ Namespace My.Managers
                 MessageBox.Show("Argument file not found at: " & argumentFile, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 Return
             End If
-
             Await ModifyCaptureWindow(argumentFile, AppName)
             Await ModifyScalingWindow(argumentFile)
 
@@ -2196,6 +2194,22 @@ Namespace My.Managers
 
             Await File.WriteAllLinesAsync(filePath, lines)
         End Function
+        Public Async Function ModifySelectedShader(filePath As String, ShaderName As String) As Task
+            If Not File.Exists(filePath) Then
+                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
+                Return
+            End If
+
+            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(filePath)).ToList()
+
+            For i As Integer = 0 To lines.Count - 1
+                If lines(i).StartsWith("ShaderName") Then
+                    lines(i) = $"ShaderName ""{ShaderName.ToLower}"""
+                    Exit For
+                End If
+            Next
+            Await File.WriteAllLinesAsync(filePath, lines)
+        End Function
         Public Async Function ModifyScalingWindow(filePath As String) As Task
             Dim selectedValue As String = Form1.cbxShaderGlassScaling.SelectedItem.ToString()
             Dim scaleValue As Integer
@@ -2310,5 +2324,7 @@ Namespace My.Managers
                 End SyncLock
             End Try
         End Function
+
+
     End Class
 End Namespace

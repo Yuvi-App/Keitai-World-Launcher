@@ -92,6 +92,9 @@ Partial Class Form1
         cbxStarSDK = New ComboBox()
         cbxDojaSDK = New ComboBox()
         Label4 = New Label()
+        tpStats = New TabPage()
+        GroupBox9 = New GroupBox()
+        lvwPlaytimes = New ListView()
         tpHelp = New TabPage()
         GroupBox8 = New GroupBox()
         lblHelp_troubleshooting = New Label()
@@ -114,6 +117,8 @@ Partial Class Form1
         GroupBox6.SuspendLayout()
         GroupBox5.SuspendLayout()
         GroupBox4.SuspendLayout()
+        tpStats.SuspendLayout()
+        GroupBox9.SuspendLayout()
         tpHelp.SuspendLayout()
         GroupBox8.SuspendLayout()
         GroupBox7.SuspendLayout()
@@ -419,6 +424,7 @@ Partial Class Form1
         MaterialTabControl1.Controls.Add(tpAppli)
         MaterialTabControl1.Controls.Add(tpMachiChara)
         MaterialTabControl1.Controls.Add(tpConfig)
+        MaterialTabControl1.Controls.Add(tpStats)
         MaterialTabControl1.Controls.Add(tpHelp)
         MaterialTabControl1.Depth = 0
         MaterialTabControl1.Font = New Font("Segoe UI", 9F)
@@ -466,11 +472,9 @@ Partial Class Form1
         ' chkbxDialpadNumpad
         ' 
         chkbxDialpadNumpad.AutoSize = True
-        chkbxDialpadNumpad.Checked = True
-        chkbxDialpadNumpad.CheckState = CheckState.Checked
         chkbxDialpadNumpad.Enabled = False
         chkbxDialpadNumpad.FlatStyle = FlatStyle.Flat
-        chkbxDialpadNumpad.Location = New Point(84, 70)
+        chkbxDialpadNumpad.Location = New Point(84, 45)
         chkbxDialpadNumpad.Name = "chkbxDialpadNumpad"
         chkbxDialpadNumpad.Size = New Size(113, 19)
         chkbxDialpadNumpad.TabIndex = 16
@@ -529,10 +533,10 @@ Partial Class Form1
         ' 
         Label2.FlatStyle = FlatStyle.Flat
         Label2.Font = New Font("Segoe UI", 9F)
-        Label2.Location = New Point(337, 100)
+        Label2.Location = New Point(337, 102)
         Label2.Margin = New Padding(2, 0, 2, 0)
         Label2.Name = "Label2"
-        Label2.Size = New Size(120, 38)
+        Label2.Size = New Size(120, 23)
         Label2.TabIndex = 14
         Label2.Text = "ShaderGlass Scaling"
         Label2.TextAlign = ContentAlignment.MiddleCenter
@@ -544,7 +548,7 @@ Partial Class Form1
         cbxShaderGlassScaling.FlatStyle = FlatStyle.Flat
         cbxShaderGlassScaling.FormattingEnabled = True
         cbxShaderGlassScaling.Items.AddRange(New Object() {"1x", "1.5x", "2x", "2.5x", "3x", "3.5x", "4x"})
-        cbxShaderGlassScaling.Location = New Point(461, 109)
+        cbxShaderGlassScaling.Location = New Point(461, 102)
         cbxShaderGlassScaling.Margin = New Padding(2)
         cbxShaderGlassScaling.Name = "cbxShaderGlassScaling"
         cbxShaderGlassScaling.Size = New Size(85, 23)
@@ -557,7 +561,7 @@ Partial Class Form1
         chkbxLocalEmulator.CheckState = CheckState.Checked
         chkbxLocalEmulator.Enabled = False
         chkbxLocalEmulator.FlatStyle = FlatStyle.Flat
-        chkbxLocalEmulator.Location = New Point(84, 45)
+        chkbxLocalEmulator.Location = New Point(84, 70)
         chkbxLocalEmulator.Name = "chkbxLocalEmulator"
         chkbxLocalEmulator.Size = New Size(108, 19)
         chkbxLocalEmulator.TabIndex = 4
@@ -858,6 +862,41 @@ Partial Class Form1
         Label4.Text = "Star SDK"
         Label4.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' tpStats
+        ' 
+        tpStats.Controls.Add(GroupBox9)
+        tpStats.Location = New Point(4, 24)
+        tpStats.Name = "tpStats"
+        tpStats.Size = New Size(1033, 581)
+        tpStats.TabIndex = 4
+        tpStats.Text = "Stats"
+        tpStats.UseVisualStyleBackColor = True
+        ' 
+        ' GroupBox9
+        ' 
+        GroupBox9.Controls.Add(lvwPlaytimes)
+        GroupBox9.Dock = DockStyle.Fill
+        GroupBox9.Location = New Point(0, 0)
+        GroupBox9.Name = "GroupBox9"
+        GroupBox9.Size = New Size(1033, 581)
+        GroupBox9.TabIndex = 0
+        GroupBox9.TabStop = False
+        GroupBox9.Text = "Playtime"
+        ' 
+        ' lvwPlaytimes
+        ' 
+        lvwPlaytimes.Dock = DockStyle.Fill
+        lvwPlaytimes.Font = New Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        lvwPlaytimes.FullRowSelect = True
+        lvwPlaytimes.GridLines = True
+        lvwPlaytimes.HideSelection = True
+        lvwPlaytimes.Location = New Point(3, 19)
+        lvwPlaytimes.Name = "lvwPlaytimes"
+        lvwPlaytimes.Size = New Size(1027, 559)
+        lvwPlaytimes.TabIndex = 0
+        lvwPlaytimes.UseCompatibleStateImageBehavior = False
+        lvwPlaytimes.View = View.Details
+        ' 
         ' tpHelp
         ' 
         tpHelp.Controls.Add(GroupBox8)
@@ -968,6 +1007,8 @@ Partial Class Form1
         GroupBox5.ResumeLayout(False)
         GroupBox5.PerformLayout()
         GroupBox4.ResumeLayout(False)
+        tpStats.ResumeLayout(False)
+        GroupBox9.ResumeLayout(False)
         tpHelp.ResumeLayout(False)
         GroupBox8.ResumeLayout(False)
         GroupBox7.ResumeLayout(False)
@@ -1048,4 +1089,7 @@ Partial Class Form1
     Friend WithEvents BackupSaveToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents btnSaveDataManagement As Button
     Friend WithEvents chkbxDialpadNumpad As CheckBox
+    Friend WithEvents tpStats As TabPage
+    Friend WithEvents GroupBox9 As GroupBox
+    Friend WithEvents lvwPlaytimes As ListView
 End Class

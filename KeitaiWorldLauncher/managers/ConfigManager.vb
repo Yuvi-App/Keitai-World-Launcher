@@ -17,6 +17,7 @@ Namespace My.Managers
         {"MachiCharalistURL", "machicharalist.xml"},
         {"AutoUpdateMachiCharaList", "true"},
         {"UseShaderGlass", "true"},
+        {"UseDialPad", "true"},
         {"DOJAPath", "c:\doja"},
         {"DOJAEXEPath", "doja.exe"},
         {"DOJAHideUI", "true"},
@@ -109,6 +110,23 @@ Namespace My.Managers
             Catch ex As Exception
                 MessageBox.Show($"Failed to update the UseShadeGlass setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 logger.Logger.LogError($"Failed to update the UseShadeGlass setting: {ex.Message}")
+            End Try
+        End Sub
+
+        Public Sub UpdateUseDialPadSetting(isChecked As Boolean)
+            Try
+                ' Load the XML document
+                Dim doc As New XmlDocument()
+                doc.Load(ConfigFilePath)
+                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='UseDialPad']")
+                If settingNode IsNot Nothing Then
+                    settingNode.InnerText = isChecked.ToString().ToLower()
+                    doc.Save(ConfigFilePath)
+                Else
+                End If
+            Catch ex As Exception
+                MessageBox.Show($"Failed to update the UseDialPad setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"Failed to update the UseDialPad setting: {ex.Message}")
             End Try
         End Sub
         Public Sub UpdateNetworkUIDSetting(NewNetworkUID As String)
