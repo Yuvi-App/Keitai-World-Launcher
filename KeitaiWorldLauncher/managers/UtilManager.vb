@@ -99,9 +99,9 @@ Namespace My.Managers
             ' Check for Java 8
             My.logger.Logger.LogInfo("Checking for Java 8")
             If Not Await IsJava8Update152InstalledAsync() Then
-                MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8... Download is required")
+                MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (JDK8u152)... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
-                Await OpenURLAsync("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
+                Await OpenURLAsync("https://scratchpad.keitaiwiki.com/s/AxTty326itLfEwE?dir=/Utilities/Java")
                 Form1.QuitApplication()
             End If
 
