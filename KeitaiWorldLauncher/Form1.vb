@@ -4,8 +4,10 @@ Imports System.Text
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
+Imports Newtonsoft.Json.Linq
 Imports ReaLTaiizor.Controls
 Imports ReaLTaiizor.[Enum].Poison
+Imports ReaLTaiizor.Forms
 Imports SharpDX.XInput
 
 Public Class Form1
@@ -1226,6 +1228,70 @@ Public Class Form1
 
         lvwPlaytimes.Items.Add(totalItem)
     End Sub
+    Private Sub ShowCopyableDialogBox(Title As String, Text As String, CopyableText As String)
+        ' Create a new MaterialForm
+        Dim aboutForm As New ReaLTaiizor.Forms.MaterialForm With {
+        .Text = Title,
+        .Size = New Size(600, 350),
+        .StartPosition = FormStartPosition.CenterScreen,
+        .Sizable = False,
+        .FormBorderStyle = FormBorderStyle.FixedDialog,
+        .MaximizeBox = False,
+        .MinimizeBox = False
+    }
+
+        ' Padding constants
+        Dim margin As Integer = 20
+        Dim spacing As Integer = 10
+
+        ' Create label for top description
+        Dim lblTop As New Label With {
+        .Text = Text,
+        .Left = margin,
+        .Top = margin + 60, ' Allow some room from MaterialForm header
+        .Width = aboutForm.ClientSize.Width - (margin * 2),
+        .Height = 50,
+        .Font = New Font("Segoe UI", 10, FontStyle.Regular),
+        .ForeColor = Color.Black
+    }
+
+        ' Create TextBox for copyable content
+        Dim txtcopyable As New TextBox With {
+        .Text = CopyableText,
+        .Multiline = True,
+        .ReadOnly = True,
+        .Left = margin,
+        .Top = lblTop.Bottom + spacing,
+        .Width = aboutForm.ClientSize.Width - (margin * 2),
+        .Height = 140,
+        .Font = New Font("Segoe UI", 10, FontStyle.Regular),
+        .ScrollBars = ScrollBars.Vertical
+    }
+
+        ' Select all on click for convenience
+        AddHandler txtcopyable.Click, Sub() txtcopyable.SelectAll()
+
+        ' Create Close button
+        Dim btnClose As New MaterialButton With {
+        .Text = "Close",
+        .Width = 100,
+        .Height = 36,
+        .Left = (aboutForm.ClientSize.Width - 100) \ 2,
+        .Top = txtcopyable.Bottom + spacing + 10,
+        .HighEmphasis = True,
+        .Type = MaterialButton.MaterialButtonType.Contained
+    }
+        AddHandler btnClose.Click, Sub() aboutForm.Close()
+
+        ' Add controls in proper Z-order
+        aboutForm.Controls.Add(lblTop)
+        aboutForm.Controls.Add(txtcopyable)
+        aboutForm.Controls.Add(btnClose)
+
+        ' Show dialog
+        aboutForm.ShowDialog()
+    End Sub
+
 
 
     ' LISTBOX/LISTVIEW CHANGES
@@ -1493,6 +1559,17 @@ Public Class Form1
 
         cmsGameLV_Download.Text = If(Not isNormalWindowColor AndAlso Not isHighlightColor AndAlso Not isWhiteColor,
                                  "Redownload", "Download")
+
+        'To show custom game tools we create when needed
+        If selectedGameTitle.ToLower.Contains("bomberman puzzle special") Then
+            If cmsGameLV_Download.Text = "Redownload" Then
+                cmsBombermanPuzzle.Visible = True
+            Else
+                cmsBombermanPuzzle.Visible = False
+            End If
+        Else
+            cmsBombermanPuzzle.Visible = False
+        End If
     End Sub
     Private Sub OpenGameFolderToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles OpenGameFolderToolStripMenuItem.Click
         If ListViewGames.SelectedItems.Count = 0 Then Return
@@ -1512,6 +1589,42 @@ Public Class Form1
             Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
         End If
     End Sub
+    'Game Specific Context Menu Options
+    Private Async Sub tsmBPSImportStage_Click(sender As Object, e As EventArgs) Handles tsmBPSImportStage1.Click, tsmBPSImportStage2.Click, tsmBPSImportStage3.Click, tsmBPSImportStage4.Click, tsmBPSImportStage5.Click, tsmBPSImportStage6.Click, tsmBPSImportStage7.Click, tsmBPSImportStage8.Click, tsmBPSImportStage9.Click, tsmBPSImportStage10.Click
+        Dim clickedItem As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
+        Dim stageNumber As Integer = Integer.Parse(clickedItem.Name.Replace("tsmBPSImportStage", ""))
+        If ListViewGames.SelectedItems.Count = 0 Then Return
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
+        Dim gameName As String = selectedGame.ZIPName.Replace(".zip", "")
+        'Variant Selection
+        If ListViewGamesVariants.SelectedItems.Count = 0 Then Return
+        Dim selectedGameVariant As String = ListViewGamesVariants.SelectedItems(0).Text
+        Dim SPFilepath = Path.Combine(gameFolder, selectedGameVariant, "sp", gameName & ".sp")
+        Dim StageCode = InputBox("Import Stage Code", "Enter the stage code you want to import:", "")
+        If String.IsNullOrEmpty(StageCode) = False Then
+            Await gameManager.BomberManPuzzleSpecial_ImportStage(SPFilepath, stageNumber, StageCode)
+            MessageBox.Show("Import Stage Success!")
+        End If
+    End Sub
+    Private Async Sub tsmBPSExportStage_Click(sender As Object, e As EventArgs) Handles tsmBPSExportStage1.Click, tsmBPSExportStage2.Click, tsmBPSExportStage3.Click, tsmBPSExportStage4.Click, tsmBPSExportStage5.Click, tsmBPSExportStage6.Click, tsmBPSExportStage7.Click, tsmBPSExportStage8.Click, tsmBPSExportStage9.Click, tsmBPSExportStage10.Click
+        Dim clickedItem As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
+        Dim stageNumber As Integer = Integer.Parse(clickedItem.Name.Replace("tsmBPSExportStage", ""))
+        If ListViewGames.SelectedItems.Count = 0 Then Return
+        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
+        Dim gameName As String = selectedGame.ZIPName.Replace(".zip", "")
+        'Variant Selection
+        If ListViewGamesVariants.SelectedItems.Count = 0 Then Return
+        Dim selectedGameVariant As String = ListViewGamesVariants.SelectedItems(0).Text
+
+        Dim SPFilepath = Path.Combine(gameFolder, selectedGameVariant, "sp", gameName & ".sp")
+        Dim CompressedString = Await gameManager.BomberManPuzzleSpecial_ExportStage(SPFilepath, stageNumber)
+        ShowCopyableDialogBox($"Exported Stage {stageNumber.ToString}", $"Here's your stage code — share it so your friends can play your level!", CompressedString)
+    End Sub
+
     'MachiChara CMS
     Private Sub DownloadCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DownloadCMS_MachiChara.Click
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
@@ -1526,7 +1639,7 @@ Public Class Form1
     'Launch Apps Buttons
     Private Async Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         Try
-            Logger.LogInfo("Attempting to launch game...")
+            Logger.LogInfo("Attempting To launch game...")
             If chkbxEnableController.Checked Then
                 utilManager.StopVibratorBmpMonitor()
             End If
@@ -2244,4 +2357,5 @@ Public Class Form1
             LoadPlaytimesToListView()
         End If
     End Sub
+
 End Class

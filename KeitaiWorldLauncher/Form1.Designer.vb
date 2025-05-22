@@ -32,6 +32,9 @@ Partial Class Form1
         cmsGameLV_Favorite = New ToolStripMenuItem()
         BackupSaveToolStripMenuItem = New ToolStripMenuItem()
         OpenGameFolderToolStripMenuItem = New ToolStripMenuItem()
+        cmsBombermanPuzzle = New ToolStripMenuItem()
+        ImportStageToolStripMenuItem = New ToolStripMenuItem()
+        ExportStageToolStripMenuItem = New ToolStripMenuItem()
         OpenFileDialog1 = New OpenFileDialog()
         selectionTimer = New Timer(components)
         FolderBrowserDialog1 = New FolderBrowserDialog()
@@ -102,6 +105,26 @@ Partial Class Form1
         lblHelp_AppVer = New Label()
         btnControls = New Button()
         MaterialTabSelector1 = New ReaLTaiizor.Controls.MaterialTabSelector()
+        tsmBPSImportStage1 = New ToolStripMenuItem()
+        tsmBPSImportStage2 = New ToolStripMenuItem()
+        tsmBPSImportStage3 = New ToolStripMenuItem()
+        tsmBPSImportStage4 = New ToolStripMenuItem()
+        tsmBPSImportStage5 = New ToolStripMenuItem()
+        tsmBPSImportStage6 = New ToolStripMenuItem()
+        tsmBPSImportStage7 = New ToolStripMenuItem()
+        tsmBPSImportStage8 = New ToolStripMenuItem()
+        tsmBPSImportStage9 = New ToolStripMenuItem()
+        tsmBPSImportStage10 = New ToolStripMenuItem()
+        tsmBPSExportStage1 = New ToolStripMenuItem()
+        tsmBPSExportStage2 = New ToolStripMenuItem()
+        tsmBPSExportStage3 = New ToolStripMenuItem()
+        tsmBPSExportStage4 = New ToolStripMenuItem()
+        tsmBPSExportStage5 = New ToolStripMenuItem()
+        tsmBPSExportStage6 = New ToolStripMenuItem()
+        tsmBPSExportStage7 = New ToolStripMenuItem()
+        tsmBPSExportStage8 = New ToolStripMenuItem()
+        tsmBPSExportStage9 = New ToolStripMenuItem()
+        tsmBPSExportStage10 = New ToolStripMenuItem()
         cmsGameLV.SuspendLayout()
         GroupBox2.SuspendLayout()
         cmsMachiCharaLV.SuspendLayout()
@@ -133,45 +156,67 @@ Partial Class Form1
         ' cmsGameLV
         ' 
         cmsGameLV.ImageScalingSize = New Size(20, 20)
-        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite, BackupSaveToolStripMenuItem, OpenGameFolderToolStripMenuItem})
+        cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite, BackupSaveToolStripMenuItem, OpenGameFolderToolStripMenuItem, cmsBombermanPuzzle})
         cmsGameLV.Name = "cmsGameLV"
-        cmsGameLV.Size = New Size(171, 136)
+        cmsGameLV.Size = New Size(248, 180)
         ' 
         ' cmsGameLV_Launch
         ' 
         cmsGameLV_Launch.Name = "cmsGameLV_Launch"
-        cmsGameLV_Launch.Size = New Size(170, 22)
+        cmsGameLV_Launch.Size = New Size(247, 22)
         cmsGameLV_Launch.Text = "Launch"
         ' 
         ' cmsGameLV_Download
         ' 
         cmsGameLV_Download.Name = "cmsGameLV_Download"
-        cmsGameLV_Download.Size = New Size(170, 22)
+        cmsGameLV_Download.Size = New Size(247, 22)
         cmsGameLV_Download.Text = "Download"
         ' 
         ' cmsGameLV_Delete
         ' 
         cmsGameLV_Delete.Name = "cmsGameLV_Delete"
-        cmsGameLV_Delete.Size = New Size(170, 22)
+        cmsGameLV_Delete.Size = New Size(247, 22)
         cmsGameLV_Delete.Text = "Delete"
         ' 
         ' cmsGameLV_Favorite
         ' 
         cmsGameLV_Favorite.Name = "cmsGameLV_Favorite"
-        cmsGameLV_Favorite.Size = New Size(170, 22)
+        cmsGameLV_Favorite.Size = New Size(247, 22)
         cmsGameLV_Favorite.Text = "Favorite"
         ' 
         ' BackupSaveToolStripMenuItem
         ' 
         BackupSaveToolStripMenuItem.Name = "BackupSaveToolStripMenuItem"
-        BackupSaveToolStripMenuItem.Size = New Size(170, 22)
+        BackupSaveToolStripMenuItem.Size = New Size(247, 22)
         BackupSaveToolStripMenuItem.Text = "Backup Save (SP)"
         ' 
         ' OpenGameFolderToolStripMenuItem
         ' 
         OpenGameFolderToolStripMenuItem.Name = "OpenGameFolderToolStripMenuItem"
-        OpenGameFolderToolStripMenuItem.Size = New Size(170, 22)
+        OpenGameFolderToolStripMenuItem.Size = New Size(247, 22)
         OpenGameFolderToolStripMenuItem.Text = "Open game folder"
+        ' 
+        ' cmsBombermanPuzzle
+        ' 
+        cmsBombermanPuzzle.DropDownItems.AddRange(New ToolStripItem() {ImportStageToolStripMenuItem, ExportStageToolStripMenuItem})
+        cmsBombermanPuzzle.Name = "cmsBombermanPuzzle"
+        cmsBombermanPuzzle.Size = New Size(247, 22)
+        cmsBombermanPuzzle.Text = "Bomberman Puzzle Special Tools"
+        cmsBombermanPuzzle.Visible = False
+        ' 
+        ' ImportStageToolStripMenuItem
+        ' 
+        ImportStageToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {tsmBPSImportStage1, tsmBPSImportStage2, tsmBPSImportStage3, tsmBPSImportStage4, tsmBPSImportStage5, tsmBPSImportStage6, tsmBPSImportStage7, tsmBPSImportStage8, tsmBPSImportStage9, tsmBPSImportStage10})
+        ImportStageToolStripMenuItem.Name = "ImportStageToolStripMenuItem"
+        ImportStageToolStripMenuItem.Size = New Size(180, 22)
+        ImportStageToolStripMenuItem.Text = "Import Stage"
+        ' 
+        ' ExportStageToolStripMenuItem
+        ' 
+        ExportStageToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {tsmBPSExportStage1, tsmBPSExportStage2, tsmBPSExportStage3, tsmBPSExportStage4, tsmBPSExportStage5, tsmBPSExportStage6, tsmBPSExportStage7, tsmBPSExportStage8, tsmBPSExportStage9, tsmBPSExportStage10})
+        ExportStageToolStripMenuItem.Name = "ExportStageToolStripMenuItem"
+        ExportStageToolStripMenuItem.Size = New Size(180, 22)
+        ExportStageToolStripMenuItem.Text = "Export Stage"
         ' 
         ' OpenFileDialog1
         ' 
@@ -973,6 +1018,126 @@ Partial Class Form1
         MaterialTabSelector1.TabIndex = 7
         MaterialTabSelector1.Text = "MaterialTabSelector1"
         ' 
+        ' tsmBPSImportStage1
+        ' 
+        tsmBPSImportStage1.Name = "tsmBPSImportStage1"
+        tsmBPSImportStage1.Size = New Size(180, 22)
+        tsmBPSImportStage1.Text = "Stage 1"
+        ' 
+        ' tsmBPSImportStage2
+        ' 
+        tsmBPSImportStage2.Name = "tsmBPSImportStage2"
+        tsmBPSImportStage2.Size = New Size(180, 22)
+        tsmBPSImportStage2.Text = "Stage 2"
+        ' 
+        ' tsmBPSImportStage3
+        ' 
+        tsmBPSImportStage3.Name = "tsmBPSImportStage3"
+        tsmBPSImportStage3.Size = New Size(180, 22)
+        tsmBPSImportStage3.Text = "Stage 3"
+        ' 
+        ' tsmBPSImportStage4
+        ' 
+        tsmBPSImportStage4.Name = "tsmBPSImportStage4"
+        tsmBPSImportStage4.Size = New Size(180, 22)
+        tsmBPSImportStage4.Text = "Stage 4"
+        ' 
+        ' tsmBPSImportStage5
+        ' 
+        tsmBPSImportStage5.Name = "tsmBPSImportStage5"
+        tsmBPSImportStage5.Size = New Size(180, 22)
+        tsmBPSImportStage5.Text = "Stage 5"
+        ' 
+        ' tsmBPSImportStage6
+        ' 
+        tsmBPSImportStage6.Name = "tsmBPSImportStage6"
+        tsmBPSImportStage6.Size = New Size(180, 22)
+        tsmBPSImportStage6.Text = "Stage 6"
+        ' 
+        ' tsmBPSImportStage7
+        ' 
+        tsmBPSImportStage7.Name = "tsmBPSImportStage7"
+        tsmBPSImportStage7.Size = New Size(180, 22)
+        tsmBPSImportStage7.Text = "Stage 7"
+        ' 
+        ' tsmBPSImportStage8
+        ' 
+        tsmBPSImportStage8.Name = "tsmBPSImportStage8"
+        tsmBPSImportStage8.Size = New Size(180, 22)
+        tsmBPSImportStage8.Text = "Stage 8"
+        ' 
+        ' tsmBPSImportStage9
+        ' 
+        tsmBPSImportStage9.Name = "tsmBPSImportStage9"
+        tsmBPSImportStage9.Size = New Size(180, 22)
+        tsmBPSImportStage9.Text = "Stage 9"
+        ' 
+        ' tsmBPSImportStage10
+        ' 
+        tsmBPSImportStage10.Name = "tsmBPSImportStage10"
+        tsmBPSImportStage10.Size = New Size(180, 22)
+        tsmBPSImportStage10.Text = "Stage 10"
+        ' 
+        ' tsmBPSExportStage1
+        ' 
+        tsmBPSExportStage1.Name = "tsmBPSExportStage1"
+        tsmBPSExportStage1.Size = New Size(180, 22)
+        tsmBPSExportStage1.Text = "Stage 1"
+        ' 
+        ' tsmBPSExportStage2
+        ' 
+        tsmBPSExportStage2.Name = "tsmBPSExportStage2"
+        tsmBPSExportStage2.Size = New Size(180, 22)
+        tsmBPSExportStage2.Text = "Stage 2"
+        ' 
+        ' tsmBPSExportStage3
+        ' 
+        tsmBPSExportStage3.Name = "tsmBPSExportStage3"
+        tsmBPSExportStage3.Size = New Size(180, 22)
+        tsmBPSExportStage3.Text = "Stage 3"
+        ' 
+        ' tsmBPSExportStage4
+        ' 
+        tsmBPSExportStage4.Name = "tsmBPSExportStage4"
+        tsmBPSExportStage4.Size = New Size(180, 22)
+        tsmBPSExportStage4.Text = "Stage 4"
+        ' 
+        ' tsmBPSExportStage5
+        ' 
+        tsmBPSExportStage5.Name = "tsmBPSExportStage5"
+        tsmBPSExportStage5.Size = New Size(180, 22)
+        tsmBPSExportStage5.Text = "Stage 5"
+        ' 
+        ' tsmBPSExportStage6
+        ' 
+        tsmBPSExportStage6.Name = "tsmBPSExportStage6"
+        tsmBPSExportStage6.Size = New Size(180, 22)
+        tsmBPSExportStage6.Text = "Stage 6"
+        ' 
+        ' tsmBPSExportStage7
+        ' 
+        tsmBPSExportStage7.Name = "tsmBPSExportStage7"
+        tsmBPSExportStage7.Size = New Size(180, 22)
+        tsmBPSExportStage7.Text = "Stage 7"
+        ' 
+        ' tsmBPSExportStage8
+        ' 
+        tsmBPSExportStage8.Name = "tsmBPSExportStage8"
+        tsmBPSExportStage8.Size = New Size(180, 22)
+        tsmBPSExportStage8.Text = "Stage 8"
+        ' 
+        ' tsmBPSExportStage9
+        ' 
+        tsmBPSExportStage9.Name = "tsmBPSExportStage9"
+        tsmBPSExportStage9.Size = New Size(180, 22)
+        tsmBPSExportStage9.Text = "Stage 9"
+        ' 
+        ' tsmBPSExportStage10
+        ' 
+        tsmBPSExportStage10.Name = "tsmBPSExportStage10"
+        tsmBPSExportStage10.Size = New Size(180, 22)
+        tsmBPSExportStage10.Text = "Stage 10"
+        ' 
         ' Form1
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
@@ -1092,4 +1257,27 @@ Partial Class Form1
     Friend WithEvents tpStats As TabPage
     Friend WithEvents GroupBox9 As GroupBox
     Friend WithEvents lvwPlaytimes As ListView
+    Friend WithEvents cmsBombermanPuzzle As ToolStripMenuItem
+    Friend WithEvents ImportStageToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ExportStageToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage1 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage2 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage3 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage4 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage5 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage6 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage7 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage8 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage9 As ToolStripMenuItem
+    Friend WithEvents tsmBPSImportStage10 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage1 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage2 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage3 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage4 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage5 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage6 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage7 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage8 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage9 As ToolStripMenuItem
+    Friend WithEvents tsmBPSExportStage10 As ToolStripMenuItem
 End Class
