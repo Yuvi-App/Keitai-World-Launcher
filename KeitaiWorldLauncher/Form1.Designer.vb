@@ -34,7 +34,27 @@ Partial Class Form1
         OpenGameFolderToolStripMenuItem = New ToolStripMenuItem()
         cmsBombermanPuzzle = New ToolStripMenuItem()
         ImportStageToolStripMenuItem = New ToolStripMenuItem()
+        tsmBPSImportStage1 = New ToolStripMenuItem()
+        tsmBPSImportStage2 = New ToolStripMenuItem()
+        tsmBPSImportStage3 = New ToolStripMenuItem()
+        tsmBPSImportStage4 = New ToolStripMenuItem()
+        tsmBPSImportStage5 = New ToolStripMenuItem()
+        tsmBPSImportStage6 = New ToolStripMenuItem()
+        tsmBPSImportStage7 = New ToolStripMenuItem()
+        tsmBPSImportStage8 = New ToolStripMenuItem()
+        tsmBPSImportStage9 = New ToolStripMenuItem()
+        tsmBPSImportStage10 = New ToolStripMenuItem()
         ExportStageToolStripMenuItem = New ToolStripMenuItem()
+        tsmBPSExportStage1 = New ToolStripMenuItem()
+        tsmBPSExportStage2 = New ToolStripMenuItem()
+        tsmBPSExportStage3 = New ToolStripMenuItem()
+        tsmBPSExportStage4 = New ToolStripMenuItem()
+        tsmBPSExportStage5 = New ToolStripMenuItem()
+        tsmBPSExportStage6 = New ToolStripMenuItem()
+        tsmBPSExportStage7 = New ToolStripMenuItem()
+        tsmBPSExportStage8 = New ToolStripMenuItem()
+        tsmBPSExportStage9 = New ToolStripMenuItem()
+        tsmBPSExportStage10 = New ToolStripMenuItem()
         OpenFileDialog1 = New OpenFileDialog()
         selectionTimer = New Timer(components)
         FolderBrowserDialog1 = New FolderBrowserDialog()
@@ -72,6 +92,15 @@ Partial Class Form1
         chkbxLocalEmulator = New CheckBox()
         tpMachiChara = New TabPage()
         chkboxMachiCharaLocalEmulator = New CheckBox()
+        tpCharaDen = New TabPage()
+        chkboxCharadenLocalEmulator = New CheckBox()
+        btnCharaDenLaunch = New Button()
+        GroupBox10 = New GroupBox()
+        ListViewCharaDen = New ListView()
+        cmsCharadenLV = New ContextMenuStrip(components)
+        DownloadCMS_CharaDen = New ToolStripMenuItem()
+        DeleteCMS_CharaDen = New ToolStripMenuItem()
+        lblCharadenTotalCount = New Label()
         tpConfig = New TabPage()
         GroupBox6 = New GroupBox()
         btnSaveDataManagement = New Button()
@@ -81,11 +110,17 @@ Partial Class Form1
         btnLaunchAppConfig = New Button()
         btnLaunchKey2Pad = New Button()
         GroupBox5 = New GroupBox()
+        gbxSJMELaunchOptions = New GroupBox()
+        lblSJMELaunchOptionsText = New Label()
+        Label9 = New Label()
+        cbxSJMELaunchOption = New ComboBox()
         chkbxHidePhoneUI = New CheckBox()
         lblAudioWarning = New Label()
         Label1 = New Label()
         cbxAudioType = New ComboBox()
         GroupBox4 = New GroupBox()
+        cbxVodafoneSDK = New ComboBox()
+        Label8 = New Label()
         cbxFlashSDK = New ComboBox()
         Label7 = New Label()
         Label6 = New Label()
@@ -105,26 +140,6 @@ Partial Class Form1
         lblHelp_AppVer = New Label()
         btnControls = New Button()
         MaterialTabSelector1 = New ReaLTaiizor.Controls.MaterialTabSelector()
-        tsmBPSImportStage1 = New ToolStripMenuItem()
-        tsmBPSImportStage2 = New ToolStripMenuItem()
-        tsmBPSImportStage3 = New ToolStripMenuItem()
-        tsmBPSImportStage4 = New ToolStripMenuItem()
-        tsmBPSImportStage5 = New ToolStripMenuItem()
-        tsmBPSImportStage6 = New ToolStripMenuItem()
-        tsmBPSImportStage7 = New ToolStripMenuItem()
-        tsmBPSImportStage8 = New ToolStripMenuItem()
-        tsmBPSImportStage9 = New ToolStripMenuItem()
-        tsmBPSImportStage10 = New ToolStripMenuItem()
-        tsmBPSExportStage1 = New ToolStripMenuItem()
-        tsmBPSExportStage2 = New ToolStripMenuItem()
-        tsmBPSExportStage3 = New ToolStripMenuItem()
-        tsmBPSExportStage4 = New ToolStripMenuItem()
-        tsmBPSExportStage5 = New ToolStripMenuItem()
-        tsmBPSExportStage6 = New ToolStripMenuItem()
-        tsmBPSExportStage7 = New ToolStripMenuItem()
-        tsmBPSExportStage8 = New ToolStripMenuItem()
-        tsmBPSExportStage9 = New ToolStripMenuItem()
-        tsmBPSExportStage10 = New ToolStripMenuItem()
         cmsGameLV.SuspendLayout()
         GroupBox2.SuspendLayout()
         cmsMachiCharaLV.SuspendLayout()
@@ -136,9 +151,13 @@ Partial Class Form1
         tpAppli.SuspendLayout()
         GroupBox3.SuspendLayout()
         tpMachiChara.SuspendLayout()
+        tpCharaDen.SuspendLayout()
+        GroupBox10.SuspendLayout()
+        cmsCharadenLV.SuspendLayout()
         tpConfig.SuspendLayout()
         GroupBox6.SuspendLayout()
         GroupBox5.SuspendLayout()
+        gbxSJMELaunchOptions.SuspendLayout()
         GroupBox4.SuspendLayout()
         tpStats.SuspendLayout()
         GroupBox9.SuspendLayout()
@@ -158,7 +177,7 @@ Partial Class Form1
         cmsGameLV.ImageScalingSize = New Size(20, 20)
         cmsGameLV.Items.AddRange(New ToolStripItem() {cmsGameLV_Launch, cmsGameLV_Download, cmsGameLV_Delete, cmsGameLV_Favorite, BackupSaveToolStripMenuItem, OpenGameFolderToolStripMenuItem, cmsBombermanPuzzle})
         cmsGameLV.Name = "cmsGameLV"
-        cmsGameLV.Size = New Size(248, 180)
+        cmsGameLV.Size = New Size(248, 158)
         ' 
         ' cmsGameLV_Launch
         ' 
@@ -208,15 +227,135 @@ Partial Class Form1
         ' 
         ImportStageToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {tsmBPSImportStage1, tsmBPSImportStage2, tsmBPSImportStage3, tsmBPSImportStage4, tsmBPSImportStage5, tsmBPSImportStage6, tsmBPSImportStage7, tsmBPSImportStage8, tsmBPSImportStage9, tsmBPSImportStage10})
         ImportStageToolStripMenuItem.Name = "ImportStageToolStripMenuItem"
-        ImportStageToolStripMenuItem.Size = New Size(180, 22)
+        ImportStageToolStripMenuItem.Size = New Size(142, 22)
         ImportStageToolStripMenuItem.Text = "Import Stage"
+        ' 
+        ' tsmBPSImportStage1
+        ' 
+        tsmBPSImportStage1.Name = "tsmBPSImportStage1"
+        tsmBPSImportStage1.Size = New Size(118, 22)
+        tsmBPSImportStage1.Text = "Stage 1"
+        ' 
+        ' tsmBPSImportStage2
+        ' 
+        tsmBPSImportStage2.Name = "tsmBPSImportStage2"
+        tsmBPSImportStage2.Size = New Size(118, 22)
+        tsmBPSImportStage2.Text = "Stage 2"
+        ' 
+        ' tsmBPSImportStage3
+        ' 
+        tsmBPSImportStage3.Name = "tsmBPSImportStage3"
+        tsmBPSImportStage3.Size = New Size(118, 22)
+        tsmBPSImportStage3.Text = "Stage 3"
+        ' 
+        ' tsmBPSImportStage4
+        ' 
+        tsmBPSImportStage4.Name = "tsmBPSImportStage4"
+        tsmBPSImportStage4.Size = New Size(118, 22)
+        tsmBPSImportStage4.Text = "Stage 4"
+        ' 
+        ' tsmBPSImportStage5
+        ' 
+        tsmBPSImportStage5.Name = "tsmBPSImportStage5"
+        tsmBPSImportStage5.Size = New Size(118, 22)
+        tsmBPSImportStage5.Text = "Stage 5"
+        ' 
+        ' tsmBPSImportStage6
+        ' 
+        tsmBPSImportStage6.Name = "tsmBPSImportStage6"
+        tsmBPSImportStage6.Size = New Size(118, 22)
+        tsmBPSImportStage6.Text = "Stage 6"
+        ' 
+        ' tsmBPSImportStage7
+        ' 
+        tsmBPSImportStage7.Name = "tsmBPSImportStage7"
+        tsmBPSImportStage7.Size = New Size(118, 22)
+        tsmBPSImportStage7.Text = "Stage 7"
+        ' 
+        ' tsmBPSImportStage8
+        ' 
+        tsmBPSImportStage8.Name = "tsmBPSImportStage8"
+        tsmBPSImportStage8.Size = New Size(118, 22)
+        tsmBPSImportStage8.Text = "Stage 8"
+        ' 
+        ' tsmBPSImportStage9
+        ' 
+        tsmBPSImportStage9.Name = "tsmBPSImportStage9"
+        tsmBPSImportStage9.Size = New Size(118, 22)
+        tsmBPSImportStage9.Text = "Stage 9"
+        ' 
+        ' tsmBPSImportStage10
+        ' 
+        tsmBPSImportStage10.Name = "tsmBPSImportStage10"
+        tsmBPSImportStage10.Size = New Size(118, 22)
+        tsmBPSImportStage10.Text = "Stage 10"
         ' 
         ' ExportStageToolStripMenuItem
         ' 
         ExportStageToolStripMenuItem.DropDownItems.AddRange(New ToolStripItem() {tsmBPSExportStage1, tsmBPSExportStage2, tsmBPSExportStage3, tsmBPSExportStage4, tsmBPSExportStage5, tsmBPSExportStage6, tsmBPSExportStage7, tsmBPSExportStage8, tsmBPSExportStage9, tsmBPSExportStage10})
         ExportStageToolStripMenuItem.Name = "ExportStageToolStripMenuItem"
-        ExportStageToolStripMenuItem.Size = New Size(180, 22)
+        ExportStageToolStripMenuItem.Size = New Size(142, 22)
         ExportStageToolStripMenuItem.Text = "Export Stage"
+        ' 
+        ' tsmBPSExportStage1
+        ' 
+        tsmBPSExportStage1.Name = "tsmBPSExportStage1"
+        tsmBPSExportStage1.Size = New Size(118, 22)
+        tsmBPSExportStage1.Text = "Stage 1"
+        ' 
+        ' tsmBPSExportStage2
+        ' 
+        tsmBPSExportStage2.Name = "tsmBPSExportStage2"
+        tsmBPSExportStage2.Size = New Size(118, 22)
+        tsmBPSExportStage2.Text = "Stage 2"
+        ' 
+        ' tsmBPSExportStage3
+        ' 
+        tsmBPSExportStage3.Name = "tsmBPSExportStage3"
+        tsmBPSExportStage3.Size = New Size(118, 22)
+        tsmBPSExportStage3.Text = "Stage 3"
+        ' 
+        ' tsmBPSExportStage4
+        ' 
+        tsmBPSExportStage4.Name = "tsmBPSExportStage4"
+        tsmBPSExportStage4.Size = New Size(118, 22)
+        tsmBPSExportStage4.Text = "Stage 4"
+        ' 
+        ' tsmBPSExportStage5
+        ' 
+        tsmBPSExportStage5.Name = "tsmBPSExportStage5"
+        tsmBPSExportStage5.Size = New Size(118, 22)
+        tsmBPSExportStage5.Text = "Stage 5"
+        ' 
+        ' tsmBPSExportStage6
+        ' 
+        tsmBPSExportStage6.Name = "tsmBPSExportStage6"
+        tsmBPSExportStage6.Size = New Size(118, 22)
+        tsmBPSExportStage6.Text = "Stage 6"
+        ' 
+        ' tsmBPSExportStage7
+        ' 
+        tsmBPSExportStage7.Name = "tsmBPSExportStage7"
+        tsmBPSExportStage7.Size = New Size(118, 22)
+        tsmBPSExportStage7.Text = "Stage 7"
+        ' 
+        ' tsmBPSExportStage8
+        ' 
+        tsmBPSExportStage8.Name = "tsmBPSExportStage8"
+        tsmBPSExportStage8.Size = New Size(118, 22)
+        tsmBPSExportStage8.Text = "Stage 8"
+        ' 
+        ' tsmBPSExportStage9
+        ' 
+        tsmBPSExportStage9.Name = "tsmBPSExportStage9"
+        tsmBPSExportStage9.Size = New Size(118, 22)
+        tsmBPSExportStage9.Text = "Stage 9"
+        ' 
+        ' tsmBPSExportStage10
+        ' 
+        tsmBPSExportStage10.Name = "tsmBPSExportStage10"
+        tsmBPSExportStage10.Size = New Size(118, 22)
+        tsmBPSExportStage10.Text = "Stage 10"
         ' 
         ' OpenFileDialog1
         ' 
@@ -229,7 +368,7 @@ Partial Class Form1
         ' btnMachiCharaLaunch
         ' 
         btnMachiCharaLaunch.Enabled = False
-        btnMachiCharaLaunch.Location = New Point(415, 26)
+        btnMachiCharaLaunch.Location = New Point(405, 20)
         btnMachiCharaLaunch.Margin = New Padding(2)
         btnMachiCharaLaunch.Name = "btnMachiCharaLaunch"
         btnMachiCharaLaunch.Size = New Size(110, 54)
@@ -241,7 +380,7 @@ Partial Class Form1
         ' 
         GroupBox2.Controls.Add(ListViewMachiChara)
         GroupBox2.Controls.Add(lblMachiCharaTotalCount)
-        GroupBox2.Location = New Point(12, 8)
+        GroupBox2.Location = New Point(2, 2)
         GroupBox2.Margin = New Padding(2)
         GroupBox2.Name = "GroupBox2"
         GroupBox2.Padding = New Padding(2)
@@ -387,7 +526,7 @@ Partial Class Form1
         cbxFilterType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxFilterType.FlatStyle = FlatStyle.Flat
         cbxFilterType.FormattingEnabled = True
-        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star", "JSky", "Flash"})
+        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star", "JSky", "Vodafone", "Flash"})
         cbxFilterType.Location = New Point(340, 20)
         cbxFilterType.Margin = New Padding(2)
         cbxFilterType.Name = "cbxFilterType"
@@ -468,6 +607,7 @@ Partial Class Form1
         ' 
         MaterialTabControl1.Controls.Add(tpAppli)
         MaterialTabControl1.Controls.Add(tpMachiChara)
+        MaterialTabControl1.Controls.Add(tpCharaDen)
         MaterialTabControl1.Controls.Add(tpConfig)
         MaterialTabControl1.Controls.Add(tpStats)
         MaterialTabControl1.Controls.Add(tpHelp)
@@ -630,12 +770,103 @@ Partial Class Form1
         ' 
         chkboxMachiCharaLocalEmulator.AutoSize = True
         chkboxMachiCharaLocalEmulator.FlatStyle = FlatStyle.Flat
-        chkboxMachiCharaLocalEmulator.Location = New Point(416, 85)
+        chkboxMachiCharaLocalEmulator.Location = New Point(406, 79)
         chkboxMachiCharaLocalEmulator.Name = "chkboxMachiCharaLocalEmulator"
         chkboxMachiCharaLocalEmulator.Size = New Size(108, 19)
         chkboxMachiCharaLocalEmulator.TabIndex = 4
         chkboxMachiCharaLocalEmulator.Text = "Locale Emulator"
         chkboxMachiCharaLocalEmulator.UseVisualStyleBackColor = True
+        ' 
+        ' tpCharaDen
+        ' 
+        tpCharaDen.Controls.Add(chkboxCharadenLocalEmulator)
+        tpCharaDen.Controls.Add(btnCharaDenLaunch)
+        tpCharaDen.Controls.Add(GroupBox10)
+        tpCharaDen.Location = New Point(4, 24)
+        tpCharaDen.Name = "tpCharaDen"
+        tpCharaDen.Size = New Size(1033, 581)
+        tpCharaDen.TabIndex = 5
+        tpCharaDen.Text = "Chara-Den"
+        tpCharaDen.UseVisualStyleBackColor = True
+        ' 
+        ' chkboxCharadenLocalEmulator
+        ' 
+        chkboxCharadenLocalEmulator.AutoSize = True
+        chkboxCharadenLocalEmulator.FlatStyle = FlatStyle.Flat
+        chkboxCharadenLocalEmulator.Location = New Point(406, 79)
+        chkboxCharadenLocalEmulator.Name = "chkboxCharadenLocalEmulator"
+        chkboxCharadenLocalEmulator.Size = New Size(108, 19)
+        chkboxCharadenLocalEmulator.TabIndex = 6
+        chkboxCharadenLocalEmulator.Text = "Locale Emulator"
+        chkboxCharadenLocalEmulator.UseVisualStyleBackColor = True
+        ' 
+        ' btnCharaDenLaunch
+        ' 
+        btnCharaDenLaunch.Enabled = False
+        btnCharaDenLaunch.Location = New Point(405, 20)
+        btnCharaDenLaunch.Margin = New Padding(2)
+        btnCharaDenLaunch.Name = "btnCharaDenLaunch"
+        btnCharaDenLaunch.Size = New Size(110, 54)
+        btnCharaDenLaunch.TabIndex = 5
+        btnCharaDenLaunch.Text = "Launch"
+        btnCharaDenLaunch.UseVisualStyleBackColor = True
+        ' 
+        ' GroupBox10
+        ' 
+        GroupBox10.Controls.Add(ListViewCharaDen)
+        GroupBox10.Controls.Add(lblCharadenTotalCount)
+        GroupBox10.Location = New Point(2, 2)
+        GroupBox10.Margin = New Padding(2)
+        GroupBox10.Name = "GroupBox10"
+        GroupBox10.Padding = New Padding(2)
+        GroupBox10.Size = New Size(399, 568)
+        GroupBox10.TabIndex = 2
+        GroupBox10.TabStop = False
+        GroupBox10.Text = "Available Chara-den"
+        ' 
+        ' ListViewCharaDen
+        ' 
+        ListViewCharaDen.Activation = ItemActivation.OneClick
+        ListViewCharaDen.ContextMenuStrip = cmsCharadenLV
+        ListViewCharaDen.Dock = DockStyle.Fill
+        ListViewCharaDen.FullRowSelect = True
+        ListViewCharaDen.HeaderStyle = ColumnHeaderStyle.Nonclickable
+        ListViewCharaDen.Location = New Point(2, 18)
+        ListViewCharaDen.Margin = New Padding(2)
+        ListViewCharaDen.Name = "ListViewCharaDen"
+        ListViewCharaDen.Size = New Size(395, 516)
+        ListViewCharaDen.Sorting = SortOrder.Ascending
+        ListViewCharaDen.TabIndex = 2
+        ListViewCharaDen.UseCompatibleStateImageBehavior = False
+        ListViewCharaDen.View = View.Details
+        ' 
+        ' cmsCharadenLV
+        ' 
+        cmsCharadenLV.Items.AddRange(New ToolStripItem() {DownloadCMS_CharaDen, DeleteCMS_CharaDen})
+        cmsCharadenLV.Name = "cmsCharadenLV"
+        cmsCharadenLV.Size = New Size(129, 48)
+        ' 
+        ' DownloadCMS_CharaDen
+        ' 
+        DownloadCMS_CharaDen.Name = "DownloadCMS_CharaDen"
+        DownloadCMS_CharaDen.Size = New Size(128, 22)
+        DownloadCMS_CharaDen.Text = "Download"
+        ' 
+        ' DeleteCMS_CharaDen
+        ' 
+        DeleteCMS_CharaDen.Name = "DeleteCMS_CharaDen"
+        DeleteCMS_CharaDen.Size = New Size(128, 22)
+        DeleteCMS_CharaDen.Text = "Delete"
+        ' 
+        ' lblCharadenTotalCount
+        ' 
+        lblCharadenTotalCount.Dock = DockStyle.Bottom
+        lblCharadenTotalCount.Location = New Point(2, 534)
+        lblCharadenTotalCount.Name = "lblCharadenTotalCount"
+        lblCharadenTotalCount.Size = New Size(395, 32)
+        lblCharadenTotalCount.TabIndex = 1
+        lblCharadenTotalCount.Text = "Total: 0"
+        lblCharadenTotalCount.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' tpConfig
         ' 
@@ -720,16 +951,55 @@ Partial Class Form1
         ' 
         ' GroupBox5
         ' 
+        GroupBox5.Controls.Add(gbxSJMELaunchOptions)
         GroupBox5.Controls.Add(chkbxHidePhoneUI)
         GroupBox5.Controls.Add(lblAudioWarning)
         GroupBox5.Controls.Add(Label1)
         GroupBox5.Controls.Add(cbxAudioType)
         GroupBox5.Location = New Point(245, 93)
         GroupBox5.Name = "GroupBox5"
-        GroupBox5.Size = New Size(315, 93)
+        GroupBox5.Size = New Size(315, 201)
         GroupBox5.TabIndex = 16
         GroupBox5.TabStop = False
         GroupBox5.Text = "Doja/Star SDK Options"
+        ' 
+        ' gbxSJMELaunchOptions
+        ' 
+        gbxSJMELaunchOptions.Controls.Add(lblSJMELaunchOptionsText)
+        gbxSJMELaunchOptions.Controls.Add(Label9)
+        gbxSJMELaunchOptions.Controls.Add(cbxSJMELaunchOption)
+        gbxSJMELaunchOptions.Location = New Point(5, 93)
+        gbxSJMELaunchOptions.Name = "gbxSJMELaunchOptions"
+        gbxSJMELaunchOptions.Size = New Size(304, 102)
+        gbxSJMELaunchOptions.TabIndex = 16
+        gbxSJMELaunchOptions.TabStop = False
+        gbxSJMELaunchOptions.Text = "SqurrielJME Emulator Config"
+        ' 
+        ' lblSJMELaunchOptionsText
+        ' 
+        lblSJMELaunchOptionsText.Location = New Point(6, 52)
+        lblSJMELaunchOptionsText.Name = "lblSJMELaunchOptionsText"
+        lblSJMELaunchOptionsText.Size = New Size(292, 41)
+        lblSJMELaunchOptionsText.TabIndex = 2
+        lblSJMELaunchOptionsText.Text = "Label10"
+        ' 
+        ' Label9
+        ' 
+        Label9.Location = New Point(6, 26)
+        Label9.Name = "Label9"
+        Label9.Size = New Size(86, 23)
+        Label9.TabIndex = 1
+        Label9.Text = "Launch Option"
+        Label9.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' cbxSJMELaunchOption
+        ' 
+        cbxSJMELaunchOption.FormattingEnabled = True
+        cbxSJMELaunchOption.Items.AddRange(New Object() {"SpringCoat", "Hosted"})
+        cbxSJMELaunchOption.Location = New Point(98, 26)
+        cbxSJMELaunchOption.Name = "cbxSJMELaunchOption"
+        cbxSJMELaunchOption.Size = New Size(156, 23)
+        cbxSJMELaunchOption.TabIndex = 0
         ' 
         ' chkbxHidePhoneUI
         ' 
@@ -786,6 +1056,8 @@ Partial Class Form1
         ' 
         ' GroupBox4
         ' 
+        GroupBox4.Controls.Add(cbxVodafoneSDK)
+        GroupBox4.Controls.Add(Label8)
         GroupBox4.Controls.Add(cbxFlashSDK)
         GroupBox4.Controls.Add(Label7)
         GroupBox4.Controls.Add(Label6)
@@ -802,13 +1074,37 @@ Partial Class Form1
         GroupBox4.TabStop = False
         GroupBox4.Text = "SDK Configuration"
         ' 
+        ' cbxVodafoneSDK
+        ' 
+        cbxVodafoneSDK.DropDownStyle = ComboBoxStyle.DropDownList
+        cbxVodafoneSDK.FlatStyle = FlatStyle.Flat
+        cbxVodafoneSDK.Font = New Font("Segoe UI", 9F)
+        cbxVodafoneSDK.FormattingEnabled = True
+        cbxVodafoneSDK.Location = New Point(117, 145)
+        cbxVodafoneSDK.Margin = New Padding(2)
+        cbxVodafoneSDK.Name = "cbxVodafoneSDK"
+        cbxVodafoneSDK.Size = New Size(113, 23)
+        cbxVodafoneSDK.TabIndex = 20
+        ' 
+        ' Label8
+        ' 
+        Label8.FlatStyle = FlatStyle.Flat
+        Label8.Font = New Font("Segoe UI", 9F)
+        Label8.Location = New Point(6, 145)
+        Label8.Margin = New Padding(2, 0, 2, 0)
+        Label8.Name = "Label8"
+        Label8.Size = New Size(106, 23)
+        Label8.TabIndex = 21
+        Label8.Text = "Vodafone"
+        Label8.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' cbxFlashSDK
         ' 
         cbxFlashSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxFlashSDK.FlatStyle = FlatStyle.Flat
         cbxFlashSDK.Font = New Font("Segoe UI", 9F)
         cbxFlashSDK.FormattingEnabled = True
-        cbxFlashSDK.Location = New Point(117, 141)
+        cbxFlashSDK.Location = New Point(117, 172)
         cbxFlashSDK.Margin = New Padding(2)
         cbxFlashSDK.Name = "cbxFlashSDK"
         cbxFlashSDK.Size = New Size(113, 23)
@@ -818,7 +1114,7 @@ Partial Class Form1
         ' 
         Label7.FlatStyle = FlatStyle.Flat
         Label7.Font = New Font("Segoe UI", 9F)
-        Label7.Location = New Point(6, 141)
+        Label7.Location = New Point(6, 172)
         Label7.Margin = New Padding(2, 0, 2, 0)
         Label7.Name = "Label7"
         Label7.Size = New Size(106, 23)
@@ -1015,128 +1311,8 @@ Partial Class Form1
         MaterialTabSelector1.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
         MaterialTabSelector1.Name = "MaterialTabSelector1"
         MaterialTabSelector1.Size = New Size(1040, 27)
-        MaterialTabSelector1.TabIndex = 7
+        MaterialTabSelector1.TabIndex = 6
         MaterialTabSelector1.Text = "MaterialTabSelector1"
-        ' 
-        ' tsmBPSImportStage1
-        ' 
-        tsmBPSImportStage1.Name = "tsmBPSImportStage1"
-        tsmBPSImportStage1.Size = New Size(180, 22)
-        tsmBPSImportStage1.Text = "Stage 1"
-        ' 
-        ' tsmBPSImportStage2
-        ' 
-        tsmBPSImportStage2.Name = "tsmBPSImportStage2"
-        tsmBPSImportStage2.Size = New Size(180, 22)
-        tsmBPSImportStage2.Text = "Stage 2"
-        ' 
-        ' tsmBPSImportStage3
-        ' 
-        tsmBPSImportStage3.Name = "tsmBPSImportStage3"
-        tsmBPSImportStage3.Size = New Size(180, 22)
-        tsmBPSImportStage3.Text = "Stage 3"
-        ' 
-        ' tsmBPSImportStage4
-        ' 
-        tsmBPSImportStage4.Name = "tsmBPSImportStage4"
-        tsmBPSImportStage4.Size = New Size(180, 22)
-        tsmBPSImportStage4.Text = "Stage 4"
-        ' 
-        ' tsmBPSImportStage5
-        ' 
-        tsmBPSImportStage5.Name = "tsmBPSImportStage5"
-        tsmBPSImportStage5.Size = New Size(180, 22)
-        tsmBPSImportStage5.Text = "Stage 5"
-        ' 
-        ' tsmBPSImportStage6
-        ' 
-        tsmBPSImportStage6.Name = "tsmBPSImportStage6"
-        tsmBPSImportStage6.Size = New Size(180, 22)
-        tsmBPSImportStage6.Text = "Stage 6"
-        ' 
-        ' tsmBPSImportStage7
-        ' 
-        tsmBPSImportStage7.Name = "tsmBPSImportStage7"
-        tsmBPSImportStage7.Size = New Size(180, 22)
-        tsmBPSImportStage7.Text = "Stage 7"
-        ' 
-        ' tsmBPSImportStage8
-        ' 
-        tsmBPSImportStage8.Name = "tsmBPSImportStage8"
-        tsmBPSImportStage8.Size = New Size(180, 22)
-        tsmBPSImportStage8.Text = "Stage 8"
-        ' 
-        ' tsmBPSImportStage9
-        ' 
-        tsmBPSImportStage9.Name = "tsmBPSImportStage9"
-        tsmBPSImportStage9.Size = New Size(180, 22)
-        tsmBPSImportStage9.Text = "Stage 9"
-        ' 
-        ' tsmBPSImportStage10
-        ' 
-        tsmBPSImportStage10.Name = "tsmBPSImportStage10"
-        tsmBPSImportStage10.Size = New Size(180, 22)
-        tsmBPSImportStage10.Text = "Stage 10"
-        ' 
-        ' tsmBPSExportStage1
-        ' 
-        tsmBPSExportStage1.Name = "tsmBPSExportStage1"
-        tsmBPSExportStage1.Size = New Size(180, 22)
-        tsmBPSExportStage1.Text = "Stage 1"
-        ' 
-        ' tsmBPSExportStage2
-        ' 
-        tsmBPSExportStage2.Name = "tsmBPSExportStage2"
-        tsmBPSExportStage2.Size = New Size(180, 22)
-        tsmBPSExportStage2.Text = "Stage 2"
-        ' 
-        ' tsmBPSExportStage3
-        ' 
-        tsmBPSExportStage3.Name = "tsmBPSExportStage3"
-        tsmBPSExportStage3.Size = New Size(180, 22)
-        tsmBPSExportStage3.Text = "Stage 3"
-        ' 
-        ' tsmBPSExportStage4
-        ' 
-        tsmBPSExportStage4.Name = "tsmBPSExportStage4"
-        tsmBPSExportStage4.Size = New Size(180, 22)
-        tsmBPSExportStage4.Text = "Stage 4"
-        ' 
-        ' tsmBPSExportStage5
-        ' 
-        tsmBPSExportStage5.Name = "tsmBPSExportStage5"
-        tsmBPSExportStage5.Size = New Size(180, 22)
-        tsmBPSExportStage5.Text = "Stage 5"
-        ' 
-        ' tsmBPSExportStage6
-        ' 
-        tsmBPSExportStage6.Name = "tsmBPSExportStage6"
-        tsmBPSExportStage6.Size = New Size(180, 22)
-        tsmBPSExportStage6.Text = "Stage 6"
-        ' 
-        ' tsmBPSExportStage7
-        ' 
-        tsmBPSExportStage7.Name = "tsmBPSExportStage7"
-        tsmBPSExportStage7.Size = New Size(180, 22)
-        tsmBPSExportStage7.Text = "Stage 7"
-        ' 
-        ' tsmBPSExportStage8
-        ' 
-        tsmBPSExportStage8.Name = "tsmBPSExportStage8"
-        tsmBPSExportStage8.Size = New Size(180, 22)
-        tsmBPSExportStage8.Text = "Stage 8"
-        ' 
-        ' tsmBPSExportStage9
-        ' 
-        tsmBPSExportStage9.Name = "tsmBPSExportStage9"
-        tsmBPSExportStage9.Size = New Size(180, 22)
-        tsmBPSExportStage9.Text = "Stage 9"
-        ' 
-        ' tsmBPSExportStage10
-        ' 
-        tsmBPSExportStage10.Name = "tsmBPSExportStage10"
-        tsmBPSExportStage10.Size = New Size(180, 22)
-        tsmBPSExportStage10.Text = "Stage 10"
         ' 
         ' Form1
         ' 
@@ -1167,10 +1343,15 @@ Partial Class Form1
         GroupBox3.PerformLayout()
         tpMachiChara.ResumeLayout(False)
         tpMachiChara.PerformLayout()
+        tpCharaDen.ResumeLayout(False)
+        tpCharaDen.PerformLayout()
+        GroupBox10.ResumeLayout(False)
+        cmsCharadenLV.ResumeLayout(False)
         tpConfig.ResumeLayout(False)
         GroupBox6.ResumeLayout(False)
         GroupBox5.ResumeLayout(False)
         GroupBox5.PerformLayout()
+        gbxSJMELaunchOptions.ResumeLayout(False)
         GroupBox4.ResumeLayout(False)
         tpStats.ResumeLayout(False)
         GroupBox9.ResumeLayout(False)
@@ -1280,4 +1461,19 @@ Partial Class Form1
     Friend WithEvents tsmBPSExportStage8 As ToolStripMenuItem
     Friend WithEvents tsmBPSExportStage9 As ToolStripMenuItem
     Friend WithEvents tsmBPSExportStage10 As ToolStripMenuItem
+    Friend WithEvents tpCharaDen As TabPage
+    Friend WithEvents chkboxCharadenLocalEmulator As CheckBox
+    Friend WithEvents btnCharaDenLaunch As Button
+    Friend WithEvents GroupBox10 As GroupBox
+    Friend WithEvents ListViewCharaDen As ListView
+    Friend WithEvents lblCharadenTotalCount As Label
+    Friend WithEvents cmsCharadenLV As ContextMenuStrip
+    Friend WithEvents DownloadCMS_CharaDen As ToolStripMenuItem
+    Friend WithEvents DeleteCMS_CharaDen As ToolStripMenuItem
+    Friend WithEvents cbxVodafoneSDK As ComboBox
+    Friend WithEvents Label8 As Label
+    Friend WithEvents gbxSJMELaunchOptions As GroupBox
+    Friend WithEvents Label9 As Label
+    Friend WithEvents cbxSJMELaunchOption As ComboBox
+    Friend WithEvents lblSJMELaunchOptionsText As Label
 End Class

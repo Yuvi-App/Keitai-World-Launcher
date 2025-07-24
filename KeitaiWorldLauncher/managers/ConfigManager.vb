@@ -16,6 +16,8 @@ Namespace My.Managers
         {"AutoUpdateGameList", "true"},
         {"MachiCharalistURL", "machicharalist.xml"},
         {"AutoUpdateMachiCharaList", "true"},
+        {"CharaDenlistURL", "charadenlist.xml"},
+        {"AutoUpdateCharaDenList", "true"},
         {"UseShaderGlass", "true"},
         {"UseDialPad", "true"},
         {"DOJAPath", "c:\doja"},
@@ -26,10 +28,14 @@ Namespace My.Managers
         {"STAREXEPath", "star.exe"},
         {"JSKYPath", "c:\JSKY"},
         {"JSKYEXEPath", "JSKY.exe"},
+        {"VODAFONEPath", "c:\vodafone"},
+        {"VODAFONEEXEPath", "vodafone.exe"},
         {"FlashPlayerPath", "c:\flashplayer"},
         {"FlashPlayerEXEPath", "JSKY.exe"},
         {"MachiCharaPath", "c:\machichara"},
-        {"MachiCharaEXEPath", "machicharaemu.exe"}
+        {"MachiCharaEXEPath", "machicharaemu.exe"},
+        {"CharaDenPath", "c:\charaden"},
+        {"CharaDenEXEPath", "CharaDenemu.exe"}
     }
 
         ' Load configuration from XML

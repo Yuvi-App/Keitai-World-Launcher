@@ -16,6 +16,10 @@
   <Setting name="STAREXEPath">star.exe</Setting>
   <Setting name="JSKYPath">c:/JSKY</Setting>
   <Setting name="JSKYEXEPath">JSKY.exe</Setting>
+  <Setting name="VODAFONEPath">c:/vodafone</Setting>
+  <Setting name="VODAFONEEXEPath">vodafone.exe</Setting>
   <Setting name="MachiCharaPath">c:/machichara</Setting>
   <Setting name="MachiCharaEXEPath">machicharaemu.exe</Setting>
+  <Setting name="CharaDenPath">c:/charaden</Setting>
+  <Setting name="CharaDenExePath">charadenemu.exe</Setting>
 </Config>

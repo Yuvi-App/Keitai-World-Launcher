@@ -21,11 +21,13 @@ Public Class Form1
     Dim gameListManager As New GameListManager()
     Dim gameManager As New GameManager()
     Dim machicharaListManager As New MachiCharaListManager()
+    Dim charadenListManager As New CharaDenListManager()
     Dim SaveDataManager As New SaveDataManager()
     Dim zipManager As New ZipManager()
     Dim config As Dictionary(Of String, String)
     Dim games As List(Of Game)
     Dim machicharas As List(Of MachiChara)
+    Dim charadens As List(Of CharaDen)
     Dim XInputDevices As New Dictionary(Of String, Integer)
     Private Shared isGameDownloadInProgress As Boolean = False
 
@@ -44,6 +46,7 @@ Public Class Form1
     Dim CurrentSelectedGameJAR As String
     Dim CurrentSelectedGameSP As String
     Dim CurrentSelectedMachiCharaCFD As String
+    Dim CurrentSelectedCharaDenAFD As String
 
     'Config Vars
     Public versionCheckUrl As String
@@ -53,6 +56,8 @@ Public Class Form1
     Public autoUpdateGameList As Boolean
     Public machicharaListUrl As String
     Public autoUpdatemachicharaList As Boolean
+    Public charadenListUrl As String
+    Public autoUpdatecharadenList As Boolean
     Public UseShaderGlass As Boolean
     Public UseDialPad As Boolean
     Public NetworkUID As String
@@ -64,24 +69,35 @@ Public Class Form1
     Public STAREXE As String
     Public JSKYpath As String
     Public JSKYEXE As String
+    Public VODAFONEpath As String
+    Public VODAFONEEXE As String
     Public FlashPlayerpath As String
     Public FlashPlayerEXE As String
     Public MachiCharapath As String
     Public MachiCharaExe As String
-    Public Java32BinFolderPath As String
+    Public CharaDenpath As String
+    Public CharaDenExe As String
+    Public Java1_8BinFolderPath As String
+    Public Java1_4BinFolderPath As String
 
     ' FORM LOAD
     Private Sub Form1_FormClosing(sender As Object, e As EventArgs) Handles MyBase.FormClosing
         UtilManager.CheckAndCloseDoja()
+        UtilManager.CheckAndCloseSQJME()
         UtilManager.CheckAndCloseStar()
         UtilManager.CheckAndCloseJava()
         UtilManager.CheckAndCloseAMX()
+        UtilManager.CheckAndCloseAHK()
+        UtilManager.CheckAndCloseVODAFONE()
     End Sub
     Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
         UtilManager.CheckAndCloseDoja()
+        UtilManager.CheckAndCloseSQJME()
         UtilManager.CheckAndCloseStar()
+        UtilManager.CheckAndCloseJava()
         UtilManager.CheckAndCloseAMX()
         UtilManager.CheckAndCloseAHK()
+        UtilManager.CheckAndCloseVODAFONE()
     End Sub
     Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Opacity = 0
@@ -125,6 +141,8 @@ Public Class Form1
         autoUpdateGameList = Boolean.Parse(config("AutoUpdateGameList"))
         machicharaListUrl = config("MachiCharalistURL")
         autoUpdatemachicharaList = Boolean.Parse(config("AutoUpdateMachiCharaList"))
+        charadenListUrl = config("CharaDenlistURL")
+        autoUpdatecharadenList = Boolean.Parse(config("AutoUpdateCharaDenList"))
         UseShaderGlass = Boolean.Parse(config("UseShaderGlass"))
         UseDialPad = Boolean.Parse(config("UseDialPad"))
         DOJApath = config("DOJAPath")
@@ -135,10 +153,14 @@ Public Class Form1
         STAREXE = config("STAREXEPath")
         JSKYpath = config("JSKYPath")
         JSKYEXE = config("JSKYEXEPath")
+        VODAFONEpath = config("VODAFONEPath")
+        VODAFONEEXE = config("VODAFONEEXEPath")
         FlashPlayerpath = config("FlashPlayerPath")
         FlashPlayerEXE = config("FlashPlayerEXEPath")
         MachiCharapath = config("MachiCharaPath")
         MachiCharaExe = config("MachiCharaEXEPath")
+        CharaDenpath = config("CharaDenPath")
+        CharaDenExe = config("CharaDenEXEPath")
 
         ' Get NetworkUIDConfig
         If File.Exists(NetworkUIDTxtFile) = False Then
@@ -164,19 +186,40 @@ Public Class Form1
             Logger.LogInfo("Starting app Normally")
         Else
             Logger.LogInfo("Invalid FirstStart Parameter in Config")
-            MessageBox.Show("Invalid FirstStart paramete in AppConfig.xml, Please set to true and relaunch app.")
+            MessageBox.Show("Invalid FirstStart parameter in AppConfig.xml, Please set to true and relaunch app.")
             Form1.QuitApplication()
         End If
 
-        'Check for Java8 32-bit and Updated Java32bit Path
-        Dim JavaPath As String = Await UtilManager.GetJava8Update152InstallPathAsync()
-        If String.IsNullOrEmpty(JavaPath) Then
-            MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 Update 152... Download is required")
-            My.logger.Logger.LogInfo("Missing JAVA 8 Update 152")
-            Await UtilManager.OpenURLAsync("https://mega.nz/file/FxUFjTLD#lPYnDLjytnFfBJqqvb60osAxg10RjQAkt7CMjEG4MXw")
+        'Check for Java1_4 32-bit and Updated Java32bit Path
+        Dim Java1_4Path As String = Await UtilManager.GetJava1_4InstallPathAsync()
+        If String.IsNullOrEmpty(Java1_4Path) Then
+            MessageBox.Show(owner:=SplashScreen, "Missing JAVA 2(v1_4)... Download is required")
+            My.logger.Logger.LogInfo("Missing JAVA 2(v1_4)")
+            Await UtilManager.OpenURLAsync("https://scratchpad.keitaiarchive.org/s/AxTty326itLfEwE?dir=/Utilities/Java")
+            MessageBox.Show(owner:=SplashScreen, "Please download and install Java 2(v1_4) to continue, then RUN AS ADMIN after", "Java Required", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Form1.QuitApplication()
         End If
-        Java32BinFolderPath = Path.Combine(JavaPath, "bin")
+        Java1_4BinFolderPath = Path.Combine(Java1_4Path, "bin")
+        'We need to check for java every run, since these get used for all emu's
+        'Check for Java1_8 32-bit and Updated Java32bit Path
+        Dim Java1_8Path As String = Await UtilManager.GetJava1_8InstallPathAsync()
+        If String.IsNullOrEmpty(Java1_8Path) Then
+            MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8(v1_8)... Download is required")
+            My.logger.Logger.LogInfo("Missing JAVA 8(v1_8)")
+            Await UtilManager.OpenURLAsync("https://scratchpad.keitaiarchive.org/s/AxTty326itLfEwE?dir=/Utilities/Java")
+            Form1.QuitApplication()
+        End If
+        Java1_8BinFolderPath = Path.Combine(Java1_8Path, "bin")
+        Await UtilManager.UpdateJRECurrentVersion("1.8")
+
+        'Check if JRE Registry is set to 1.8
+        Dim IncorrectJREVersion As String = UtilManager.IsJRECurrentVersion("1.8")
+        My.logger.Logger.LogInfo($"Checking for JRE CurrentVersion regKey 1.8")
+        If IncorrectJREVersion = False Then
+            My.logger.Logger.LogInfo($"Incorrect JRE CurrentVersion regKey")
+            MessageBox.Show(owner:=SplashScreen, "Java Runtime CurrentVersion Registry key must be set To 1.8, Please rerun app as admin to update it.")
+            Form1.QuitApplication()
+        End If
 
         'Needs Internet If none we skip and use local file
         Dim uri As New Uri(versionCheckUrl)
@@ -193,15 +236,21 @@ Public Class Form1
             End If
 
             ' Get Updated Game List  
-            Logger.LogInfo("Getting Gamelist.xml")
+            Logger.LogInfo("Getting gamelist.xml")
             If autoUpdateGameList = True Then
                 Await GameListManager.DownloadGameListAsync(gameListUrl)
             End If
 
             ' Get Updated MachiChara List  
-            Logger.LogInfo("Getting Machichara.xml")
+            Logger.LogInfo("Getting machicharalist.xml")
             If autoUpdatemachicharaList = True Then
                 Await MachiCharaListManager.DownloadMachiCharaListAsync(machicharaListUrl)
+            End If
+
+            ' Get Updated Charaden List  
+            Logger.LogInfo("Getting charadenlist.xml")
+            If autoUpdatemachicharaList = True Then
+                Await CharaDenListManager.DownloadCharaDenListAsync(charadenListUrl)
             End If
 
             ' Send Launch Stats
@@ -221,6 +270,9 @@ Public Class Form1
         ' Load MachiChara List
         Await LoadMachiCharaListFirsTimeASync()
 
+        ' Load Charaden List
+        Await LoadCharaDenListFirsTimeASync()
+
         'Last Step
         Await GetSDKsAsync()
 
@@ -232,6 +284,7 @@ Public Class Form1
         chkbxDialpadNumpad.Checked = UseDialPad
         cbxFilterType.SelectedIndex = 0
         cbxShaderGlassScaling.SelectedIndex = 2
+        cbxSJMELaunchOption.SelectedIndex = 0
 
         ' Close the splash screen
         Await SplashScreen.CloseSplashAsync()
@@ -272,10 +325,12 @@ Public Class Form1
         Dim dojaDefault As String = "iDKDoJa5.1"
         Dim starDefault As String = "iDKStar2.0"
         Dim jskyDefault As String = "JSky_0.1.5B"
+        Dim vodafoneDefault As String = "V-appli_SDK_121"
         Dim FlashDefault As String = "FlashPlayer"
         Dim dojaFound As Boolean = False
         Dim starFound As Boolean = False
         Dim jskyFound As Boolean = False
+        Dim vodafoneFound As Boolean = False
         Dim flashFound As Boolean = False
 
         ' Run the directory check on a background thread
@@ -285,6 +340,7 @@ Public Class Form1
         cbxDojaSDK.Items.Clear()
         cbxStarSDK.Items.Clear()
         cbxJSKYSDK.Items.Clear()
+        cbxVodafoneSDK.Items.Clear()
         cbxFlashSDK.Items.Clear()
 
         For Each SSDK In sdkFolders
@@ -300,10 +356,20 @@ Public Class Form1
                 If folder.Equals(dojaDefault, StringComparison.OrdinalIgnoreCase) Then
                     dojaFound = True
                 End If
+            ElseIf folder.StartsWith("squirreljme", StringComparison.OrdinalIgnoreCase) Then
+                cbxDojaSDK.Items.Add(folder)
+                If folder.Equals(dojaDefault, StringComparison.OrdinalIgnoreCase) Then
+                    dojaFound = True
+                End If
             ElseIf folder.StartsWith("JSky_", StringComparison.OrdinalIgnoreCase) Then
                 cbxJSKYSDK.Items.Add(folder)
                 If folder.Equals(jskyDefault, StringComparison.OrdinalIgnoreCase) Then
                     jskyFound = True
+                End If
+            ElseIf folder.StartsWith("V-appli_", StringComparison.OrdinalIgnoreCase) Then
+                cbxVodafoneSDK.Items.Add(folder)
+                If folder.Equals(vodafoneDefault, StringComparison.OrdinalIgnoreCase) Then
+                    vodafoneFound = True
                 End If
             ElseIf folder.StartsWith("Flash", StringComparison.OrdinalIgnoreCase) Then
                 cbxFlashSDK.Items.Add(folder)
@@ -332,6 +398,12 @@ Public Class Form1
             MessageBox.Show(owner:=SplashScreen, $"The default SDK '{jskyDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
 
+        If vodafoneFound Then
+            cbxVodafoneSDK.SelectedItem = vodafoneDefault
+        Else
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{vodafoneDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+
         If flashFound Then
             cbxFlashSDK.SelectedItem = FlashDefault
         Else
@@ -342,6 +414,7 @@ Public Class Form1
         Dim DojaIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "doja.gif")
         Dim StarIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "star.gif")
         Dim JskyIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "jsky.gif")
+        Dim vodafoneIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "vodafone.gif")
         Dim FlashIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")
 
         ' Validate default icons
@@ -379,6 +452,8 @@ Public Class Form1
                                                                                                defaultIconPath = StarIconPath
                                                                                            Case "jsky"
                                                                                                defaultIconPath = JskyIconPath
+                                                                                           Case "vodafone"
+                                                                                               defaultIconPath = vodafoneIconPath
                                                                                            Case "flash"
                                                                                                defaultIconPath = FlashIconPath
                                                                                            Case Else
@@ -497,6 +572,35 @@ Public Class Form1
                     End If
                 Next
                 lblMachiCharaTotalCount.Text = $"Total: {ListViewMachiChara.Items.Count}"
+                Return True
+            End If
+        Catch ex As Exception
+            Logger.LogError("Failed to Load MachiChara List", ex)
+            Return False
+        End Try
+    End Function
+    Private Async Function LoadCharaDenListFirsTimeASync() As Task(Of Boolean)
+        Logger.LogInfo("Processing charadenlist.xml")
+        ListViewCharaDen.View = View.Details
+        ListViewCharaDen.FullRowSelect = True
+        ListViewCharaDen.Columns.Clear()
+        ListViewCharaDen.Columns.Add("Title", ListViewCharaDen.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
+        Try
+            charadens = charadenListManager.LoadCharaden()
+            If charadens IsNot Nothing Then
+                ListViewCharaDen.Items.Clear()
+                For Each cd In charadens
+                    Dim item As New ListViewItem(cd.ENTitle)
+                    item.Tag = cd ' Store the full object for later access
+                    ListViewCharaDen.Items.Add(item)
+
+                    'Check if Downloaded already
+                    Dim AFDPath = Path.Combine(DownloadsFolder, cd.AFDName)
+                    If File.Exists(AFDPath) Then
+                        item.BackColor = Color.LightGreen
+                    End If
+                Next
+                lblCharadenTotalCount.Text = $"Total: {ListViewCharaDen.Items.Count}"
                 Return True
             End If
         Catch ex As Exception
@@ -674,7 +778,7 @@ Public Class Form1
             CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, "bin", $"{zipNameNoExt}.jar")
             CurrentSelectedGameSP = Path.Combine(gameBasePath, variantPath, "sp", $"{zipNameNoExt}.sp")
 
-        ElseIf emulator = "jsky" Then
+        ElseIf emulator = "jsky" Or emulator = "vodafone" Then
             If String.IsNullOrWhiteSpace(variantPath) Then
                 CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.jad")
                 CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.jar")
@@ -813,6 +917,29 @@ Public Class Form1
             btnMachiCharaLaunch.Enabled = True
         End If
     End Sub
+    Private Async Sub DownloadCharaDen(selectedCharaDen As CharaDen)
+        If selectedCharaDen IsNot Nothing Then
+            Logger.LogInfo($"Checking for {DownloadsFolder}\{selectedCharaDen.AFDName}")
+            CurrentSelectedCharaDenAFD = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
+
+            ' Check if the Chara-den is already downloaded
+            Dim localFilePath As String = CurrentSelectedCharaDenAFD
+            Dim downloadFilePath As String = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
+
+            If File.Exists(localFilePath) Then
+                ' File already exists, nothing to do (or maybe inform the user)
+            Else
+                Dim result = MessageBox.Show($"The Chara-den '{selectedCharaDen.ENTitle} ({selectedCharaDen.AFDName})' is not downloaded. Would you like to download it?", "Download Chara-den", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                If result = DialogResult.Yes Then
+                    Logger.LogInfo($"Starting Download for {selectedCharaDen.DownloadURL}")
+                    Dim CharaDenDownloader As New CharaDenDownloader(pbGameDL)
+                    Await CharaDenDownloader.DownloadCharaDenAsync(selectedCharaDen.DownloadURL, downloadFilePath, False)
+                    HighlightCharaDen()
+                End If
+            End If
+            btnCharaDenLaunch.Enabled = True
+        End If
+    End Sub
     Private Async Function DeleteGamesAsync() As Task
         If ListViewGames.SelectedItems.Count = 0 Then
             MessageBox.Show("Please select at least one game to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
@@ -927,6 +1054,47 @@ Public Class Form1
                         "MachiChara Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
         End If
     End Function
+    Public Async Function DeleteCharadenAsync() As Task
+        If ListViewCharaDen.SelectedItems.Count = 0 Then
+            MessageBox.Show("Please select at least one Chara-den to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        ' ❗ Safely copy selected items to a list on the UI thread
+        Dim selectedCharaList As New List(Of CharaDen)
+        For Each item As ListViewItem In ListViewCharaDen.SelectedItems
+            Dim cd As CharaDen = CType(item.Tag, CharaDen)
+            If cd IsNot Nothing Then selectedCharaList.Add(cd)
+        Next
+
+        Dim deletedFiles As New List(Of String)
+
+        ' Run deletion logic in background
+        Await Task.Run(Sub()
+                           For Each selectedCharaden In selectedCharaList
+                               Dim afdPath As String = Path.Combine(DownloadsFolder, selectedCharaden.AFDName)
+                               If File.Exists(afdPath) Then
+                                   Try
+                                       File.Delete(afdPath)
+                                       Logger.LogInfo($"Deleted Chara-den: {selectedCharaden.AFDName}")
+                                       SyncLock deletedFiles
+                                           deletedFiles.Add(selectedCharaden.AFDName)
+                                       End SyncLock
+                                   Catch ex As Exception
+                                       Logger.LogError($"Failed to delete Chara-den: {selectedCharaden.AFDName}", ex)
+                                   End Try
+                               End If
+                           Next
+                       End Sub)
+
+        ' UI-safe call
+        HighlightCharaDen()
+
+        If deletedFiles.Count > 0 Then
+            MessageBox.Show("Deleted the following Chara-den:" & vbCrLf & String.Join(vbCrLf, deletedFiles),
+                        "Chara-den Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        End If
+    End Function
     Public Sub RefreshGameHighlighting()
         Dim favoritesManager As New FavoritesManager()
 
@@ -1025,12 +1193,29 @@ Public Class Form1
                 Return "unknown"
             End If
 
-            Return "jsky"
+            Dim OCLType = GetMIDletOCL(GameJAD)
+            If OCLType.StartsWith("JSCL") Then
+                Return "vodafone"
+            Else
+                Return "jsky"
+            End If
+
         Catch ex As Exception
             ' Log the error if needed
             Console.WriteLine($"Error reading JAD file: {ex.Message}")
             Return "unknown"
         End Try
+    End Function
+    Public Function GetMIDletOCL(filePath As String) As String
+        Const key As String = "MIDlet-OCL"
+        Dim enc As Encoding = Encoding.GetEncoding(932)
+
+        For Each line As String In File.ReadAllLines(filePath, enc)
+            If line.StartsWith(key & ":", StringComparison.OrdinalIgnoreCase) Then
+                Return line.Substring(key.Length + 1).Trim()
+            End If
+        Next
+        Return String.Empty
     End Function
     Public Async Function LoadCustomGamesAsync() As Task
         Dim customGamesFile As String = Path.Combine(ConfigsFolder, "customgames.txt")
@@ -1117,6 +1302,19 @@ Public Class Form1
             If mc IsNot Nothing Then
                 Dim cfdPath As String = Path.Combine(DownloadsFolder, mc.CFDName)
                 If File.Exists(cfdPath) Then
+                    item.BackColor = Color.LightGreen
+                Else
+                    item.BackColor = Color.White ' Optional: reset if not found
+                End If
+            End If
+        Next
+    End Sub
+    Public Sub HighlightCharaDen()
+        For Each item As ListViewItem In ListViewCharaDen.Items
+            Dim cd As CharaDen = CType(item.Tag, CharaDen)
+            If cd IsNot Nothing Then
+                Dim afdPath As String = Path.Combine(DownloadsFolder, cd.AFDName)
+                If File.Exists(afdPath) Then
                     item.BackColor = Color.LightGreen
                 Else
                     item.BackColor = Color.White ' Optional: reset if not found
@@ -1324,9 +1522,15 @@ Public Class Form1
     End Sub
     Private Sub lbxMachiCharaList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewMachiChara.SelectedIndexChanged
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
-        Dim selectedItem As ListViewItem = ListViewMachiChara.SelectedItems(0)
-        Dim selectedMachiChara As MachiChara = CType(selectedItem.Tag, MachiChara)
+        Dim selectedItem = ListViewMachiChara.SelectedItems(0)
+        Dim selectedMachiChara = CType(selectedItem.Tag, MachiChara)
         DownloadMachiChara(selectedMachiChara)
+    End Sub
+    Private Sub lbxCharadenList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewCharaDen.SelectedIndexChanged
+        If ListViewCharaDen.SelectedItems.Count = 0 Then Return
+        Dim selectedItem = ListViewCharaDen.SelectedItems(0)
+        Dim selectedCharaDen = CType(selectedItem.Tag, CharaDen)
+        DownloadCharaden(selectedCharaDen)
     End Sub
 
     ' CheckBox Changes
@@ -1447,13 +1651,22 @@ Public Class Form1
         ' Store selected SDKs in variables
         Dim selectedDojaSDK = cbxDojaSDK.SelectedItem.ToString
         DOJApath = Path.Combine(ToolsFolder, selectedDojaSDK)
-        DOJAEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "bin", "doja.exe")
-
-        If cbxDojaSDK.SelectedItem.ToString.Contains("3.5") Then
-            If chkbxShaderGlass.Checked = True Then
-                MessageBox.Show("Doja 3.5 does not work with ShaderGlass Disabling.")
-                chkbxShaderGlass.Checked = False
+        If selectedDojaSDK.StartsWith("iDKDoJa") Then
+            DOJAEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "bin", "doja.exe")
+            If cbxDojaSDK.SelectedItem.ToString.Contains("3.5") Then
+                If chkbxShaderGlass.Checked = True Then
+                    MessageBox.Show("Doja 3.5 does not work with ShaderGlass Disabling.")
+                    chkbxShaderGlass.Checked = False
+                End If
             End If
+            gbxSJMELaunchOptions.Enabled = False
+        ElseIf selectedDojaSDK.StartsWith("squirreljme") Then
+            Logger.LogWarning("[squirreljme] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+            MessageBox.Show("    DISCLAIMER: SquirrelJME support is still in active development.
+    You may encounter unexpected errors, UI glitches, or slowdowns
+    when launching or interacting with the emulator. Use at your own risk.")
+            DOJAEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "squirreljme.exe")
+            gbxSJMELaunchOptions.Enabled = True
         End If
     End Sub
     Private Sub cbxJSKYSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxJSKYSDK.SelectedIndexChanged
@@ -1494,7 +1707,14 @@ Public Class Form1
             MessageBox.Show("Selected controller does not support XInput vibration.")
         End If
     End Sub
-
+    Private Sub cbxSJMELaunchOption_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxSJMELaunchOption.SelectedIndexChanged
+        Dim selectedSJMELaunchOption = cbxSJMELaunchOption.SelectedItem.ToString
+        If selectedSJMELaunchOption = "SpringCoat" Then
+            lblSJMELaunchOptionsText.Text = "Optimized for compatibility, slower but more reliable."
+        ElseIf selectedSJMELaunchOption = "Hosted" Then
+            lblSJMELaunchOptionsText.Text = "Uses the system JVM, fastest but disregards any compatibility."
+        End If
+    End Sub
     'Textbox Changes
     Private Async Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged
         Await FilterAndHighlightGamesAsync()
@@ -1624,18 +1844,26 @@ Public Class Form1
         Dim CompressedString = Await gameManager.BomberManPuzzleSpecial_ExportStage(SPFilepath, stageNumber)
         ShowCopyableDialogBox($"Exported Stage {stageNumber.ToString}", $"Here's your stage code — share it so your friends can play your level!", CompressedString)
     End Sub
-
     'MachiChara CMS
     Private Sub DownloadCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DownloadCMS_MachiChara.Click
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
-        Dim selectedItem As ListViewItem = ListViewMachiChara.SelectedItems(0)
-        Dim selectedMachiChara As MachiChara = CType(selectedItem.Tag, MachiChara)
+        Dim selectedItem = ListViewMachiChara.SelectedItems(0)
+        Dim selectedMachiChara = CType(selectedItem.Tag, MachiChara)
         DownloadMachiChara(selectedMachiChara)
     End Sub
     Private Async Sub DeleteCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DeleteCMS_MachiChara.Click
         Await DeleteMachiCharaAsync()
     End Sub
-
+    'Charaden CMS
+    Private Sub DownloadCMS_CharaDen_Click(sender As Object, e As EventArgs) Handles DownloadCMS_CharaDen.Click
+        If ListViewCharaDen.SelectedItems.Count = 0 Then Return
+        Dim selectedItem = ListViewCharaDen.SelectedItems(0)
+        Dim selectedCharaden = CType(selectedItem.Tag, CharaDen)
+        DownloadCharaDen(selectedCharaden)
+    End Sub
+    Private Async Sub DeleteCMS_CharaDen_Click(sender As Object, e As EventArgs) Handles DeleteCMS_CharaDen.Click
+        Await DeleteCharadenAsync()
+    End Sub
     'Launch Apps Buttons
     Private Async Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         Try
@@ -1667,10 +1895,12 @@ Public Class Form1
             Dim selectedDojaSDK As String = cbxDojaSDK.SelectedItem.ToString()
             Dim selectedStarSDK As String = cbxStarSDK.SelectedItem.ToString()
             Dim selectedJSKYSDK As String = cbxJSKYSDK.SelectedItem.ToString()
+            Dim selectedVODAFONESDK As String = cbxVodafoneSDK.SelectedItem.ToString()
             Dim selectedFlashSDK As String = cbxFlashSDK.SelectedItem.ToString()
             Logger.LogInfo($"Selected Doja SDK: {selectedDojaSDK}")
             Logger.LogInfo($"Selected Star SDK: {selectedStarSDK}")
             Logger.LogInfo($"Selected JSKY SDK: {selectedJSKYSDK}")
+            Logger.LogInfo($"Selected VODAFONE SDK: {selectedVODAFONESDK}")
             Logger.LogInfo($"Selected Flash SDK: {selectedFlashSDK}")
 
             ' Verify the game is downloaded
@@ -1694,7 +1924,9 @@ Public Class Form1
             If CurrentSelectedGameJAM.ToLower.EndsWith(".jam") Then
                 CorrectedEmulator = VerifyEmulatorType_JAM(CurrentSelectedGameJAM)
             ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".jad") Then
-                CorrectedEmulator = VerifyEmulatorType_JAD(CurrentSelectedGameJAM)
+                'Need to find a better way to verify JAD files and the emulator they need to use
+                'CorrectedEmulator = VerifyEmulatorType_JAD(CurrentSelectedGameJAM)
+                CorrectedEmulator = selectedGame.Emulator
             ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".swf") Then
                 CorrectedEmulator = "flash"
             End If
@@ -1722,41 +1954,55 @@ Public Class Form1
             UtilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
             Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
+            Dim isSQJMERunning As Boolean = UtilManager.CheckAndCloseSQJME()
             Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
             Dim isJavaRunning As Boolean = UtilManager.CheckAndCloseJava()
+            Dim isVodaFoneRunning As Boolean = UtilManager.CheckAndCloseVODAFONE
             Dim isFlashRunning As Boolean = UtilManager.CheckAndCloseFlashPlayer()
             Select Case CorrectedEmulator.ToLower()
                 Case "doja"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning Then
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
                         Logger.LogInfo("Launching game using DOJA emulator.")
-                        utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
+                        If DOJApath.Contains("iDKDoJa") Then
+                            utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
+                        ElseIf DOJApath.Contains("squirreljme") Then
+                            utilManager.LaunchCustomDOJA_SJMEGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
+                        End If
                         Logger.LogInfo($"Launched with: DojaPath={DOJApath}, DojaEXE={DOJAEXE}, GamePath={CurrentSelectedGameJAM}")
                     Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator or FlashPlayer is already running. Skipping launch.")
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
                     End If
                 Case "star"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning Then
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
                         Logger.LogInfo("Launching game using STAR emulator.")
                         utilManager.LaunchCustomSTARGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
                         Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
                     Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator or FlashPlayer is already running. Skipping launch.")
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
                     End If
                 Case "jsky"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning Then
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
                         Logger.LogInfo("Launching game using JSKY emulator.")
                         utilManager.LaunchCustomJSKYGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
                         Logger.LogInfo($"Launched with: JSKYPath={JSKYpath}, JSKYEXE={JSKYEXE}, GamePath={CurrentSelectedGameJAM}")
                     Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator or FlashPlayer is already running. Skipping launch.")
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
+                    End If
+                Case "vodafone"
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
+                        Logger.LogInfo("Launching game using VODAFONE emulator.")
+                        utilManager.LaunchCustomVODAFONEGameCommand(VODAFONEpath, VODAFONEEXE, CurrentSelectedGameJAM)
+                        Logger.LogInfo($"Launched with: VODAFONEPath={VODAFONEpath}, VODAFONEEXE={VODAFONEEXE}, GamePath={CurrentSelectedGameJAM}")
+                    Else
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
                     End If
                 Case "flash"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning Then
+                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
                         Logger.LogInfo("Launching game using flash Player.")
-                        utilManager.LaunchCustomFlashGameCommand(FlashPlayerpath, FlashPlayerEXE, CurrentSelectedGameJAM)
+                        utilManager.LaunchCustomFLASHGameCommand(FlashPlayerpath, FlashPlayerEXE, CurrentSelectedGameJAM)
                         Logger.LogInfo($"Launched with: flashPath={FlashPlayerpath}, flashEXE={FlashPlayerEXE}, SWFPath={CurrentSelectedGameJAM}")
                     Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator or FlashPlayer is already running. Skipping launch.")
+                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
                     End If
                 Case Else
                     Logger.LogError($"Unknown emulator type: '{CorrectedEmulator}'. Aborting launch.")
@@ -1774,14 +2020,30 @@ Public Class Form1
             Return
         End If
 
-        Dim selectedItem As ListViewItem = ListViewMachiChara.SelectedItems(0)
-        Dim selectedMachiChara As MachiChara = CType(selectedItem.Tag, MachiChara)
+        Dim selectedItem = ListViewMachiChara.SelectedItems(0)
+        Dim selectedMachiChara = CType(selectedItem.Tag, MachiChara)
 
         If selectedMachiChara IsNot Nothing Then
             CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
             UtilManager.ShowSnackBar($"Launching '{CurrentSelectedMachiCharaCFD}'")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedMachiCharaCFD))
             utilManager.LaunchCustomMachiCharaCommand(MachiCharaExe, CurrentSelectedMachiCharaCFD)
+        End If
+    End Sub
+    Private Sub btnCharaDenLaunch_Click(sender As Object, e As EventArgs) Handles btnCharaDenLaunch.Click
+        If ListViewCharaDen.SelectedItems.Count = 0 Then
+            MessageBox.Show("Please select a Chara-den to launch.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Dim selectedItem = ListViewCharaDen.SelectedItems(0)
+        Dim selectedCharaDen = CType(selectedItem.Tag, CharaDen)
+
+        If selectedCharaDen IsNot Nothing Then
+            CurrentSelectedCharaDenAFD = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
+            UtilManager.ShowSnackBar($"Launching '{CurrentSelectedCharaDenAFD}'")
+            UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedCharaDenAFD))
+            utilManager.LaunchCustomCharaDenCommand(CharaDenExe, CurrentSelectedCharaDenAFD)
         End If
     End Sub
 
@@ -2357,5 +2619,4 @@ Public Class Form1
             LoadPlaytimesToListView()
         End If
     End Sub
-
 End Class

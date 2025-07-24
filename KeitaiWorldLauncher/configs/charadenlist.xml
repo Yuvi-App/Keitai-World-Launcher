@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="shift_jis" ?>
+<CharaDenList>
+  <CharaDen>
+    <ENTitle>CharaDen 1</ENTitle>
+    <JPTitle>CharaDen 1</JPTitle>
+    <CFDName>CharaDen 1.afd</CFDName>
+    <DownloadURL>http://example.com/CharaDen1.zip</DownloadURL>
+  </CharaDen>
+</CharaDenList>

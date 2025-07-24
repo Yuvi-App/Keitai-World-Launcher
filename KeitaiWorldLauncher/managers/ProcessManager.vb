@@ -22,11 +22,13 @@ Namespace My.Managers
             Try
                 While monitoring
                     Dim dojaRunning As Boolean = Process.GetProcessesByName("doja").Length > 0
+                    Dim SQJMERunning As Boolean = Process.GetProcessesByName("squirreljme").Length > 0
                     Dim starRunning As Boolean = Process.GetProcessesByName("star").Length > 0
                     Dim javaRunning As Boolean = Process.GetProcessesByName("java").Length > 0
+                    Dim vodafoneRunning As Boolean = Process.GetProcessesByName("emulator").Length > 0
                     Dim flashplayerRunning As Boolean = Process.GetProcessesByName("flashplayer").Length > 0
                     ' Only close shaderglass.exe if both processes are NOT running
-                    If Not dojaRunning AndAlso Not starRunning AndAlso Not javaRunning AndAlso Not flashplayerRunning Then
+                    If Not dojaRunning AndAlso Not starRunning AndAlso Not javaRunning AndAlso Not flashplayerRunning AndAlso Not vodafoneRunning AndAlso Not SQJMERunning Then
                         CloseProcess("shaderglass")
                         monitoring = False
                         Await applitrackerManager.StopTrackingAppliAsync()
