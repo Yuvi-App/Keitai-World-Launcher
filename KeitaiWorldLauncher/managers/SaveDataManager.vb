@@ -1,5 +1,4 @@
 ﻿Imports System.IO
-Imports system.text
 
 Namespace My.Managers
     Public Class SaveDataManager

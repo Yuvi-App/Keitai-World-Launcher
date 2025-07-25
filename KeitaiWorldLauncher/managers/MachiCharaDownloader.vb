@@ -1,8 +1,4 @@
 ﻿Imports System.Net
-Imports System.IO
-Imports System.IO.Compression
-Imports System.Threading
-Imports KeitaiWorldLauncher.My.Managers
 
 Namespace My.Managers
     Public Class MachiCharaDownloader

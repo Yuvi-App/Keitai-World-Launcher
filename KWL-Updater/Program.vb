@@ -1,8 +1,7 @@
 Imports System.IO
 Imports System.IO.Compression
-Imports System.Diagnostics
-Imports System.Threading
 Imports System.Text
+Imports System.Threading
 
 Module Program
     Sub Main(args As String())

@@ -111,6 +111,9 @@ Partial Class Form1
         btnLaunchKey2Pad = New Button()
         GroupBox5 = New GroupBox()
         gbxSJMELaunchOptions = New GroupBox()
+        Label10 = New Label()
+        cbxSJMEScaling = New ComboBox()
+        btnSJMEUpdate = New Button()
         lblSJMELaunchOptionsText = New Label()
         Label9 = New Label()
         cbxSJMELaunchOption = New ComboBox()
@@ -958,30 +961,61 @@ Partial Class Form1
         GroupBox5.Controls.Add(cbxAudioType)
         GroupBox5.Location = New Point(245, 93)
         GroupBox5.Name = "GroupBox5"
-        GroupBox5.Size = New Size(315, 201)
+        GroupBox5.Size = New Size(315, 286)
         GroupBox5.TabIndex = 16
         GroupBox5.TabStop = False
         GroupBox5.Text = "Doja/Star SDK Options"
         ' 
         ' gbxSJMELaunchOptions
         ' 
+        gbxSJMELaunchOptions.Controls.Add(Label10)
+        gbxSJMELaunchOptions.Controls.Add(cbxSJMEScaling)
+        gbxSJMELaunchOptions.Controls.Add(btnSJMEUpdate)
         gbxSJMELaunchOptions.Controls.Add(lblSJMELaunchOptionsText)
         gbxSJMELaunchOptions.Controls.Add(Label9)
         gbxSJMELaunchOptions.Controls.Add(cbxSJMELaunchOption)
         gbxSJMELaunchOptions.Location = New Point(5, 93)
         gbxSJMELaunchOptions.Name = "gbxSJMELaunchOptions"
-        gbxSJMELaunchOptions.Size = New Size(304, 102)
+        gbxSJMELaunchOptions.Size = New Size(304, 162)
         gbxSJMELaunchOptions.TabIndex = 16
         gbxSJMELaunchOptions.TabStop = False
         gbxSJMELaunchOptions.Text = "SqurrielJME Emulator Config"
+        ' 
+        ' Label10
+        ' 
+        Label10.Location = New Point(6, 95)
+        Label10.Name = "Label10"
+        Label10.Size = New Size(86, 23)
+        Label10.TabIndex = 8
+        Label10.Text = "Scaling"
+        Label10.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' cbxSJMEScaling
+        ' 
+        cbxSJMEScaling.FormattingEnabled = True
+        cbxSJMEScaling.Items.AddRange(New Object() {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"})
+        cbxSJMEScaling.Location = New Point(98, 95)
+        cbxSJMEScaling.Name = "cbxSJMEScaling"
+        cbxSJMEScaling.Size = New Size(77, 23)
+        cbxSJMEScaling.TabIndex = 7
+        ' 
+        ' btnSJMEUpdate
+        ' 
+        btnSJMEUpdate.Location = New Point(6, 124)
+        btnSJMEUpdate.Name = "btnSJMEUpdate"
+        btnSJMEUpdate.Size = New Size(292, 33)
+        btnSJMEUpdate.TabIndex = 6
+        btnSJMEUpdate.Text = "Update SqurrielJME"
+        btnSJMEUpdate.UseVisualStyleBackColor = True
         ' 
         ' lblSJMELaunchOptionsText
         ' 
         lblSJMELaunchOptionsText.Location = New Point(6, 52)
         lblSJMELaunchOptionsText.Name = "lblSJMELaunchOptionsText"
-        lblSJMELaunchOptionsText.Size = New Size(292, 41)
+        lblSJMELaunchOptionsText.Size = New Size(292, 35)
         lblSJMELaunchOptionsText.TabIndex = 2
         lblSJMELaunchOptionsText.Text = "Label10"
+        lblSJMELaunchOptionsText.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Label9
         ' 
@@ -1311,7 +1345,7 @@ Partial Class Form1
         MaterialTabSelector1.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
         MaterialTabSelector1.Name = "MaterialTabSelector1"
         MaterialTabSelector1.Size = New Size(1040, 27)
-        MaterialTabSelector1.TabIndex = 6
+        MaterialTabSelector1.TabIndex = 9
         MaterialTabSelector1.Text = "MaterialTabSelector1"
         ' 
         ' Form1
@@ -1476,4 +1510,7 @@ Partial Class Form1
     Friend WithEvents Label9 As Label
     Friend WithEvents cbxSJMELaunchOption As ComboBox
     Friend WithEvents lblSJMELaunchOptionsText As Label
+    Friend WithEvents btnSJMEUpdate As Button
+    Friend WithEvents Label10 As Label
+    Friend WithEvents cbxSJMEScaling As ComboBox
 End Class

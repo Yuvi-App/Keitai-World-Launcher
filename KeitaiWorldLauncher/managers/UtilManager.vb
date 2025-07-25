@@ -1,17 +1,14 @@
-﻿Imports System.Net
-Imports System.IO
-Imports System.Text
+﻿Imports System.IO
 Imports System.IO.Compression
-Imports System.Xml
+Imports System.Net
+Imports System.Reflection
+Imports System.Security.Principal
+Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
 Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.Win32
-Imports System.Security.Principal
-Imports System.Reflection
 Imports SharpDX.XInput
-Imports ReaLTaiizor.Extension
-Imports System.Diagnostics.Tracing
 
 Namespace My.Managers
     Public Class UtilManager
@@ -96,18 +93,9 @@ Namespace My.Managers
                 Form1.QuitApplication()
             End If
 
-            ' Check for Java 1.4
-            My.logger.Logger.LogInfo("Checking for Java 2 (1.4)")
-            If Not Await IsJava1_4InstalledAsync() Then
-                MessageBox.Show(owner:=SplashScreen, "Missing JAVA 2 (1.4)... Download is required")
-                My.logger.Logger.LogInfo("Missing JAVA 2 (1.4)")
-                Await OpenURLAsync("https://scratchpad.keitaiwiki.com/s/AxTty326itLfEwE?dir=/Utilities/Java")
-                Form1.QuitApplication()
-            End If
-
             ' Check for Java 1.8
             My.logger.Logger.LogInfo("Checking for Java 8")
-            If Not Await IsJava8Update152InstalledAsync() Then
+            If Not Await EnsureJava1_8IsConfiguredAsync() Then
                 MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (JDK8u152)... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
                 Await OpenURLAsync("https://scratchpad.keitaiwiki.com/s/AxTty326itLfEwE?dir=/Utilities/Java")
@@ -131,132 +119,89 @@ Namespace My.Managers
                 Await OpenURLAsync("https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-8.0.15-windows-x86-installer?cid=getdotnetcore")
                 Form1.QuitApplication()
             End If
-
-            'Update JRE Version to 1.8
-            Await UpdateJRECurrentVersion("1.8")
             Return True
         End Function
-        Public Shared Async Function IsJava8Update152InstalledAsync() As Task(Of Boolean)
-            Return Await Task.Run(Function()
-                                      Dim javaVersions As String() = {
-                                  "SOFTWARE\JavaSoft\Java Runtime Environment\1.8.0_152",
-                                  "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8.0_152"
-                              }
+        Public Shared Async Function EnsureJava1_8IsConfiguredAsync() As Task(Of Boolean)
+            ' Step 0: Check for problematic Java 1.4 installation
+            Dim java14Keys As String() = {
+                "SOFTWARE\JavaSoft\Java Runtime Environment\1.4",
+                "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.4"
+            }
 
-                                      For Each regPath In javaVersions
-                                          Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
-                                              If key IsNot Nothing Then
-                                                  Return True ' Java 8 Update 152 is installed
-                                              End If
-                                          End Using
-                                      Next
-
-                                      Return False ' Java 8 Update 152 is not installed
-                                  End Function)
-        End Function
-        Public Shared Async Function IsJava1_4InstalledAsync() As Task(Of Boolean)
-            Return Await Task.Run(Function()
-                                      Dim javaVersions As String() = {
-                                  "SOFTWARE\JavaSoft\Java Runtime Environment\1.4",
-                                  "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.4"
-                              }
-
-                                      For Each regPath In javaVersions
-                                          Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
-                                              If key IsNot Nothing Then
-                                                  Return True
-                                              End If
-                                          End Using
-                                      Next
-
-                                      Return False
-                                  End Function)
-        End Function
-        Public Shared Async Function GetJava1_8InstallPathAsync() As Task(Of String)
-            Return Await Task.Run(Function()
-                                      Dim javaVersions As String() = {
-                                  "SOFTWARE\JavaSoft\Java Runtime Environment\1.8",
-                                  "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8"
-                              }
-
-                                      For Each regPath In javaVersions
-                                          Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
-                                              If key IsNot Nothing Then
-                                                  Dim javaHome As Object = key.GetValue("JavaHome")
-                                                  If javaHome IsNot Nothing Then
-                                                      Return javaHome.ToString()
-                                                  End If
-                                              End If
-                                          End Using
-                                      Next
-
-                                      Return Nothing
-                                  End Function)
-        End Function
-        Public Shared Async Function GetJava1_4InstallPathAsync() As Task(Of String)
-            Return Await Task.Run(Function()
-                                      Dim javaVersions As String() = {
-                                  "SOFTWARE\JavaSoft\Java Runtime Environment\1.4",
-                                  "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.4"
-                              }
-
-                                      For Each regPath In javaVersions
-                                          Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
-                                              If key IsNot Nothing Then
-                                                  Dim javaHome As Object = key.GetValue("JavaHome")
-                                                  If javaHome IsNot Nothing Then
-                                                      Return javaHome.ToString()
-                                                  End If
-                                              End If
-                                          End Using
-                                      Next
-
-                                      Return Nothing
-                                  End Function)
-        End Function
-        Public Shared Function IsJRECurrentVersion(targetVersion As String) As Boolean
-            ' Check both registry views: native (64-bit) and Wow6432Node (32-bit)
-            For Each view In New RegistryView() {RegistryView.Registry64, RegistryView.Registry32}
-                Try
-                    Using baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view)
-                        Using jreKey = baseKey.OpenSubKey("SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment", writable:=False)
-                            If jreKey IsNot Nothing Then
-                                Dim cv = jreKey.GetValue("CurrentVersion")?.ToString()
-                                If String.Equals(cv, targetVersion, StringComparison.OrdinalIgnoreCase) Then
-                                    Return True
-                                End If
-                            End If
-                        End Using
-                    End Using
-                Catch ex As Exception
-                    ' Optional: log ex.Message if you have a logger
-                End Try
+            For Each regPath In java14Keys
+                Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                    If key IsNot Nothing Then
+                        My.logger.Logger.LogWarning("Detected incompatible Java 1.4 installation.")
+                        MessageBox.Show(owner:=SplashScreen,
+                    "Java 1.4 is installed on this system, which is incompatible with Keitai World Launcher. We recommend you uninstall it and reinstall Java 1.8.",
+                    "Java Compatibility Issue", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    End If
+                End Using
             Next
 
-            Return False
-        End Function
-        Public Shared Async Function UpdateJRECurrentVersion(newVersion As String) As Task
-            ' Paths under HKLM for 64-bit and redirected 32-bit views
+            ' Step 1: Locate Java 1.8 path
+            Dim javaPath As String = Await Task.Run(Function()
+                                                        Dim javaVersions As String() = {
+                                                            "SOFTWARE\JavaSoft\Java Runtime Environment\1.8",
+                                                            "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8"
+                                                        }
+
+                                                        For Each regPath In javaVersions
+                                                            Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                                                                If key IsNot Nothing Then
+                                                                    Dim javaHome = key.GetValue("JavaHome")
+                                                                    If javaHome IsNot Nothing Then
+                                                                        Return javaHome.ToString()
+                                                                    End If
+                                                                End If
+                                                            End Using
+                                                        Next
+
+                                                        Return Nothing
+                                                    End Function)
+
+            If String.IsNullOrEmpty(javaPath) Then
+                MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (v1_8)... Download is required")
+                My.logger.Logger.LogInfo("Missing JAVA 8 (v1_8)")
+                Await OpenURLAsync("https://scratchpad.keitaiarchive.org/s/AxTty326itLfEwE?dir=/Utilities/Java")
+                Return False
+            End If
+
+            ' Step 2: Set Java Bin Path
+            Form1.Java1_8BinFolderPath = Path.Combine(javaPath, "bin")
+
+            ' Step 3: Update CurrentVersion registry key to 1.8
             Dim keyPaths As String() = {
-            "SOFTWARE\JavaSoft\Java Runtime Environment",
-            "SOFTWARE\Wow6432Node\JavaSoft\Java Runtime Environment"
-        }
+                "SOFTWARE\Wow6432Node\JavaSoft\Java Runtime Environment"
+            }
 
             For Each path In keyPaths
                 Try
                     Using baseKey As RegistryKey = Registry.LocalMachine.OpenSubKey(path, writable:=True)
-                        If baseKey Is Nothing Then
-                            Console.WriteLine($"[WARN] Registry key not found: HKLM\{path}")
-                        Else
-                            baseKey.SetValue("CurrentVersion", newVersion, RegistryValueKind.String)
-                            My.logger.Logger.LogInfo($"Update JRE CurrentVersion REGKEY to [{newVersion}]")
-                            Console.WriteLine($"[OK] Updated HKLM\{path}\CurrentVersion → {newVersion}")
+                        If baseKey IsNot Nothing Then
+                            baseKey.SetValue("CurrentVersion", "1.8", RegistryValueKind.String)
+                            My.logger.Logger.LogInfo($"Set CurrentVersion to 1.8 in HKLM\{path}")
                         End If
                     End Using
                 Catch ex As Exception
-                    Console.WriteLine($"[ERROR] Failed to update HKLM\{path}\CurrentVersion: {ex.Message}")
+                    My.logger.Logger.LogError($"Failed to update CurrentVersion in {path}: {ex.Message}")
                 End Try
             Next
+
+            ' Step 4: Verify
+            Dim regKey As RegistryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\Wow6432Node\JavaSoft\Java Runtime Environment")
+            Dim currentVersion = regKey?.GetValue("CurrentVersion")?.ToString()
+            My.logger.Logger.LogInfo("Checking for JRE CurrentVersion regKey 1.8")
+
+            If currentVersion <> "1.8" Then
+                My.logger.Logger.LogInfo("Incorrect JRE CurrentVersion regKey")
+                MessageBox.Show(owner:=SplashScreen,
+                "Java Runtime CurrentVersion Registry key must be set to 1.8. Please rerun app as admin to update it.",
+                "Java Registry Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Return False
+            End If
+
+            Return True
         End Function
         Public Shared Async Function IsVCRuntime2022InstalledAsync() As Task(Of Boolean)
             Return Await Task.Run(Function()
@@ -878,7 +823,9 @@ Namespace My.Managers
                     arguments,
                     "doja",
                     baseDir,
-                    AddressOf WaitForDojaToStart
+                        Async Function()
+                            Return Await WaitForProcessWindowAsync({"doja"}, "WaitForDojaToStart")
+                        End Function
                 )
 
                 If Not success Then
@@ -888,15 +835,9 @@ Namespace My.Managers
 
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
-                    logger.Logger.LogInfo("[ShaderGlass] Waiting for DOJA to become idle...")
-                    If Await WaitForDojaToStart() Then
-                        Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
-                        ProcessManager.StartMonitoring(jamPath)
-                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
-                    Else
-                        logger.Logger.LogError("[ShaderGlass] Failed to detect DOJA running.")
-                        MessageBox.Show("Failed to detect DOJA running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End If
+                    Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                    ProcessManager.StartMonitoring(jamPath)
+                    logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
                 If Form1.chkbxEnableController.Checked = True Then
@@ -948,6 +889,7 @@ Namespace My.Managers
                 Dim SJMELaunchMethod As String
                 Dim SJMEProcessWatch As String
                 Dim selectedSJMELaunchOption = Form1.cbxSJMELaunchOption.SelectedItem.ToString
+                Dim selectedSJMEScaling = Form1.cbxSJMEScaling.SelectedItem.ToString
                 If selectedSJMELaunchOption = "SpringCoat" Then
                     SJMELaunchMethod = "springcoat"
                     SJMEProcessWatch = "squirreljme"
@@ -959,12 +901,12 @@ Namespace My.Managers
                     ' Launch using Locale Emulator
                     appPath = Path.Combine(baseDir, "data", "tools", "locale_emulator", "LEProc.exe").Trim()
                     Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
-                    arguments = $"{guidArg} ""{dojaExePath}"" -Xemulator:{SJMELaunchMethod} -Xlibraries:""{spPath}"" -jar ""{jarPath}"""
+                    arguments = $"{guidArg} ""{dojaExePath}"" -Xemulator:{SJMELaunchMethod} -Xlibraries:""{spPath}"" -jar ""{jarPath}"" -Dcc.squirreljme.scale: {selectedSJMEScaling}"
                     logger.Logger.LogInfo($"[Launch] Launching via Locale Emulator with arguments: {arguments}")
                 Else
                     ' Launch directly
                     appPath = dojaExePath
-                    arguments = $"-Xemulator:{SJMELaunchMethod} -Xlibraries:""{spPath}"" -jar ""{jarPath}"""
+                    arguments = $"-Xemulator:{SJMELaunchMethod} -Xlibraries:""{spPath}"" -jar ""{jarPath}"" -Dcc.squirreljme.scale: {selectedSJMEScaling}"
                     logger.Logger.LogInfo($"[Launch] Launching directly without Locale Emulator: {arguments}")
                 End If
 
@@ -980,7 +922,9 @@ Namespace My.Managers
                     arguments,
                     SJMEProcessWatch,
                     baseDir,
-                    AddressOf WaitForsquirreljmeToStart
+                    Async Function()
+                        Return Await WaitForProcessWindowAsync({SJMEProcessWatch}, "WaitForSQUIRREKJMEToStart")
+                    End Function
                 )
 
                 If Not success Then
@@ -990,15 +934,9 @@ Namespace My.Managers
 
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
-                    logger.Logger.LogInfo("[ShaderGlass] Waiting for squirreljme to become idle...")
-                    If Await WaitForsquirreljmeToStart() Then
-                        Await LaunchShaderGlass(AppName)
-                        ProcessManager.StartMonitoring(jamPath)
-                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
-                    Else
-                        logger.Logger.LogError("[ShaderGlass] Failed to detect squirreljme running.")
-                        MessageBox.Show("Failed to detect squirreljme running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End If
+                    Await LaunchShaderGlass(AppName)
+                    ProcessManager.StartMonitoring(jamPath)
+                    logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
                 If Form1.chkbxEnableController.Checked = True Then
@@ -1091,7 +1029,9 @@ Namespace My.Managers
                     arguments,
                     "star",
                     baseDir,
-                    AddressOf WaitForSTARToStart
+                    Async Function()
+                        Return Await WaitForProcessWindowAsync({"star"}, "WaitForSTARToStart")
+                    End Function
                 )
 
                 If Not success Then
@@ -1101,15 +1041,9 @@ Namespace My.Managers
 
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
-                    logger.Logger.LogInfo("[ShaderGlass] Waiting for STAR to become idle...")
-                    If Await WaitForSTARToStart() Then
-                        Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
-                        ProcessManager.StartMonitoring(jamPath)
-                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
-                    Else
-                        logger.Logger.LogError("[ShaderGlass] Failed to detect STAR running.")
-                        MessageBox.Show("Failed to detect STAR running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End If
+                    Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
+                    ProcessManager.StartMonitoring(jamPath)
+                    logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
                 If Form1.chkbxEnableController.Checked = True Then
@@ -1147,7 +1081,7 @@ Namespace My.Managers
                 Dim arguments As String
 
                 ' Make Full Paths
-                Dim Java32EXE As String = Path.Combine(Form1.Java1_4BinFolderPath, "java.exe")
+                Dim Java32EXE As String = Path.Combine(Form1.Java1_8BinFolderPath, "java.exe")
                 Dim exePath As String = JSKYEXELocation.Trim
                 Dim jadPath As String = Path.Combine(baseDir, GameJAM).Trim()
 
@@ -1177,7 +1111,7 @@ Namespace My.Managers
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
                     logger.Logger.LogInfo("[ShaderGlass] Waiting for JSKY to become idle...")
-                    If Await WaitForJAVAToStart() Then
+                    If Await WaitForProcessWindowAsync({"java"}, "WaitForJavaToStart") Then
                         Await LaunchShaderGlass("J-SKY Application Emulator")
                         ProcessManager.StartMonitoring(jadPath)
                         logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
@@ -1219,7 +1153,6 @@ Namespace My.Managers
                 Dim arguments As String
 
                 ' Make Full Paths
-                Dim Java32EXE As String = Path.Combine(Form1.Java1_4BinFolderPath, "java.exe")
                 Dim exePath As String = VODAFONEEXELocation.Trim
                 Dim jadPath As String = Path.Combine(baseDir, GameJAM).Trim()
 
@@ -1244,7 +1177,9 @@ Namespace My.Managers
                     arguments,
                     "emulator",
                     baseDir,
-                    AddressOf WaitForVODAFONEToStart
+                    Async Function()
+                        Return Await WaitForProcessWindowAsync({"emulator"}, "WaitForVODAFONEToStart")
+                    End Function
                 )
                 If Not success Then
                     HideLaunchOverlay()
@@ -1254,15 +1189,9 @@ Namespace My.Managers
 
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
-                    logger.Logger.LogInfo("[ShaderGlass] Waiting for VODAFONE to become idle...")
-                    If Await WaitForVODAFONEToStart() Then
-                        Await LaunchShaderGlass("V-appli Emulator")
-                        ProcessManager.StartMonitoring(jadPath)
-                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
-                    Else
-                        logger.Logger.LogError("[ShaderGlass] Failed to detect VODAFONE running.")
-                        MessageBox.Show("Failed to detect VODAFONE running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End If
+                    Await LaunchShaderGlass("V-appli Emulator")
+                    ProcessManager.StartMonitoring(jadPath)
+                    logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
                 If Form1.chkbxEnableController.Checked = True Then
@@ -1329,7 +1258,9 @@ Namespace My.Managers
                     arguments,
                     "flashplayer",
                     baseDir,
-                    AddressOf WaitForFlashPlayerToStart
+                        Async Function()
+                            Return Await WaitForProcessWindowAsync({"flashplayer"}, "WaitForFlashPlayerToStart")
+                        End Function
                 )
                 If Not success Then
                     HideLaunchOverlay()
@@ -1339,15 +1270,9 @@ Namespace My.Managers
 
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
-                    logger.Logger.LogInfo("[ShaderGlass] Waiting for FLASH to become idle...")
-                    If Await WaitForFlashPlayerToStart() Then
-                        Await LaunchShaderGlass("Adobe Flash Player 10")
-                        ProcessManager.StartMonitoring(GameJAM)
-                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
-                    Else
-                        logger.Logger.LogError("[ShaderGlass] Failed to detect FLASH running.")
-                        MessageBox.Show("Failed to detect FLASH running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End If
+                    Await LaunchShaderGlass("Adobe Flash Player 10")
+                    ProcessManager.StartMonitoring(GameJAM)
+                    logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
                 If Form1.chkbxEnableController.Checked = True Then
@@ -1509,7 +1434,8 @@ Namespace My.Managers
 
                 Dim psi As New ProcessStartInfo("cmd.exe", arguments) With {
                     .UseShellExecute = True,
-                    .WorkingDirectory = Path.GetDirectoryName(JskyExePath)
+                    .WorkingDirectory = Path.GetDirectoryName(JskyExePath),
+                    .CreateNoWindow = True
                 }
 
                 Dim process As Process = Process.Start(psi)
@@ -1675,229 +1601,78 @@ Namespace My.Managers
         End Sub
 
         'Check and Close Functions
-        Shared Function CheckAndCloseDoja() As Boolean
-            Dim dojaProcesses = Process.GetProcessesByName("doja")
+        Shared Function CheckAndCloseAllEmulators() As Boolean
+            Dim emulatorProcesses As New Dictionary(Of String, String()) From {
+                {"DOCO Emulator", {"doja"}},
+                {"SquirrelJME", {"squirreljme"}},
+                {"Star Emulator", {"star"}},
+                {"Java-based runtime", {"java", "javaw", "jbime"}},
+                {"Vodafone Emulator", {"emulator"}},
+                {"Flashplayer", {"flashplayer"}}
+            }
 
-            If dojaProcesses.Length = 0 Then
-                logger.Logger.LogInfo("doja.exe is not currently running.")
-                Return False
-            End If
+            Dim currentPid = Process.GetCurrentProcess().Id
+            Dim anyStillRunning As Boolean = False
 
-            logger.Logger.LogWarning($"Found {dojaProcesses.Length} instance(s) of doja.exe running.")
-            Dim result = MessageBox.Show("doja.exe is currently running. Do you want to close it?",
-                                 "Confirm Close",
-                                 MessageBoxButtons.YesNo,
-                                 MessageBoxIcon.Question)
+            For Each kvp In emulatorProcesses
+                Dim friendlyName = kvp.Key
+                Dim processNames = kvp.Value
+                Dim foundProcesses As New List(Of Process)
 
-            If result = DialogResult.Yes Then
-                Try
-                    logger.Logger.LogInfo("User agreed to close doja.exe.")
-                    CheckAndCloseShaderGlass()
-                    CheckAndCloseAMX()
+                For Each name In processNames
+                    foundProcesses.AddRange(Process.GetProcessesByName(name))
+                Next
 
-                    For Each process As Process In dojaProcesses
-                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                        process.Kill()
-                        process.WaitForExit()
-                    Next
+                If foundProcesses.Count = 0 Then
+                    logger.Logger.LogInfo($"{friendlyName} is not currently running.")
+                    Continue For
+                End If
 
-                    logger.Logger.LogInfo("All doja.exe processes closed successfully.")
-                    Return False ' No longer running
-                Catch ex As Exception
-                    logger.Logger.LogError("Error while closing doja.exe: " & ex.ToString())
-                    MessageBox.Show("An error occurred while trying to close doja.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                    Return True ' Still running
-                End Try
-            Else
-                logger.Logger.LogInfo("User chose not to close doja.exe.")
-                Return True ' Still running
-            End If
-        End Function
-        Shared Function CheckAndCloseSQJME() As Boolean
-            Dim dojaProcesses = Process.GetProcessesByName("squirreljme")
+                logger.Logger.LogWarning($"Found {foundProcesses.Count} instance(s) of {friendlyName} running.")
+                Dim result = MessageBox.Show($"{friendlyName} is currently running. Do you want to close it?",
+                                     "Confirm Close",
+                                     MessageBoxButtons.YesNo,
+                                     MessageBoxIcon.Question)
 
-            If dojaProcesses.Length = 0 Then
-                logger.Logger.LogInfo("squirreljme.exe is not currently running.")
-                Return False
-            End If
+                If result = DialogResult.Yes Then
+                    Try
+                        logger.Logger.LogInfo($"User agreed to close {friendlyName}.")
+                        CheckAndCloseShaderGlass()
+                        CheckAndCloseAMX()
 
-            logger.Logger.LogWarning($"Found {dojaProcesses.Length} instance(s) of dosquirreljmeja.exe running.")
-            Dim result = MessageBox.Show("squirreljme.exe is currently running. Do you want to close it?",
-                                 "Confirm Close",
-                                 MessageBoxButtons.YesNo,
-                                 MessageBoxIcon.Question)
+                        Dim closedCount As Integer = 0
 
-            If result = DialogResult.Yes Then
-                Try
-                    logger.Logger.LogInfo("User agreed to close squirreljme.exe.")
-                    CheckAndCloseShaderGlass()
-                    CheckAndCloseAMX()
-
-                    For Each process As Process In dojaProcesses
-                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                        process.Kill()
-                        process.WaitForExit()
-                    Next
-
-                    logger.Logger.LogInfo("All squirreljme.exe processes closed successfully.")
-                    Return False ' No longer running
-                Catch ex As Exception
-                    logger.Logger.LogError("Error while closing squirreljme.exe: " & ex.ToString())
-                    MessageBox.Show("An error occurred while trying to close squirreljme.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                    Return True ' Still running
-                End Try
-            Else
-                logger.Logger.LogInfo("User chose not to close squirreljme.exe.")
-                Return True ' Still running
-            End If
-        End Function
-        Shared Function CheckAndCloseStar() As Boolean
-            Dim starProcesses = Process.GetProcessesByName("star")
-
-            If starProcesses.Length = 0 Then
-                logger.Logger.LogInfo("star.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {starProcesses.Length} instance(s) of star.exe running.")
-            Dim result = MessageBox.Show("star.exe is currently running. Do you want to close it?",
-                                 "Confirm Close",
-                                 MessageBoxButtons.YesNo,
-                                 MessageBoxIcon.Question)
-
-            If result = DialogResult.Yes Then
-                Try
-                    logger.Logger.LogInfo("User agreed to close star.exe.")
-                    CheckAndCloseShaderGlass()
-                    CheckAndCloseAMX()
-
-                    For Each process As Process In starProcesses
-                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                        process.Kill()
-                        process.WaitForExit()
-                    Next
-
-                    logger.Logger.LogInfo("All star.exe processes closed successfully.")
-                    Return False ' No longer running
-                Catch ex As Exception
-                    logger.Logger.LogError("Error while closing star.exe: " & ex.ToString())
-                    MessageBox.Show("An error occurred while trying to close star.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                    Return True ' Still running
-                End Try
-            Else
-                logger.Logger.LogInfo("User chose not to close star.exe.")
-                Return True ' Still running
-            End If
-        End Function
-        Shared Function CheckAndCloseJava() As Boolean
-            Dim targets As String() = {"java", "javaw", "jbime"}
-            Dim allProcesses As New List(Of Process)
-
-            ' Collect matching processes
-            For Each target In targets
-                allProcesses.AddRange(Process.GetProcessesByName(target))
-            Next
-
-            If allProcesses.Count = 0 Then
-                logger.Logger.LogInfo("No java/javaw/jbime processes are currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {allProcesses.Count} instance(s) of java/javaw/jbime running.")
-            Dim result = MessageBox.Show("Jsky/Vodafone is currently running. Do you want to close it?",
-                                 "Confirm Termination",
-                                 MessageBoxButtons.YesNo,
-                                 MessageBoxIcon.Question)
-
-            If result = DialogResult.Yes Then
-                Try
-                    logger.Logger.LogInfo("User agreed to close all related processes.")
-                    CheckAndCloseShaderGlass()
-                    CheckAndCloseAMX()
-
-                    Dim currentPid = Process.GetCurrentProcess().Id
-                    Dim closedCount As Integer = 0
-
-                    For Each process As Process In allProcesses
-                        Try
-                            If process.Id = currentPid Then
-                                logger.Logger.LogInfo($"Skipping self (PID={process.Id})")
+                        For Each proc In foundProcesses
+                            If proc.Id = currentPid Then
+                                logger.Logger.LogInfo($"Skipping self (PID={proc.Id})")
                                 Continue For
                             End If
 
-                            logger.Logger.LogInfo($"Attempting to close PID={process.Id} Name={process.ProcessName}")
-                            process.Kill()
-                            process.WaitForExit()
-                            closedCount += 1
-                        Catch ex As Exception
-                            logger.Logger.LogError($"Failed to close PID={process.Id} ({process.ProcessName}) - {ex.Message}")
-                        End Try
-                    Next
+                            Try
+                                logger.Logger.LogInfo($"Closing PID={proc.Id} Name={proc.ProcessName}")
+                                proc.Kill()
+                                proc.WaitForExit()
+                                closedCount += 1
+                            Catch ex As Exception
+                                logger.Logger.LogError($"Failed to close {proc.ProcessName} (PID={proc.Id}): {ex.Message}")
+                                anyStillRunning = True
+                            End Try
+                        Next
 
-                    logger.Logger.LogInfo($"Closed {closedCount} of {allProcesses.Count} process(es).")
-                    Return False ' All closed or attempted
-                Catch ex As Exception
-                    logger.Logger.LogError("Error while closing Java-related processes: " & ex.ToString())
-                    MessageBox.Show("An error occurred while trying to close Java-related processes: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                    Return True ' Some may still be running
-                End Try
-            Else
-                logger.Logger.LogInfo("User chose not to close Java-related processes.")
-                Return True ' Still running
-            End If
-        End Function
-        Shared Function CheckAndCloseVODAFONE() As Boolean
-            Dim VODAFONEProcesses = Process.GetProcessesByName("emulator")
+                        logger.Logger.LogInfo($"Closed {closedCount} of {foundProcesses.Count} {friendlyName} process(es).")
+                    Catch ex As Exception
+                        logger.Logger.LogError($"Error closing {friendlyName}: {ex}")
+                        MessageBox.Show($"An error occurred while closing {friendlyName}: {ex.Message}",
+                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        anyStillRunning = True
+                    End Try
+                Else
+                    logger.Logger.LogInfo($"User chose not to close {friendlyName}.")
+                    anyStillRunning = True
+                End If
+            Next
 
-            If VODAFONEProcesses.Length = 0 Then
-                logger.Logger.LogInfo("emulator.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {VODAFONEProcesses.Length} instance(s) of emulator.exe running.")
-            Dim result = MessageBox.Show("emulator.exe is currently running. Do you want to close it?",
-                                 "Confirm Close",
-                                 MessageBoxButtons.YesNo,
-                                 MessageBoxIcon.Question)
-
-            If result = DialogResult.Yes Then
-                Try
-                    logger.Logger.LogInfo("User agreed to close emulator.exe.")
-                    CheckAndCloseShaderGlass()
-                    CheckAndCloseAMX()
-
-                    For Each process As Process In VODAFONEProcesses
-                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                        process.Kill()
-                        process.WaitForExit()
-                    Next
-
-                    logger.Logger.LogInfo("All emulator.exe processes closed successfully.")
-                    Return False ' No longer running
-                Catch ex As Exception
-                    logger.Logger.LogError("Error while closing emulator.exe: " & ex.ToString())
-                    MessageBox.Show("An error occurred while trying to close emulator.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                    Return True ' Still running
-                End Try
-            Else
-                logger.Logger.LogInfo("User chose not to close emulator.exe.")
-                Return True ' Still running
-            End If
+            Return anyStillRunning
         End Function
         Shared Function CheckAndCloseAMX() As Boolean
             Dim AMXProcesses = Process.GetProcessesByName("antimicrox")
@@ -1951,47 +1726,6 @@ Namespace My.Managers
                 Return True ' Still running
             End Try
         End Function
-        Shared Function CheckAndCloseFlashPlayer() As Boolean
-            Dim flashplayerProcesses = Process.GetProcessesByName("flashplayer")
-
-            If flashplayerProcesses.Length = 0 Then
-                logger.Logger.LogInfo("flashplayer.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {flashplayerProcesses.Length} instance(s) of flashplayer.exe running.")
-            Dim result = MessageBox.Show("flashplayer.exe is currently running. Do you want to close it?",
-                                 "Confirm Close",
-                                 MessageBoxButtons.YesNo,
-                                 MessageBoxIcon.Question)
-
-            If result = DialogResult.Yes Then
-                Try
-                    logger.Logger.LogInfo("User agreed to close flashplayer.exe.")
-                    CheckAndCloseShaderGlass()
-                    CheckAndCloseAMX()
-
-                    For Each process As Process In flashplayerProcesses
-                        logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                        process.Kill()
-                        process.WaitForExit()
-                    Next
-
-                    logger.Logger.LogInfo("All flashplayer.exe processes closed successfully.")
-                    Return False ' No longer running
-                Catch ex As Exception
-                    logger.Logger.LogError("Error while closing flashplayer.exe: " & ex.ToString())
-                    MessageBox.Show("An error occurred while trying to close flashplayer.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                    Return True ' Still running
-                End Try
-            Else
-                logger.Logger.LogInfo("User chose not to close flashplayer.exe.")
-                Return True ' Still running
-            End If
-        End Function
         Shared Function CheckAndCloseShaderGlass() As Boolean
             Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
 
@@ -2022,35 +1756,15 @@ Namespace My.Managers
         End Function
 
         'Asynchronous method to wait for the emulator process's to start
-        Private Async Function WaitForDojaToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
+        Private Async Function WaitForProcessWindowAsync(processNames As IEnumerable(Of String), tag As String, Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
             Dim startTime As DateTime = DateTime.Now
 
             While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
-                Dim dojaProcesses As Process() = Process.GetProcessesByName("doja")
-
-                For Each proc In dojaProcesses
-                    If proc.MainWindowHandle <> IntPtr.Zero Then
-                        logger.Logger.LogInfo("[WaitForDojaToStart] DOJA process ready with MainWindowHandle.")
-                        Return True
-                    End If
-                Next
-
-                Await Task.Delay(500)
-            End While
-
-            logger.Logger.LogError("[WaitForDojaToStart] Timed out waiting for DOJA window.")
-            Return False
-        End Function
-        Private Async Function WaitForsquirreljmeToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
-            Dim targetNames As String() = {"java", "squirreljme"}
-            Dim startTime As DateTime = DateTime.Now
-
-            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
-                For Each name In targetNames
+                For Each name In processNames
                     Dim procs As Process() = Process.GetProcessesByName(name)
                     For Each proc In procs
                         If proc.MainWindowHandle <> IntPtr.Zero Then
-                            logger.Logger.LogInfo($"[WaitForsquirreljmeToStart] '{name}' process ready with MainWindowHandle.")
+                            logger.Logger.LogInfo($"[{tag}] '{name}' process ready with MainWindowHandle.")
                             Return True
                         End If
                     Next
@@ -2059,83 +1773,7 @@ Namespace My.Managers
                 Await Task.Delay(500)
             End While
 
-            logger.Logger.LogError("[WaitForsquirreljmeToStart] Timed out waiting for java/squirreljme window.")
-            Return False
-        End Function
-        Private Async Function WaitForSTARToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
-            Dim startTime As DateTime = DateTime.Now
-
-            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
-                Dim dojaProcesses As Process() = Process.GetProcessesByName("star")
-
-                For Each proc In dojaProcesses
-                    If proc.MainWindowHandle <> IntPtr.Zero Then
-                        logger.Logger.LogInfo("[WaitForSTARToStart] STAR process ready with MainWindowHandle.")
-                        Return True
-                    End If
-                Next
-
-                Await Task.Delay(500)
-            End While
-
-            logger.Logger.LogError("[WaitForSTARToStart] Timed out waiting for STAR window.")
-            Return False
-        End Function
-        Private Async Function WaitForJAVAToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
-            Dim startTime As DateTime = DateTime.Now
-
-            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
-                Dim dojaProcesses As Process() = Process.GetProcessesByName("java")
-
-                For Each proc In dojaProcesses
-                    If proc.MainWindowHandle <> IntPtr.Zero Then
-                        logger.Logger.LogInfo("[WaitForJAVAToStart] java process ready with MainWindowHandle.")
-                        Return True
-                    End If
-                Next
-
-                Await Task.Delay(500)
-            End While
-
-            logger.Logger.LogError("[WaitForJAVAToStart] Timed out waiting for java window.")
-            Return False
-        End Function
-        Private Async Function WaitForVODAFONEToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
-            Dim startTime As DateTime = DateTime.Now
-
-            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
-                Dim emulatorProcesses As Process() = Process.GetProcessesByName("emulator")
-
-                For Each proc In emulatorProcesses
-                    If proc.MainWindowHandle <> IntPtr.Zero Then
-                        logger.Logger.LogInfo("[WaitForVODAFONEToStart] emulator process ready with MainWindowHandle.")
-                        Return True
-                    End If
-                Next
-
-                Await Task.Delay(500)
-            End While
-
-            logger.Logger.LogError("[WaitForVODAFONEToStart] Timed out waiting for emulator window.")
-            Return False
-        End Function
-        Private Async Function WaitForFlashPlayerToStart(Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
-            Dim startTime As DateTime = DateTime.Now
-
-            While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
-                Dim dojaProcesses As Process() = Process.GetProcessesByName("flashplayer")
-
-                For Each proc In dojaProcesses
-                    If proc.MainWindowHandle <> IntPtr.Zero Then
-                        logger.Logger.LogInfo("[WaitForFlashPlayerToStart] flashplayer process ready with MainWindowHandle.")
-                        Return True
-                    End If
-                Next
-
-                Await Task.Delay(500)
-            End While
-
-            logger.Logger.LogError("[WaitForFlashPlayerToStart] Timed out waiting for flashplayer window.")
+            logger.Logger.LogError($"[{tag}] Timed out waiting for {String.Join("/", processNames)} window.")
             Return False
         End Function
 

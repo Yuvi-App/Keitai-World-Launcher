@@ -1,7 +1,5 @@
 ﻿Imports System.IO
 Imports System.IO.Compression
-Imports ReaLTaiizor.Controls
-Imports ReaLTaiizor.Forms
 
 Namespace My.Managers
     Public Class GameManager

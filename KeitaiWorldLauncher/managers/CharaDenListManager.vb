@@ -1,5 +1,4 @@
 ﻿Imports System.IO
-Imports System.Net
 Imports System.Text
 Imports System.Xml.Serialization
 Imports KeitaiWorldLauncher.My.Models

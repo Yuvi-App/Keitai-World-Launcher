@@ -1,13 +1,10 @@
-﻿Imports System.DirectoryServices.ActiveDirectory
-Imports System.IO
+﻿Imports System.IO
 Imports System.Text
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
-Imports Newtonsoft.Json.Linq
 Imports ReaLTaiizor.Controls
 Imports ReaLTaiizor.[Enum].Poison
-Imports ReaLTaiizor.Forms
 Imports SharpDX.XInput
 
 Public Class Form1
@@ -15,6 +12,7 @@ Public Class Form1
     Private splash As SplashScreen
     Dim isDebug As Boolean = False
     Dim isOnline As Boolean = False
+    Dim ApploadManager As New AppLoadManager()
     Dim applitrackerManager As New AppliTrackerManager
     Dim configManager As New ConfigManager()
     Dim utilManager As New UtilManager
@@ -78,26 +76,12 @@ Public Class Form1
     Public CharaDenpath As String
     Public CharaDenExe As String
     Public Java1_8BinFolderPath As String
-    Public Java1_4BinFolderPath As String
 
-    ' FORM LOAD
-    Private Sub Form1_FormClosing(sender As Object, e As EventArgs) Handles MyBase.FormClosing
-        UtilManager.CheckAndCloseDoja()
-        UtilManager.CheckAndCloseSQJME()
-        UtilManager.CheckAndCloseStar()
-        UtilManager.CheckAndCloseJava()
+    ' FORM Close/Load
+    Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
+        UtilManager.CheckAndCloseAllEmulators()
         UtilManager.CheckAndCloseAMX()
         UtilManager.CheckAndCloseAHK()
-        UtilManager.CheckAndCloseVODAFONE()
-    End Sub
-    Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.Closing
-        UtilManager.CheckAndCloseDoja()
-        UtilManager.CheckAndCloseSQJME()
-        UtilManager.CheckAndCloseStar()
-        UtilManager.CheckAndCloseJava()
-        UtilManager.CheckAndCloseAMX()
-        UtilManager.CheckAndCloseAHK()
-        UtilManager.CheckAndCloseVODAFONE()
     End Sub
     Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Opacity = 0
@@ -133,44 +117,11 @@ Public Class Form1
         ' Load Config
         config = Await configManager.LoadConfigAsync()
 
-        ' Access Config settings
-        versionCheckUrl = config("VersionCheckURL")
-        autoUpdate = Boolean.Parse(config("AutoUpdate"))
-        FirstRun = Boolean.Parse(config("FirstRun"))
-        gameListUrl = config("GamelistURL")
-        autoUpdateGameList = Boolean.Parse(config("AutoUpdateGameList"))
-        machicharaListUrl = config("MachiCharalistURL")
-        autoUpdatemachicharaList = Boolean.Parse(config("AutoUpdateMachiCharaList"))
-        charadenListUrl = config("CharaDenlistURL")
-        autoUpdatecharadenList = Boolean.Parse(config("AutoUpdateCharaDenList"))
-        UseShaderGlass = Boolean.Parse(config("UseShaderGlass"))
-        UseDialPad = Boolean.Parse(config("UseDialPad"))
-        DOJApath = config("DOJAPath")
-        DOJAEXE = config("DOJAEXEPath")
-        DOJAHideUI = Boolean.Parse(config("DOJAHideUI"))
-        DOJASoundType = config("DOJASoundType")
-        STARpath = config("STARPath")
-        STAREXE = config("STAREXEPath")
-        JSKYpath = config("JSKYPath")
-        JSKYEXE = config("JSKYEXEPath")
-        VODAFONEpath = config("VODAFONEPath")
-        VODAFONEEXE = config("VODAFONEEXEPath")
-        FlashPlayerpath = config("FlashPlayerPath")
-        FlashPlayerEXE = config("FlashPlayerEXEPath")
-        MachiCharapath = config("MachiCharaPath")
-        MachiCharaExe = config("MachiCharaEXEPath")
-        CharaDenpath = config("CharaDenPath")
-        CharaDenExe = config("CharaDenEXEPath")
+        ' Access and Assign Config settings
+        AppLoadManager.LoadConfigValues(config)
 
         ' Get NetworkUIDConfig
-        If File.Exists(NetworkUIDTxtFile) = False Then
-            Using sw As StreamWriter = New StreamWriter(File.Open(NetworkUIDTxtFile, FileMode.Create))
-                sw.WriteLine("NULLGWDOCOMO")
-                sw.Flush()
-                sw.Close()
-            End Using
-        End If
-        NetworkUID = File.ReadAllText(NetworkUIDTxtFile).Trim
+        AppLoadManager.LoadNetworkUID()
 
         ' Check PreREQs if First Run
         Await UtilManager.CheckForSpacesInPathAsync()
@@ -190,35 +141,11 @@ Public Class Form1
             Form1.QuitApplication()
         End If
 
-        'Check for Java1_4 32-bit and Updated Java32bit Path
-        Dim Java1_4Path As String = Await UtilManager.GetJava1_4InstallPathAsync()
-        If String.IsNullOrEmpty(Java1_4Path) Then
-            MessageBox.Show(owner:=SplashScreen, "Missing JAVA 2(v1_4)... Download is required")
-            My.logger.Logger.LogInfo("Missing JAVA 2(v1_4)")
-            Await UtilManager.OpenURLAsync("https://scratchpad.keitaiarchive.org/s/AxTty326itLfEwE?dir=/Utilities/Java")
-            MessageBox.Show(owner:=SplashScreen, "Please download and install Java 2(v1_4) to continue, then RUN AS ADMIN after", "Java Required", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Form1.QuitApplication()
-        End If
-        Java1_4BinFolderPath = Path.Combine(Java1_4Path, "bin")
         'We need to check for java every run, since these get used for all emu's
-        'Check for Java1_8 32-bit and Updated Java32bit Path
-        Dim Java1_8Path As String = Await UtilManager.GetJava1_8InstallPathAsync()
-        If String.IsNullOrEmpty(Java1_8Path) Then
-            MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8(v1_8)... Download is required")
-            My.logger.Logger.LogInfo("Missing JAVA 8(v1_8)")
-            Await UtilManager.OpenURLAsync("https://scratchpad.keitaiarchive.org/s/AxTty326itLfEwE?dir=/Utilities/Java")
+        Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
+        If Not javaReady Then
             Form1.QuitApplication()
-        End If
-        Java1_8BinFolderPath = Path.Combine(Java1_8Path, "bin")
-        Await UtilManager.UpdateJRECurrentVersion("1.8")
-
-        'Check if JRE Registry is set to 1.8
-        Dim IncorrectJREVersion As String = UtilManager.IsJRECurrentVersion("1.8")
-        My.logger.Logger.LogInfo($"Checking for JRE CurrentVersion regKey 1.8")
-        If IncorrectJREVersion = False Then
-            My.logger.Logger.LogInfo($"Incorrect JRE CurrentVersion regKey")
-            MessageBox.Show(owner:=SplashScreen, "Java Runtime CurrentVersion Registry key must be set To 1.8, Please rerun app as admin to update it.")
-            Form1.QuitApplication()
+            Return
         End If
 
         'Needs Internet If none we skip and use local file
@@ -285,6 +212,7 @@ Public Class Form1
         cbxFilterType.SelectedIndex = 0
         cbxShaderGlassScaling.SelectedIndex = 2
         cbxSJMELaunchOption.SelectedIndex = 0
+        cbxSJMEScaling.SelectedIndex = 1
 
         ' Close the splash screen
         Await SplashScreen.CloseSplashAsync()
@@ -325,7 +253,6 @@ Public Class Form1
         Dim dojaDefault As String = "iDKDoJa5.1"
         Dim starDefault As String = "iDKStar2.0"
         Dim jskyDefault As String = "JSky_0.1.5B"
-        Dim vodafoneDefault As String = "V-appli_SDK_121"
         Dim FlashDefault As String = "FlashPlayer"
         Dim dojaFound As Boolean = False
         Dim starFound As Boolean = False
@@ -366,11 +293,6 @@ Public Class Form1
                 If folder.Equals(jskyDefault, StringComparison.OrdinalIgnoreCase) Then
                     jskyFound = True
                 End If
-            ElseIf folder.StartsWith("V-appli_", StringComparison.OrdinalIgnoreCase) Then
-                cbxVodafoneSDK.Items.Add(folder)
-                If folder.Equals(vodafoneDefault, StringComparison.OrdinalIgnoreCase) Then
-                    vodafoneFound = True
-                End If
             ElseIf folder.StartsWith("Flash", StringComparison.OrdinalIgnoreCase) Then
                 cbxFlashSDK.Items.Add(folder)
                 If folder.Equals(FlashDefault, StringComparison.OrdinalIgnoreCase) Then
@@ -396,12 +318,6 @@ Public Class Form1
             cbxJSKYSDK.SelectedItem = jskyDefault
         Else
             MessageBox.Show(owner:=SplashScreen, $"The default SDK '{jskyDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-
-        If vodafoneFound Then
-            cbxVodafoneSDK.SelectedItem = vodafoneDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{vodafoneDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
 
         If flashFound Then
@@ -1490,8 +1406,6 @@ Public Class Form1
         aboutForm.ShowDialog()
     End Sub
 
-
-
     ' LISTBOX/LISTVIEW CHANGES
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
         ' Restart the timer on selection change
@@ -1530,7 +1444,7 @@ Public Class Form1
         If ListViewCharaDen.SelectedItems.Count = 0 Then Return
         Dim selectedItem = ListViewCharaDen.SelectedItems(0)
         Dim selectedCharaDen = CType(selectedItem.Tag, CharaDen)
-        DownloadCharaden(selectedCharaDen)
+        DownloadCharaDen(selectedCharaDen)
     End Sub
 
     ' CheckBox Changes
@@ -1879,29 +1793,47 @@ Public Class Form1
                 Return
             End If
 
-            ' Ensure the SDKs are selected
-            If cbxDojaSDK.SelectedItem Is Nothing Then
-                Logger.LogWarning("Launch failed: No Doja SDK selected.")
-                MessageBox.Show("Please select a Doja SDK before launching.")
-                Return
-            End If
-            If cbxStarSDK.SelectedItem Is Nothing Then
-                Logger.LogWarning("Launch failed: No Star SDK selected.")
-                MessageBox.Show("Please select a Star SDK before launching.")
-                Return
-            End If
+            ' Ensure CBX SDKs are selected
+            ' Define a dictionary to hold the selected SDKs and their keys
+            Dim sdkComboBoxes As New Dictionary(Of ComboBox, String) From {
+                {cbxDojaSDK, "Doja"},
+                {cbxStarSDK, "Star"},
+                {cbxJSKYSDK, "JSKY"},
+                {cbxVodafoneSDK, "VODAFONE"}, ' This will be treated as optional
+                {cbxFlashSDK, "FLASH"}
+            }
 
-            ' Store selected SDKs in variables
-            Dim selectedDojaSDK As String = cbxDojaSDK.SelectedItem.ToString()
-            Dim selectedStarSDK As String = cbxStarSDK.SelectedItem.ToString()
-            Dim selectedJSKYSDK As String = cbxJSKYSDK.SelectedItem.ToString()
-            Dim selectedVODAFONESDK As String = cbxVodafoneSDK.SelectedItem.ToString()
-            Dim selectedFlashSDK As String = cbxFlashSDK.SelectedItem.ToString()
-            Logger.LogInfo($"Selected Doja SDK: {selectedDojaSDK}")
-            Logger.LogInfo($"Selected Star SDK: {selectedStarSDK}")
-            Logger.LogInfo($"Selected JSKY SDK: {selectedJSKYSDK}")
-            Logger.LogInfo($"Selected VODAFONE SDK: {selectedVODAFONESDK}")
-            Logger.LogInfo($"Selected Flash SDK: {selectedFlashSDK}")
+            Dim selectedSDKs As New Dictionary(Of String, String)
+
+            ' Validate and collect selected SDKs
+            For Each kvp In sdkComboBoxes
+                Dim comboBox = kvp.Key
+                Dim sdkName = kvp.Value
+                Dim selectedItem = comboBox.SelectedItem
+
+                ' Skip validation for Vodafone
+                If sdkName = "VODAFONE" AndAlso selectedItem Is Nothing Then
+                    Logger.LogInfo("Vodafone SDK not selected; continuing without it.")
+                    Continue For
+                End If
+
+                ' Validate required SDKs
+                If selectedItem Is Nothing Then
+                    Logger.LogWarning($"Launch failed: No {sdkName} SDK selected.")
+                    MessageBox.Show($"Please select a {sdkName} SDK before launching.")
+                    Return
+                End If
+
+                selectedSDKs(sdkName) = selectedItem.ToString()
+                Logger.LogInfo($"Selected {sdkName} SDK: {selectedItem}")
+            Next
+
+            ' Access the selected SDKs (Vodafone may be missing)
+            Dim selectedDojaSDK = selectedSDKs("Doja")
+            Dim selectedStarSDK = selectedSDKs("Star")
+            Dim selectedJSKYSDK = selectedSDKs("JSKY")
+            Dim selectedFlashSDK = selectedSDKs("FLASH")
+            Dim selectedVODAFONESDK As String = selectedSDKs.GetValueOrDefault("VODAFONE", "")
 
             ' Verify the game is downloaded
             If Not Await VerifyGameDownloadedAsync() Then
@@ -1929,6 +1861,8 @@ Public Class Form1
                 CorrectedEmulator = selectedGame.Emulator
             ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".swf") Then
                 CorrectedEmulator = "flash"
+            Else
+                CorrectedEmulator = selectedGame.Emulator
             End If
             Logger.LogInfo($"Detected emulator type: {CorrectedEmulator}")
 
@@ -1953,57 +1887,41 @@ Public Class Form1
             ' Start Launching Game
             UtilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
-            Dim isDojaRunning As Boolean = UtilManager.CheckAndCloseDoja()
-            Dim isSQJMERunning As Boolean = UtilManager.CheckAndCloseSQJME()
-            Dim isStarRunning As Boolean = UtilManager.CheckAndCloseStar()
-            Dim isJavaRunning As Boolean = UtilManager.CheckAndCloseJava()
-            Dim isVodaFoneRunning As Boolean = UtilManager.CheckAndCloseVODAFONE
-            Dim isFlashRunning As Boolean = UtilManager.CheckAndCloseFlashPlayer()
+            Dim isEmulatorsRunning As Boolean = UtilManager.CheckAndCloseAllEmulators()
+            If isEmulatorsRunning Then
+                Logger.LogWarning("An emulator is still running. Aborting launch.")
+                Return
+            End If
             Select Case CorrectedEmulator.ToLower()
                 Case "doja"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
-                        Logger.LogInfo("Launching game using DOJA emulator.")
-                        If DOJApath.Contains("iDKDoJa") Then
-                            utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
-                        ElseIf DOJApath.Contains("squirreljme") Then
-                            utilManager.LaunchCustomDOJA_SJMEGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
-                        End If
-                        Logger.LogInfo($"Launched with: DojaPath={DOJApath}, DojaEXE={DOJAEXE}, GamePath={CurrentSelectedGameJAM}")
-                    Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
+                    Logger.LogInfo("Launching game using DOJA emulator.")
+                    If DOJApath.Contains("iDKDoJa") Then
+                        utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
+                    ElseIf DOJApath.Contains("squirreljme") Then
+                        utilManager.LaunchCustomDOJA_SJMEGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
                     End If
+                    Logger.LogInfo($"Launched with: DojaPath={DOJApath}, DojaEXE={DOJAEXE}, GamePath={CurrentSelectedGameJAM}")
+
                 Case "star"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
-                        Logger.LogInfo("Launching game using STAR emulator.")
-                        utilManager.LaunchCustomSTARGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
-                        Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
-                    Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
-                    End If
+                    Logger.LogInfo("Launching game using STAR emulator.")
+                    utilManager.LaunchCustomSTARGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
+                    Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
+
                 Case "jsky"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
-                        Logger.LogInfo("Launching game using JSKY emulator.")
-                        utilManager.LaunchCustomJSKYGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
-                        Logger.LogInfo($"Launched with: JSKYPath={JSKYpath}, JSKYEXE={JSKYEXE}, GamePath={CurrentSelectedGameJAM}")
-                    Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
-                    End If
+                    Logger.LogInfo("Launching game using JSKY emulator.")
+                    utilManager.LaunchCustomJSKYGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
+                    Logger.LogInfo($"Launched with: JSKYPath={JSKYpath}, JSKYEXE={JSKYEXE}, GamePath={CurrentSelectedGameJAM}")
+
                 Case "vodafone"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
-                        Logger.LogInfo("Launching game using VODAFONE emulator.")
-                        utilManager.LaunchCustomVODAFONEGameCommand(VODAFONEpath, VODAFONEEXE, CurrentSelectedGameJAM)
-                        Logger.LogInfo($"Launched with: VODAFONEPath={VODAFONEpath}, VODAFONEEXE={VODAFONEEXE}, GamePath={CurrentSelectedGameJAM}")
-                    Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
-                    End If
+                    Logger.LogInfo("Launching game using VODAFONE emulator.")
+                    MessageBox.Show("Vodafone support has been temporarily disabled... ")
+                    Logger.LogInfo($"Launched with: VODAFONEPath={VODAFONEpath}, VODAFONEEXE={VODAFONEEXE}, GamePath={CurrentSelectedGameJAM}")
+
                 Case "flash"
-                    If Not isDojaRunning AndAlso Not isStarRunning AndAlso Not isJavaRunning AndAlso Not isFlashRunning AndAlso Not isVodaFoneRunning AndAlso Not isSQJMERunning Then
-                        Logger.LogInfo("Launching game using flash Player.")
-                        utilManager.LaunchCustomFLASHGameCommand(FlashPlayerpath, FlashPlayerEXE, CurrentSelectedGameJAM)
-                        Logger.LogInfo($"Launched with: flashPath={FlashPlayerpath}, flashEXE={FlashPlayerEXE}, SWFPath={CurrentSelectedGameJAM}")
-                    Else
-                        Logger.LogWarning("STAR emulator, DOJA emulator, JSKY emulator, VODAFONE emulator or FlashPlayer is already running. Skipping launch.")
-                    End If
+                    Logger.LogInfo("Launching game using flash Player.")
+                    utilManager.LaunchCustomFLASHGameCommand(FlashPlayerpath, FlashPlayerEXE, CurrentSelectedGameJAM)
+                    Logger.LogInfo($"Launched with: flashPath={FlashPlayerpath}, flashEXE={FlashPlayerEXE}, SWFPath={CurrentSelectedGameJAM}")
+
                 Case Else
                     Logger.LogError($"Unknown emulator type: '{CorrectedEmulator}'. Aborting launch.")
                     MessageBox.Show("Unknown emulator type detected. Cannot launch the game.")
@@ -2389,6 +2307,17 @@ Public Class Form1
     Private Sub btnSaveDataManagement_Click(sender As Object, e As EventArgs) Handles btnSaveDataManagement.Click
         SaveDataManagerForm.ShowDialog()
     End Sub
+    Private Sub btnSJMEUpdate_Click(sender As Object, e As EventArgs) Handles btnSJMEUpdate.Click
+        Dim Apppath = $"cmd"
+        Dim SJMEApppath As String = $"{ToolsFolder}\squirreljme\squirreljme-updater.exe"
+        Dim startInfo As New ProcessStartInfo()
+        startInfo.FileName = Apppath
+        startInfo.Arguments = $"/C {SJMEApppath}"
+        startInfo.UseShellExecute = False
+        startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+        Dim process As Process = Process.Start(startInfo)
+    End Sub
+
     'Help Options in TabPage
     Private Sub SetupLabelsinOptions()
         Dim troubleshootingMessage As String =
@@ -2619,4 +2548,5 @@ Public Class Form1
             LoadPlaytimesToListView()
         End If
     End Sub
+
 End Class
