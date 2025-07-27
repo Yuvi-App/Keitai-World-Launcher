@@ -5,6 +5,7 @@ Imports System.Reflection
 Imports System.Security.Principal
 Imports System.Text
 Imports System.Text.RegularExpressions
+Imports System.Text.Unicode
 Imports System.Threading
 Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.Win32
@@ -836,7 +837,6 @@ Namespace My.Managers
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
-                    ProcessManager.StartMonitoring(jamPath)
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
@@ -846,7 +846,7 @@ Namespace My.Managers
                         Await StartVibratorBmpMonitorAsync(Path.Combine(DOJAPATH, "lib", "skin", "device1", "vibrator.bmp"))
                     End If
                 End If
-
+                ProcessManager.StartMonitoring(jamPath)
             Catch ex As Exception
                 logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -935,7 +935,6 @@ Namespace My.Managers
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass(AppName)
-                    ProcessManager.StartMonitoring(jamPath)
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
@@ -946,6 +945,84 @@ Namespace My.Managers
                         Form1.chkboxControllerVibration.Checked = False
                     End If
                 End If
+                ProcessManager.StartMonitoring(jamPath)
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
+                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Public Async Sub LaunchCustom_KEmulatorGameCommand(KEMUPATH As String, KEMUEXELocation As String, GameJAM As String)
+            Try
+                logger.Logger.LogInfo("[Launch] Starting KEmulator game launch sequence...")
+
+                ' Validate inputs
+                If String.IsNullOrWhiteSpace(KEMUPATH) OrElse String.IsNullOrWhiteSpace(KEMUEXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
+                    Throw New ArgumentException("One or more required parameters are missing.")
+                End If
+
+                'Start overlay
+                UtilManager.ShowLaunchOverlay(Form1)
+
+                ' Prepare all paths
+                Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
+                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim appPath As String
+                Dim arguments As String
+
+                ' Make Full Paths
+                Dim Java32EXE As String = Path.Combine(Form1.Java1_8BinFolderPath, "java.exe")
+                Dim exePath As String = KEMUEXELocation.Trim
+                Dim jadjamPath As String = Path.Combine(baseDir, GameJAM).Trim()
+                Dim jarPath As String = Path.Combine(Path.GetDirectoryName(jadjamPath), Path.GetFileNameWithoutExtension(jadjamPath) & ".jar")
+
+                If jadjamPath.Length > 240 Then
+                    logger.Logger.LogWarning($"[Launch] JAD file path exceeds 240 characters: {jadjamPath}")
+                    MessageBox.Show("The file path length exceeds 240 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                ' Form arguments based on launch method
+                appPath = Java32EXE
+                arguments = $"{Path.GetFileName(exePath)} ""{jadjamPath}"""
+                logger.Logger.LogInfo($"[Launch] Launching Kemulator directly without Locale Emulator: {arguments}")
+
+                ' Config updates / ' Extract AppName from JAM
+                Dim AppName As String
+                If GameJAM.EndsWith(".jad") Then
+                    AppName = GetMidletNameFromJad(jadjamPath)
+                    Await UpdateJADJarURLAsync(jadjamPath)
+                ElseIf GameJAM.EndsWith(".jam") Then
+                    AppName = ExtractAppNamefromJAM(jadjamPath)
+                End If
+
+                ' Update KEMULATOR config
+                Dim Kemu_PropertyFile = Path.Combine(Path.GetDirectoryName(exePath), "property.txt")
+                Await EnsureKEmulatorProperties(Kemu_PropertyFile)
+
+                Await Task.Delay(500) ' Let the filesystem settle
+
+                ' Launch KEMULATOR JAVA with retry logic
+                Dim success = Await LaunchKemulatorAppAsync(Java32EXE, KEMUEXELocation, jarPath)
+                If Not success Then
+                    HideLaunchOverlay()
+                    MessageBox.Show("Failed to launch KEmulator after retrying.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End If
+
+                ' ShaderGlass launch if enabled
+                If Form1.chkbxShaderGlass.Checked Then
+                    logger.Logger.LogInfo("[ShaderGlass] Not Supported for KEmulator, Disabling")
+                    Form1.chkbxShaderGlass.Checked = False
+                    MessageBox.Show("ShaderGlass is not supported with KEmulator. Please manually resize the KEmulator window by dragging it larger.")
+                End If
+                If Form1.chkbxEnableController.Checked = True Then
+                    Await LaunchControllerProfileAMGP()
+                End If
+                ProcessManager.StartMonitoring(jadjamPath)
+                HideLaunchOverlay()
+            Catch ex As ArgumentException
+                logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
+                MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
 
             Catch ex As Exception
                 logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
@@ -1042,7 +1119,6 @@ Namespace My.Managers
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
-                    ProcessManager.StartMonitoring(jamPath)
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
@@ -1052,7 +1128,7 @@ Namespace My.Managers
                         Await StartVibratorBmpMonitorAsync(Path.Combine(STARPATH, "lib", "skin", "device1", "vibrator.bmp"))
                     End If
                 End If
-
+                ProcessManager.StartMonitoring(jamPath)
             Catch ex As ArgumentException
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
                 MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
@@ -1113,7 +1189,6 @@ Namespace My.Managers
                     logger.Logger.LogInfo("[ShaderGlass] Waiting for JSKY to become idle...")
                     If Await WaitForProcessWindowAsync({"java"}, "WaitForJavaToStart") Then
                         Await LaunchShaderGlass("J-SKY Application Emulator")
-                        ProcessManager.StartMonitoring(jadPath)
                         logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                     Else
                         logger.Logger.LogError("[ShaderGlass] Failed to detect JSKY running.")
@@ -1124,6 +1199,7 @@ Namespace My.Managers
                 If Form1.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                 End If
+                ProcessManager.StartMonitoring(jadPath)
                 HideLaunchOverlay()
             Catch ex As ArgumentException
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
@@ -1190,13 +1266,13 @@ Namespace My.Managers
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass("V-appli Emulator")
-                    ProcessManager.StartMonitoring(jadPath)
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
                 If Form1.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                 End If
+                ProcessManager.StartMonitoring(jadPath)
                 HideLaunchOverlay()
             Catch ex As ArgumentException
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
@@ -1271,13 +1347,13 @@ Namespace My.Managers
                 ' ShaderGlass launch if enabled
                 If Form1.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass("Adobe Flash Player 10")
-                    ProcessManager.StartMonitoring(GameJAM)
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
                 If Form1.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                 End If
+                ProcessManager.StartMonitoring(GameJAM)
                 HideLaunchOverlay()
             Catch ex As ArgumentException
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
@@ -1436,6 +1512,31 @@ Namespace My.Managers
                     .UseShellExecute = True,
                     .WorkingDirectory = Path.GetDirectoryName(JskyExePath),
                     .CreateNoWindow = True
+                }
+
+                Dim process As Process = Process.Start(psi)
+
+                ' Optional delay to allow Java process to spawn
+                Await Task.Delay(1000)
+
+                ' Check for any java process
+                Dim javaRunning As Boolean = Process.GetProcessesByName("java").Any()
+
+                Return javaRunning
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[JavaLaunch] Failed to start Java app: {ex.Message}")
+                Return False
+            End Try
+        End Function
+        Public Async Function LaunchKemulatorAppAsync(javapath As String, KemulatorExePath As String, jarPath As String) As Task(Of Boolean)
+            Try
+                ' Proper quoting for cmd.exe
+                Dim arguments As String = $"/C """"{javapath}"" -jar ""{Path.GetFileName(KemulatorExePath)}"" -jar ""{jarPath}"""""
+
+                Dim psi As New ProcessStartInfo("cmd.exe", arguments) With {
+                    .UseShellExecute = False,
+                    .WorkingDirectory = Path.GetDirectoryName(KemulatorExePath)
                 }
 
                 Dim process As Process = Process.Start(psi)
@@ -2313,6 +2414,79 @@ Namespace My.Managers
                 logger.Logger.LogError($"Failed to update JAD file: {ex.Message}")
                 Return False
             End Try
+        End Function
+
+        'KEmulator Helpers
+        Public Shared Function GetMidletNameFromJad(jadFilePath As String) As String
+            Try
+                Dim lines = File.ReadAllLines(jadFilePath, Encoding.UTF8)
+
+                ' Search for the MIDlet-Name line
+                For Each line In lines
+                    If line.StartsWith("MIDlet-Name:", StringComparison.OrdinalIgnoreCase) Then
+                        Return line.Substring("MIDlet-Name:".Length).Trim()
+                    End If
+                Next
+
+                Return Nothing ' Not found
+            Catch ex As Exception
+                MessageBox.Show($"Error reading JAD file: {ex.Message}", "Read Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Return Nothing
+            End Try
+        End Function
+        Public Shared Function ExtractKEmulatorVersion(logFilePath As String) As String
+            Try
+                If Not File.Exists(logFilePath) Then Return Nothing
+
+                ' Open with read-share in case another process is writing
+                Using fs As New FileStream(logFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                    Using reader As New StreamReader(fs)
+                        While Not reader.EndOfStream
+                            Dim line As String = reader.ReadLine()
+
+                            If line.Contains("KEmulator") Then
+                                ' Split the line by space and find the first part that starts with "v"
+                                Dim parts = line.Split(" "c)
+                                For Each part In parts
+                                    If part.StartsWith("v") Then
+                                        Return part.Trim()
+                                    End If
+                                Next
+                            End If
+                        End While
+                    End Using
+                End Using
+
+                Return Nothing ' Version not found
+            Catch ex As Exception
+                MessageBox.Show($"Error reading log file: {ex.Message}", "Read Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Return Nothing
+            End Try
+        End Function
+        Public Shared Async Function EnsureKEmulatorProperties(propertyFilePath As String) As Task(Of Boolean)
+            Dim lines As New List(Of String)(File.ReadAllLines(propertyFilePath, Encoding.GetEncoding("shift_jis")))
+            Dim updatedLines As New List(Of String)
+            Dim defaultFontSet As Boolean = False
+            Dim fileEncodingSet As Boolean = False
+
+            For Each line In lines
+                If line.StartsWith("DefaultFont=", StringComparison.OrdinalIgnoreCase) Then
+                    updatedLines.Add("DefaultFont=Meiryo UI")
+                    defaultFontSet = True
+                ElseIf line.StartsWith("FileEncoding=", StringComparison.OrdinalIgnoreCase) Then
+                    updatedLines.Add("FileEncoding=Shift_JIS")
+                    fileEncodingSet = True
+                Else
+                    updatedLines.Add(line)
+                End If
+            Next
+
+            ' Add the entries if they weren't found
+            If Not defaultFontSet Then updatedLines.Add("DefaultFont=Meiryo UI")
+            If Not fileEncodingSet Then updatedLines.Add("FileEncoding=Shift_JIS")
+
+            File.WriteAllLines(propertyFilePath, updatedLines, Encoding.GetEncoding("shift_jis"))
+            Return True
         End Function
 
         'ShaderGlass Helpers

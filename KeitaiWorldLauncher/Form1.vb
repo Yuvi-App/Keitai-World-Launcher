@@ -69,6 +69,8 @@ Public Class Form1
     Public JSKYEXE As String
     Public VODAFONEpath As String
     Public VODAFONEEXE As String
+    Public AIREDGEpath As String
+    Public AIREDGEEXE As String
     Public FlashPlayerpath As String
     Public FlashPlayerEXE As String
     Public MachiCharapath As String
@@ -141,13 +143,6 @@ Public Class Form1
             Form1.QuitApplication()
         End If
 
-        'We need to check for java every run, since these get used for all emu's
-        Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
-        If Not javaReady Then
-            Form1.QuitApplication()
-            Return
-        End If
-
         'Needs Internet If none we skip and use local file
         Dim uri As New Uri(versionCheckUrl)
         Dim domainOnly As String = uri.Scheme & "://" & uri.Host
@@ -186,6 +181,13 @@ Public Class Form1
             isOnline = False
             Me.Text = "Keitai World Launcher - Offline"
             Logger.LogWarning($"No internet connection to Domain {domainOnly}. Skipping online checks.")
+        End If
+
+        'We need to check for java every run, since these get used for all emu's
+        Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
+        If Not javaReady Then
+            Form1.QuitApplication()
+            Return
         End If
 
         ' Load Custom Games
@@ -253,10 +255,12 @@ Public Class Form1
         Dim dojaDefault As String = "iDKDoJa5.1"
         Dim starDefault As String = "iDKStar2.0"
         Dim jskyDefault As String = "JSky_0.1.5B"
+        Dim airedgeDefault As String = "kemnnx64"
         Dim FlashDefault As String = "FlashPlayer"
         Dim dojaFound As Boolean = False
         Dim starFound As Boolean = False
         Dim jskyFound As Boolean = False
+        Dim airedgeFound As Boolean = False
         Dim vodafoneFound As Boolean = False
         Dim flashFound As Boolean = False
 
@@ -293,6 +297,13 @@ Public Class Form1
                 If folder.Equals(jskyDefault, StringComparison.OrdinalIgnoreCase) Then
                     jskyFound = True
                 End If
+            ElseIf folder.StartsWith("kemnnx64", StringComparison.OrdinalIgnoreCase) Then 'Kemulator handles more then just 1 type
+                cbxJSKYSDK.Items.Add(folder)
+                cbxDojaSDK.Items.Add(folder)
+                cbxAirEdgeSDK.Items.Add(folder)
+                If folder.Equals(airedgeDefault, StringComparison.OrdinalIgnoreCase) Then
+                    airedgeFound = True
+                End If
             ElseIf folder.StartsWith("Flash", StringComparison.OrdinalIgnoreCase) Then
                 cbxFlashSDK.Items.Add(folder)
                 If folder.Equals(FlashDefault, StringComparison.OrdinalIgnoreCase) Then
@@ -320,6 +331,12 @@ Public Class Form1
             MessageBox.Show(owner:=SplashScreen, $"The default SDK '{jskyDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
 
+        If airedgeFound Then
+            cbxAirEdgeSDK.SelectedItem = airedgeDefault
+        Else
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{airedgeDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+
         If flashFound Then
             cbxFlashSDK.SelectedItem = FlashDefault
         Else
@@ -331,6 +348,7 @@ Public Class Form1
         Dim StarIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "star.gif")
         Dim JskyIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "jsky.gif")
         Dim vodafoneIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "vodafone.gif")
+        Dim airedgeIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "airedge.gif")
         Dim FlashIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")
 
         ' Validate default icons
@@ -370,6 +388,8 @@ Public Class Form1
                                                                                                defaultIconPath = JskyIconPath
                                                                                            Case "vodafone"
                                                                                                defaultIconPath = vodafoneIconPath
+                                                                                           Case "airedge"
+                                                                                               defaultIconPath = airedgeIconPath
                                                                                            Case "flash"
                                                                                                defaultIconPath = FlashIconPath
                                                                                            Case Else
@@ -694,7 +714,7 @@ Public Class Form1
             CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, "bin", $"{zipNameNoExt}.jar")
             CurrentSelectedGameSP = Path.Combine(gameBasePath, variantPath, "sp", $"{zipNameNoExt}.sp")
 
-        ElseIf emulator = "jsky" Or emulator = "vodafone" Then
+        ElseIf emulator = "jsky" Or emulator = "vodafone" Or emulator = "airedge" Then
             If String.IsNullOrWhiteSpace(variantPath) Then
                 CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.jad")
                 CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.jar")
@@ -1557,42 +1577,66 @@ Public Class Form1
         STAREXE = Path.Combine(ToolsFolder, selectedStarSDK, "bin", "star.exe")
     End Sub
     Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxDojaSDK.SelectedIndexChanged
-        ' Ensure the SDKs are selected
         If cbxDojaSDK.SelectedItem Is Nothing Then
             MessageBox.Show("Please select a Doja SDK before launching.")
             Return
         End If
-        ' Store selected SDKs in variables
-        Dim selectedDojaSDK = cbxDojaSDK.SelectedItem.ToString
-        DOJApath = Path.Combine(ToolsFolder, selectedDojaSDK)
-        If selectedDojaSDK.StartsWith("iDKDoJa") Then
-            DOJAEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "bin", "doja.exe")
-            If cbxDojaSDK.SelectedItem.ToString.Contains("3.5") Then
-                If chkbxShaderGlass.Checked = True Then
-                    MessageBox.Show("Doja 3.5 does not work with ShaderGlass Disabling.")
-                    chkbxShaderGlass.Checked = False
-                End If
+
+        Dim selectedSDK As String = cbxDojaSDK.SelectedItem.ToString()
+        Dim sdkLower As String = selectedSDK.ToLowerInvariant()
+        DOJApath = Path.Combine(ToolsFolder, selectedSDK)
+
+        ' Default: Disable SJME options unless enabled later
+        gbxSJMELaunchOptions.Enabled = False
+
+        If sdkLower.StartsWith("idkdoja") Then
+            DOJAEXE = Path.Combine(DOJApath, "bin", "doja.exe")
+
+            If selectedSDK.Contains("3.5") AndAlso chkbxShaderGlass.Checked Then
+                MessageBox.Show("Doja 3.5 does not work with ShaderGlass. Disabling it.")
+                chkbxShaderGlass.Checked = False
             End If
-            gbxSJMELaunchOptions.Enabled = False
-        ElseIf selectedDojaSDK.StartsWith("squirreljme") Then
-            Logger.LogWarning("[squirreljme] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-            MessageBox.Show("    DISCLAIMER: SquirrelJME support is still in active development.
-    You may encounter unexpected errors, UI glitches, or slowdowns
-    when launching or interacting with the emulator. Use at your own risk.")
-            DOJAEXE = Path.Combine(ToolsFolder, selectedDojaSDK, "squirreljme.exe")
+
+        ElseIf sdkLower.StartsWith("squirreljme") Then
+            MessageBox.Show(
+            "DISCLAIMER: SquirrelJME support is still in active development." & vbCrLf &
+            "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+            "when launching or interacting with the emulator. Use at your own risk."
+            )
+            DOJAEXE = Path.Combine(DOJApath, "squirreljme.exe")
             gbxSJMELaunchOptions.Enabled = True
+
+        ElseIf sdkLower.StartsWith("kemnnx64") Then
+            MessageBox.Show(
+            "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
+            "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+            "when launching or interacting with the emulator. Use at your own risk."
+            )
+            DOJAEXE = Path.Combine(DOJApath, "KEmulator.jar")
         End If
     End Sub
     Private Sub cbxJSKYSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxJSKYSDK.SelectedIndexChanged
-        ' Ensure the SDKs are selected
         If cbxJSKYSDK.SelectedItem Is Nothing Then
             MessageBox.Show("Please select a JSKY SDK before launching.")
             Return
         End If
-        ' Store selected SDKs in variables
-        Dim selectedjskySDK = cbxJSKYSDK.SelectedItem.ToString
-        JSKYpath = Path.Combine(ToolsFolder, selectedjskySDK)
-        JSKYEXE = Path.Combine(ToolsFolder, selectedjskySDK, "jbmidp.jar")
+
+        Dim selectedSDK As String = cbxJSKYSDK.SelectedItem.ToString()
+        Dim sdkLower As String = selectedSDK.ToLowerInvariant()
+        JSKYpath = Path.Combine(ToolsFolder, selectedSDK)
+
+        If sdkLower.StartsWith("jsky_") Then
+            JSKYEXE = Path.Combine(JSKYpath, "jbmidp.jar")
+
+        ElseIf sdkLower.StartsWith("kemnnx64") Then
+            Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+            MessageBox.Show(
+            "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
+            "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+            "when launching or interacting with the emulator. Use at your own risk."
+            )
+            JSKYEXE = Path.Combine(JSKYpath, "KEmulator.jar")
+        End If
     End Sub
     Private Async Sub cbxGameControllers_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxGameControllers.SelectedIndexChanged
         Dim selectedName = cbxGameControllers.SelectedItem?.ToString()
@@ -1799,6 +1843,7 @@ Public Class Form1
                 {cbxDojaSDK, "Doja"},
                 {cbxStarSDK, "Star"},
                 {cbxJSKYSDK, "JSKY"},
+                {cbxAirEdgeSDK, "AIREDGE"},
                 {cbxVodafoneSDK, "VODAFONE"}, ' This will be treated as optional
                 {cbxFlashSDK, "FLASH"}
             }
@@ -1831,6 +1876,7 @@ Public Class Form1
             ' Access the selected SDKs (Vodafone may be missing)
             Dim selectedDojaSDK = selectedSDKs("Doja")
             Dim selectedStarSDK = selectedSDKs("Star")
+            Dim selectedAIREDGESDK = selectedSDKs("AIREDGE")
             Dim selectedJSKYSDK = selectedSDKs("JSKY")
             Dim selectedFlashSDK = selectedSDKs("FLASH")
             Dim selectedVODAFONESDK As String = selectedSDKs.GetValueOrDefault("VODAFONE", "")
@@ -1895,10 +1941,14 @@ Public Class Form1
             Select Case CorrectedEmulator.ToLower()
                 Case "doja"
                     Logger.LogInfo("Launching game using DOJA emulator.")
-                    If DOJApath.Contains("iDKDoJa") Then
+                    Dim lowerDojaPath = DOJApath.ToLowerInvariant()
+
+                    If lowerDojaPath.Contains("idkdoja") Then
                         utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
-                    ElseIf DOJApath.Contains("squirreljme") Then
+                    ElseIf lowerDojaPath.Contains("squirreljme") Then
                         utilManager.LaunchCustomDOJA_SJMEGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerDojaPath.Contains("kemnnx64") Then
+                        utilManager.LaunchCustom_KEmulatorGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: DojaPath={DOJApath}, DojaEXE={DOJAEXE}, GamePath={CurrentSelectedGameJAM}")
 
@@ -1909,13 +1959,24 @@ Public Class Form1
 
                 Case "jsky"
                     Logger.LogInfo("Launching game using JSKY emulator.")
-                    utilManager.LaunchCustomJSKYGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
+                    Dim lowerJSKYPath = JSKYpath.ToLowerInvariant()
+
+                    If lowerJSKYPath.Contains("jsky_") Then
+                        utilManager.LaunchCustomJSKYGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerJSKYPath.Contains("kemnnx64") Then
+                        utilManager.LaunchCustom_KEmulatorGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
+                    End If
                     Logger.LogInfo($"Launched with: JSKYPath={JSKYpath}, JSKYEXE={JSKYEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "vodafone"
                     Logger.LogInfo("Launching game using VODAFONE emulator.")
-                    MessageBox.Show("Vodafone support has been temporarily disabled... ")
+                    MessageBox.Show("Vodafone support has been temporarily disabled...")
                     Logger.LogInfo($"Launched with: VODAFONEPath={VODAFONEpath}, VODAFONEEXE={VODAFONEEXE}, GamePath={CurrentSelectedGameJAM}")
+
+                Case "airedge"
+                    Logger.LogInfo("Launching game using AIREDGE emulator.")
+                    utilManager.LaunchCustom_KEmulatorGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
+                    Logger.LogInfo($"Launched with: AIREDGEPath={AIREDGEpath}, AIREDGEEXE={AIREDGEEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "flash"
                     Logger.LogInfo("Launching game using flash Player.")
@@ -1926,6 +1987,7 @@ Public Class Form1
                     Logger.LogError($"Unknown emulator type: '{CorrectedEmulator}'. Aborting launch.")
                     MessageBox.Show("Unknown emulator type detected. Cannot launch the game.")
             End Select
+
 
         Catch ex As Exception
             Logger.LogError($"Error Launching Game:{vbCrLf}{ex}")

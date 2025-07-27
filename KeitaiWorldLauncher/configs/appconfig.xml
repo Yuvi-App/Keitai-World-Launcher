@@ -18,6 +18,8 @@
   <Setting name="JSKYEXEPath">JSKY.exe</Setting>
   <Setting name="VODAFONEPath">c:/vodafone</Setting>
   <Setting name="VODAFONEEXEPath">vodafone.exe</Setting>
+  <Setting name="AIREDGEPath">c:/AIREDGE</Setting>
+  <Setting name="AIREDGEEXEPath">AIREDGE.exe</Setting
   <Setting name="MachiCharaPath">c:/machichara</Setting>
   <Setting name="MachiCharaEXEPath">machicharaemu.exe</Setting>
   <Setting name="CharaDenPath">c:/charaden</Setting>

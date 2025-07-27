@@ -122,6 +122,8 @@ Partial Class Form1
         Label1 = New Label()
         cbxAudioType = New ComboBox()
         GroupBox4 = New GroupBox()
+        cbxAirEdgeSDK = New ComboBox()
+        Label11 = New Label()
         cbxVodafoneSDK = New ComboBox()
         Label8 = New Label()
         cbxFlashSDK = New ComboBox()
@@ -529,7 +531,7 @@ Partial Class Form1
         cbxFilterType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxFilterType.FlatStyle = FlatStyle.Flat
         cbxFilterType.FormattingEnabled = True
-        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star", "JSky", "Vodafone", "Flash"})
+        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star", "JSky", "AirEdge", "Vodafone", "Flash"})
         cbxFilterType.Location = New Point(340, 20)
         cbxFilterType.Margin = New Padding(2)
         cbxFilterType.Name = "cbxFilterType"
@@ -1090,6 +1092,8 @@ Partial Class Form1
         ' 
         ' GroupBox4
         ' 
+        GroupBox4.Controls.Add(cbxAirEdgeSDK)
+        GroupBox4.Controls.Add(Label11)
         GroupBox4.Controls.Add(cbxVodafoneSDK)
         GroupBox4.Controls.Add(Label8)
         GroupBox4.Controls.Add(cbxFlashSDK)
@@ -1107,6 +1111,30 @@ Partial Class Form1
         GroupBox4.TabIndex = 15
         GroupBox4.TabStop = False
         GroupBox4.Text = "SDK Configuration"
+        ' 
+        ' cbxAirEdgeSDK
+        ' 
+        cbxAirEdgeSDK.DropDownStyle = ComboBoxStyle.DropDownList
+        cbxAirEdgeSDK.FlatStyle = FlatStyle.Flat
+        cbxAirEdgeSDK.Font = New Font("Segoe UI", 9F)
+        cbxAirEdgeSDK.FormattingEnabled = True
+        cbxAirEdgeSDK.Location = New Point(117, 172)
+        cbxAirEdgeSDK.Margin = New Padding(2)
+        cbxAirEdgeSDK.Name = "cbxAirEdgeSDK"
+        cbxAirEdgeSDK.Size = New Size(113, 23)
+        cbxAirEdgeSDK.TabIndex = 22
+        ' 
+        ' Label11
+        ' 
+        Label11.FlatStyle = FlatStyle.Flat
+        Label11.Font = New Font("Segoe UI", 9F)
+        Label11.Location = New Point(6, 172)
+        Label11.Margin = New Padding(2, 0, 2, 0)
+        Label11.Name = "Label11"
+        Label11.Size = New Size(106, 23)
+        Label11.TabIndex = 23
+        Label11.Text = "AirEdge"
+        Label11.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' cbxVodafoneSDK
         ' 
@@ -1138,7 +1166,7 @@ Partial Class Form1
         cbxFlashSDK.FlatStyle = FlatStyle.Flat
         cbxFlashSDK.Font = New Font("Segoe UI", 9F)
         cbxFlashSDK.FormattingEnabled = True
-        cbxFlashSDK.Location = New Point(117, 172)
+        cbxFlashSDK.Location = New Point(117, 199)
         cbxFlashSDK.Margin = New Padding(2)
         cbxFlashSDK.Name = "cbxFlashSDK"
         cbxFlashSDK.Size = New Size(113, 23)
@@ -1148,7 +1176,7 @@ Partial Class Form1
         ' 
         Label7.FlatStyle = FlatStyle.Flat
         Label7.Font = New Font("Segoe UI", 9F)
-        Label7.Location = New Point(6, 172)
+        Label7.Location = New Point(6, 199)
         Label7.Margin = New Padding(2, 0, 2, 0)
         Label7.Name = "Label7"
         Label7.Size = New Size(106, 23)
@@ -1513,4 +1541,6 @@ Partial Class Form1
     Friend WithEvents btnSJMEUpdate As Button
     Friend WithEvents Label10 As Label
     Friend WithEvents cbxSJMEScaling As ComboBox
+    Friend WithEvents cbxAirEdgeSDK As ComboBox
+    Friend WithEvents Label11 As Label
 End Class

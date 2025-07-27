@@ -28,6 +28,8 @@ Namespace My.Managers
         {"JSKYEXEPath", "JSKY.exe"},
         {"VODAFONEPath", "c:\vodafone"},
         {"VODAFONEEXEPath", "vodafone.exe"},
+        {"AIREDGEPath", "c:\AIREDGE"},
+        {"AIREDGEEXEPath", "AIREDGE.exe"},
         {"FlashPlayerPath", "c:\flashplayer"},
         {"FlashPlayerEXEPath", "JSKY.exe"},
         {"MachiCharaPath", "c:\machichara"},
