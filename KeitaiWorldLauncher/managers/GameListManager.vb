@@ -53,6 +53,22 @@ Namespace My.Managers
             Await SaveGamesAsync(games)
         End Function
 
+        ' Remove Game from List (for use with custom game list)
+        Public Async Function RemoveGameAsync(gameTitle As String) As Task
+            ' 1) Load existing list
+            Dim games = Await LoadGamesAsync()
+
+            ' 2) Filter out the one(s) matching our title
+            Dim filtered = games.
+                Where(Function(g) Not g.ENTitle.Equals(gameTitle, StringComparison.OrdinalIgnoreCase)) _
+                .ToList()
+
+            ' 3) Only re-save if something actually changed
+            If filtered.Count <> games.Count Then
+                Await SaveGamesAsync(filtered)
+            End If
+        End Function
+
     End Class
 End Namespace
 

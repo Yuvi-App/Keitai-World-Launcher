@@ -5,6 +5,7 @@ Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
 Imports ReaLTaiizor.Controls
 Imports ReaLTaiizor.[Enum].Poison
+Imports ReaLTaiizor.Forms
 Imports SharpDX.XInput
 
 Public Class Form1
@@ -555,20 +556,24 @@ Public Class Form1
 
                                                                         ' Load favorites and custom games
                                                                         Dim favoriteGames As HashSet(Of String) =
-        If(File.Exists(FavoritesTxtFile),
-           File.ReadAllLines(FavoritesTxtFile).Select(Function(f) f.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
-           New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
+                                                                            If(File.Exists(FavoritesTxtFile),
+                                                                               File.ReadAllLines(FavoritesTxtFile).Select(Function(f) f.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
+                                                                               New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
                                                                         Dim customGames As HashSet(Of String) =
-        If(File.Exists(CustomGamesTxtFile),
-           File.ReadAllLines(CustomGamesTxtFile).Select(Function(f) f.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
-           New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
+                                                                            If(File.Exists(CustomGamesTxtFile),
+                                                                               File.ReadAllLines(CustomGamesTxtFile) _
+                                                                                   .Select(Function(line) line.Trim()) _
+                                                                                   .Where(Function(line) Not String.IsNullOrWhiteSpace(line)) _
+                                                                                   .Select(Function(line) line.Split("|"c)(0).Trim()) _
+                                                                                   .ToHashSet(StringComparer.OrdinalIgnoreCase),
+                                                                               New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
 
                                                                         ' Load installed game folders
                                                                         Dim installedGames As HashSet(Of String) =
-        Directory.GetDirectories(DownloadsFolder).
-        Select(Function(folder) Path.GetFileName(folder)).
-        ToHashSet(StringComparer.OrdinalIgnoreCase)
+                                                                            Directory.GetDirectories(DownloadsFolder).
+                                                                            Select(Function(folder) Path.GetFileName(folder)).
+                                                                            ToHashSet(StringComparer.OrdinalIgnoreCase)
 
                                                                         For Each game In games
                                                                             Dim gameTitle As String = game.ENTitle
@@ -901,7 +906,7 @@ Public Class Form1
             Dim failedGames As New List(Of String)
 
             ' Run deletion work in background
-            Await Task.Run(Sub()
+            Await Task.Run(Async Sub()
                                For Each game In gamesToDelete
                                    Try
                                        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(game.ZIPName))
@@ -920,12 +925,24 @@ Public Class Form1
                                                Next
                                            End If
 
-                                           ' Update customgames.txt
-                                           Dim configPath As String = Path.Combine(ConfigsFolder, "customgames.txt")
+                                           Dim configPath As String = CustomGamesTxtFile
                                            If File.Exists(configPath) Then
                                                Dim lines As List(Of String) = File.ReadAllLines(configPath).ToList()
-                                               If lines.Remove(Path.GetFileNameWithoutExtension(game.ZIPName)) Then
-                                                   File.WriteAllLines(configPath, lines)
+                                               Dim baseName As String = Path.GetFileNameWithoutExtension(game.ZIPName)
+
+                                               ' Remove all entries where the text before '|' equals our baseName
+                                               Dim filtered As List(Of String) = lines.
+                                                    Where(Function(line)
+                                                              Dim parts = line.Split("|"c)
+                                                              Return Not parts(0).Trim().
+                                                                     Equals(baseName, StringComparison.OrdinalIgnoreCase)
+                                                          End Function).
+                                                    ToList()
+
+                                               ' Only rewrite if something actually changed
+                                               If filtered.Count <> lines.Count Then
+                                                   File.WriteAllLines(configPath, filtered)
+                                                   Await gameListManager.RemoveGameAsync(baseName)
                                                End If
                                            End If
                                        Else
@@ -1154,43 +1171,56 @@ Public Class Form1
         Return String.Empty
     End Function
     Public Async Function LoadCustomGamesAsync() As Task
-        Dim customGamesFile As String = Path.Combine(ConfigsFolder, "customgames.txt")
+        Dim customGamesFile As String = CustomGamesTxtFile
 
-        ' Ensure the custom games file exists
+        ' 1) Ensure the file exists
         If Not File.Exists(customGamesFile) Then
             Using stream = File.Create(customGamesFile)
-                ' Close immediately after creation
             End Using
         End If
 
-        ' Deduplicate CustomGames.txt
+        ' 2) Read + dedupe (still on full lines: "appName | emulator")
         Dim allLines As String() = Await File.ReadAllLinesAsync(customGamesFile)
-        Dim customGameLines As List(Of String) = allLines.
-        Select(Function(line) line.Trim()).
-        Where(Function(line) Not String.IsNullOrWhiteSpace(line)).
-        Distinct(StringComparer.OrdinalIgnoreCase).
-        ToList()
+        Dim customGameLines As List(Of String) = allLines _
+        .Select(Function(line) line.Trim()) _
+        .Where(Function(line) Not String.IsNullOrWhiteSpace(line)) _
+        .Distinct(StringComparer.OrdinalIgnoreCase) _
+        .ToList()
 
-        ' Write back only if duplicates were removed
         If customGameLines.Count <> allLines.Length Then
             Await File.WriteAllLinesAsync(customGamesFile, customGameLines)
         End If
 
-        ' Process each folder name
-        For Each gameFolderName In customGameLines
-            Dim gameFolderPath As String = Path.Combine(DownloadsFolder, gameFolderName)
+        ' 3) Supported emulator set
+        Dim supportedEmus = New HashSet(Of String)(StringComparer.OrdinalIgnoreCase) From {
+        "doja", "star", "jsky", "airedge", "vodafone", "flash"
+    }
 
+        ' 4) Process each line
+        For Each entry In customGameLines
+            ' Split at '|' → [0] = appName, [1] = emulator (if present)
+            Dim parts = entry.Split("|"c)
+            Dim appName = parts(0).Trim()
+            Dim emulatorValue As String = "doja"                                 ' default
+            If parts.Length > 1 AndAlso Not String.IsNullOrWhiteSpace(parts(1)) Then
+                Dim candidate = parts(1).Trim().ToLowerInvariant()
+                If supportedEmus.Contains(candidate) Then
+                    emulatorValue = candidate
+                End If
+            End If
+
+            ' Only add if the folder actually exists
+            Dim gameFolderPath = Path.Combine(DownloadsFolder, appName)
             If Directory.Exists(gameFolderPath) Then
                 Dim game As New Game With {
-                .ENTitle = gameFolderName,
-                .ZIPName = gameFolderName & ".zip",
+                .ENTitle = appName,
+                .ZIPName = appName & ".zip",
                 .DownloadURL = "",
                 .CustomAppIconURL = "",
                 .SDCardDataURL = "",
-                .Emulator = "doja",
+                .Emulator = emulatorValue,
                 .Variants = ""
             }
-
                 Await gameListManager.AddGameAsync(game)
             End If
         Next
@@ -2263,107 +2293,161 @@ Public Class Form1
         End If
     End Sub
     Private Sub btnAddCustomApps_Click(sender As Object, e As EventArgs) Handles btnAddCustomApps.Click
-        Dim Result = MessageBox.Show($"Select the folder with the games you want to add.{vbCrLf}Ensure the .jar/.jam/.sp are named the same, and located in the same folder.", "Add Custom Games", MessageBoxButtons.OKCancel)
+        ' —— 1) Pick emulator via a MaterialForm + ComboBox —— '
+        Dim emus() As String = {"Doja", "Star", "JSky", "AirEdge", "Vodafone", "Flash"}
 
-        If Result = DialogResult.Cancel Then
+        ' Use Realtaizor MaterialForm
+        Dim picker As New MaterialForm() With {
+        .Text = "Choose Emulator",
+        .Size = New Size(300, 220),
+        .FormBorderStyle = FormBorderStyle.FixedDialog,
+        .StartPosition = FormStartPosition.CenterParent,
+        .MaximizeBox = False,
+        .MinimizeBox = False,
+        .KeyPreview = True    ' allow KeyDown at form level
+    }
+
+        ' Standard ComboBox is fine
+        Dim cmb As New MaterialComboBox() With {
+        .DataSource = emus,
+        .DropDownStyle = ComboBoxStyle.DropDownList,
+        .Location = New Point(35, 85),
+        .Width = 240
+    }
+
+        ' Realtaizor Buttons
+        Dim btnOK As New MaterialButton() With {
+        .Text = "OK",
+        .Location = New Point(35, 155),
+        .Width = 90
+    }
+        Dim btnCancel As New MaterialButton() With {
+        .Text = "Cancel",
+        .Location = New Point(195, 155),
+        .Width = 90
+    }
+
+        ' clicking sets the form result
+        AddHandler btnOK.Click, Sub()
+                                    picker.DialogResult = DialogResult.OK
+                                    picker.Close()
+                                End Sub
+        AddHandler btnCancel.Click, Sub()
+                                        picker.DialogResult = DialogResult.Cancel
+                                        picker.Close()
+                                    End Sub
+
+        picker.Controls.AddRange(New Control() {cmb, btnOK, btnCancel})
+
+        If picker.ShowDialog(Me) <> DialogResult.OK Then
+            ' user cancelled
             Exit Sub
         End If
 
-        Using folderDialog As New FolderBrowserDialog()
-            folderDialog.Description = "Select the folder containing .jar files"
-            If folderDialog.ShowDialog() = DialogResult.OK Then
-                Dim selectedFolder As String = folderDialog.SelectedPath
-                Dim jarFiles As String() = Directory.GetFiles(selectedFolder, "*.jar")
+        Dim selectedEmulator = cmb.SelectedItem.ToString().ToLower()
 
-                Dim validJarFiles As New List(Of String)()
-                Dim skippedJarFiles As New List(Of String)()
-                Dim processedFolders As New List(Of String)()
+        ' —— 2) Determine extensions —— '
+        Dim requiredExts As New List(Of String)()
+        Dim optionalExts As New List(Of String)()
+        Select Case selectedEmulator
+            Case "doja", "star"
+                requiredExts.AddRange({".jar", ".jam"})
+                optionalExts.Add(".sp")
+            Case "jsky", "airedge", "vodafone"
+                requiredExts.AddRange({".jar", ".jad"})
+                optionalExts.Add(".rms")
+            Case "flash"
+                requiredExts.Add(".swf")
+            Case Else
+                MessageBox.Show("Unsupported emulator.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Exit Sub
+        End Select
 
-                ' Check which .jar files have matching .jam and .sp files
-                Dim filesToProcess As New Dictionary(Of String, Tuple(Of String, String, String))()
+        ' —— 3) Pick folder & scan —— '
+        If MessageBox.Show(
+        $"Select the folder with your games.{vbCrLf}Ensure {String.Join("/", requiredExts)} share the same base name.",
+        "Add Custom Games", MessageBoxButtons.OKCancel) = DialogResult.Cancel Then Exit Sub
 
-                For Each jarFile As String In jarFiles
-                    Dim fileNameWithoutExt As String = Path.GetFileNameWithoutExtension(jarFile)
-                    Dim jamFile As String = Path.Combine(selectedFolder, fileNameWithoutExt & ".jam")
-                    Dim spFile As String = Path.Combine(selectedFolder, fileNameWithoutExt & ".sp")
-                    Dim destinationPath As String = Path.Combine("data", "downloads", fileNameWithoutExt)
+        Using dlg As New FolderBrowserDialog() With {.Description = $"Locate *{requiredExts(0)} files"}
+            If dlg.ShowDialog() <> DialogResult.OK Then Exit Sub
+            Dim folder = dlg.SelectedPath
+            Dim primaries = Directory.GetFiles(folder, "*" & requiredExts(0))
 
-                    ' Ensure .jam and .sp files exist
-                    If File.Exists(jamFile) AndAlso File.Exists(spFile) Then
-                        ' Check if destination folder already exists
-                        If Directory.Exists(destinationPath) Then
-                            skippedJarFiles.Add(Path.GetFileName(jarFile))
-                        Else
-                            validJarFiles.Add(Path.GetFileName(jarFile))
-                            filesToProcess.Add(fileNameWithoutExt, Tuple.Create(jarFile, jamFile, spFile))
-                        End If
+            Dim toDo = New Dictionary(Of String, Tuple(Of String(), String()))()
+            Dim validBases = New List(Of String)()
+            Dim skipped = New List(Of String)()
+
+            For Each f In primaries
+                Dim name = Path.GetFileNameWithoutExtension(f)
+                Dim dest = Path.Combine("data", "downloads", name)
+
+                Dim otherReq = requiredExts.Skip(1).
+                           Select(Function(ext) Path.Combine(folder, name & ext)).
+                           ToArray()
+                If otherReq.All(AddressOf File.Exists) Then
+                    If Directory.Exists(dest) Then
+                        skipped.Add(name)
+                    Else
+                        Dim opts = optionalExts.
+                               Select(Function(ext) Path.Combine(folder, name & ext)).
+                               Where(AddressOf File.Exists).
+                               ToArray()
+                        Dim allReq = (New String() {f}).Concat(otherReq).ToArray()
+                        toDo.Add(name, Tuple.Create(allReq, opts))
+                        validBases.Add(name)
                     End If
-                Next
-
-                ' If no valid files to process, notify and exit
-                If validJarFiles.Count = 0 AndAlso skippedJarFiles.Count = 0 Then
-                    MessageBox.Show("No valid .jar files found with matching .jam and .sp files.", "No Files Found", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                    Exit Sub
                 End If
+            Next
 
-                ' Build confirmation message
-                Dim message As String = ""
-
-                If validJarFiles.Count > 0 Then
-                    message &= "The following .jar files will be added:" & Environment.NewLine &
-                           String.Join(Environment.NewLine, validJarFiles) & Environment.NewLine & Environment.NewLine
-                End If
-
-                If skippedJarFiles.Count > 0 Then
-                    message &= "The following .jar files will be skipped (destination folder already exists):" & Environment.NewLine &
-                           String.Join(Environment.NewLine, skippedJarFiles) & Environment.NewLine & Environment.NewLine
-                End If
-
-                message &= "Do you want to proceed?"
-
-                ' Ask for confirmation
-                If MessageBox.Show(message, "Confirm Processing", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.No Then
-                    Exit Sub
-                End If
-
-                ' Process only the valid files that passed the validation
-                For Each entry In filesToProcess
-                    Dim fileNameWithoutExt As String = entry.Key
-                    Dim jarFile As String = entry.Value.Item1
-                    Dim jamFile As String = entry.Value.Item2
-                    Dim spFile As String = entry.Value.Item3
-                    Dim destinationPath As String = Path.Combine("data", "downloads", fileNameWithoutExt)
-
-                    Dim binPath As String = Path.Combine(destinationPath, "bin")
-                    Dim spPath As String = Path.Combine(destinationPath, "sp")
-
-                    ' Create directories if they don't exist
-                    Directory.CreateDirectory(binPath)
-                    Directory.CreateDirectory(spPath)
-
-                    ' Move the files
-                    File.Copy(jarFile, Path.Combine(binPath, Path.GetFileName(jarFile)), True)
-                    File.Copy(jamFile, Path.Combine(binPath, Path.GetFileName(jamFile)), True)
-                    File.Copy(spFile, Path.Combine(spPath, Path.GetFileName(spFile)), True)
-
-                    ' Add to processed list
-                    processedFolders.Add(fileNameWithoutExt)
-                Next
-
-                ' Append processed folder names to customgames.txt
-                If processedFolders.Count > 0 Then
-                    Dim configPath As String = "configs/customgames.txt"
-
-                    ' Ensure 'configs' folder exists
-                    Directory.CreateDirectory(Path.GetDirectoryName(configPath))
-
-                    ' Append processed folder names to the file
-                    File.AppendAllLines(configPath, processedFolders)
-                End If
-
-                MessageBox.Show("Added complete!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                Application.Restart()
+            If Not validBases.Any() AndAlso Not skipped.Any() Then
+                MessageBox.Show("No valid sets found.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                Exit Sub
             End If
+
+            ' —— 4) Confirm —— '
+            Dim msg = ""
+            If validBases.Any() Then msg &= "Will add:" & vbCrLf & String.Join(vbCrLf, validBases) & vbCrLf & vbCrLf
+            If skipped.Any() Then msg &= "Skipping (exists):" & vbCrLf & String.Join(vbCrLf, skipped) & vbCrLf & vbCrLf
+            msg &= "Proceed?"
+            If MessageBox.Show(msg, "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.No Then Exit Sub
+
+            ' —— 5) Copy files —— '
+            Dim done = New List(Of String)()
+            For Each kvp In toDo
+                Dim name = kvp.Key
+                Dim dest = Path.Combine("data", "downloads", name)
+
+                If selectedEmulator = "doja" OrElse selectedEmulator = "star" Then
+                    Dim binDir = Path.Combine(dest, "bin")
+                    Dim spDir = Path.Combine(dest, "sp")
+                    Directory.CreateDirectory(binDir)
+                    Directory.CreateDirectory(spDir)
+
+                    For Each reqFile In kvp.Value.Item1
+                        File.Copy(reqFile, Path.Combine(binDir, Path.GetFileName(reqFile)), True)
+                    Next
+                    For Each optFile In kvp.Value.Item2
+                        File.Copy(optFile, Path.Combine(spDir, Path.GetFileName(optFile)), True)
+                    Next
+                Else
+                    Directory.CreateDirectory(dest)
+                    For Each f In kvp.Value.Item1.Concat(kvp.Value.Item2)
+                        File.Copy(f, Path.Combine(dest, Path.GetFileName(f)), True)
+                    Next
+                End If
+
+                done.Add($"{name} | {selectedEmulator}")
+            Next
+
+            ' —— 6) Log to configs/customgames.txt —— '
+            If done.Any() Then
+                Dim cfg = CustomGamesTxtFile
+                Directory.CreateDirectory(Path.GetDirectoryName(cfg))
+                File.AppendAllLines(cfg, done)
+            End If
+
+            MessageBox.Show("Import complete!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Application.Restart()
         End Using
     End Sub
     Private Sub btnSaveDataManagement_Click(sender As Object, e As EventArgs) Handles btnSaveDataManagement.Click

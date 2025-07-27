@@ -5,7 +5,6 @@ Imports System.Reflection
 Imports System.Security.Principal
 Imports System.Text
 Imports System.Text.RegularExpressions
-Imports System.Text.Unicode
 Imports System.Threading
 Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.Win32
@@ -2320,7 +2319,7 @@ Namespace My.Managers
                 Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
             End If
 
-            Dim enc = Encoding.GetEncoding("shift-jis")
+            Dim enc = Encoding.GetEncoding(932)
             Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(GAMEJAM, enc)).ToList()
             Dim modified As Boolean = False
 
@@ -2341,10 +2340,10 @@ Namespace My.Managers
 
             ' Required entries
             Dim requiredEntries As New Dictionary(Of String, String) From {
-        {"UseNetwork", "yes"},
-        {"TrustedAPID", "00000000000"},
-        {"MessageCode", "0000000000"}
-    }
+                {"UseNetwork", "yes"},
+                {"TrustedAPID", "00000000000"},
+                {"MessageCode", "0000000000"}
+            }
 
             For Each entry In requiredEntries
                 If Not lines.Any(Function(line) Regex.IsMatch(line, $"^{Regex.Escape(entry.Key)}\s*=")) Then

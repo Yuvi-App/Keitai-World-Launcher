@@ -1,7 +1,4 @@
 ﻿Imports System.IO
-Imports System.Text
-Imports Microsoft.Win32
-Imports Newtonsoft.Json.Linq
 
 Namespace My.Managers
     Public Class AppLoadManager
