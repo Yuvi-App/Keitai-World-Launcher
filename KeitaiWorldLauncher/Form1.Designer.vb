@@ -122,6 +122,8 @@ Partial Class Form1
         Label1 = New Label()
         cbxAudioType = New ComboBox()
         GroupBox4 = New GroupBox()
+        cbxSoftbankSDK = New ComboBox()
+        Label12 = New Label()
         cbxAirEdgeSDK = New ComboBox()
         Label11 = New Label()
         cbxVodafoneSDK = New ComboBox()
@@ -139,6 +141,7 @@ Partial Class Form1
         GroupBox9 = New GroupBox()
         lvwPlaytimes = New ListView()
         tpHelp = New TabPage()
+        btnVisitKeitaiArchive = New Button()
         GroupBox8 = New GroupBox()
         lblHelp_troubleshooting = New Label()
         GroupBox7 = New GroupBox()
@@ -531,7 +534,7 @@ Partial Class Form1
         cbxFilterType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxFilterType.FlatStyle = FlatStyle.Flat
         cbxFilterType.FormattingEnabled = True
-        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star", "JSky", "AirEdge", "Vodafone", "Flash"})
+        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star", "JSky", "SoftBank", "AirEdge", "Vodafone", "Flash"})
         cbxFilterType.Location = New Point(340, 20)
         cbxFilterType.Margin = New Padding(2)
         cbxFilterType.Name = "cbxFilterType"
@@ -1016,7 +1019,7 @@ Partial Class Form1
         lblSJMELaunchOptionsText.Name = "lblSJMELaunchOptionsText"
         lblSJMELaunchOptionsText.Size = New Size(292, 35)
         lblSJMELaunchOptionsText.TabIndex = 2
-        lblSJMELaunchOptionsText.Text = "Label10"
+        lblSJMELaunchOptionsText.Text = "N/A"
         lblSJMELaunchOptionsText.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Label9
@@ -1092,6 +1095,8 @@ Partial Class Form1
         ' 
         ' GroupBox4
         ' 
+        GroupBox4.Controls.Add(cbxSoftbankSDK)
+        GroupBox4.Controls.Add(Label12)
         GroupBox4.Controls.Add(cbxAirEdgeSDK)
         GroupBox4.Controls.Add(Label11)
         GroupBox4.Controls.Add(cbxVodafoneSDK)
@@ -1112,13 +1117,37 @@ Partial Class Form1
         GroupBox4.TabStop = False
         GroupBox4.Text = "SDK Configuration"
         ' 
+        ' cbxSoftbankSDK
+        ' 
+        cbxSoftbankSDK.DropDownStyle = ComboBoxStyle.DropDownList
+        cbxSoftbankSDK.FlatStyle = FlatStyle.Flat
+        cbxSoftbankSDK.Font = New Font("Segoe UI", 9F)
+        cbxSoftbankSDK.FormattingEnabled = True
+        cbxSoftbankSDK.Location = New Point(117, 120)
+        cbxSoftbankSDK.Margin = New Padding(2)
+        cbxSoftbankSDK.Name = "cbxSoftbankSDK"
+        cbxSoftbankSDK.Size = New Size(113, 23)
+        cbxSoftbankSDK.TabIndex = 24
+        ' 
+        ' Label12
+        ' 
+        Label12.FlatStyle = FlatStyle.Flat
+        Label12.Font = New Font("Segoe UI", 9F)
+        Label12.Location = New Point(6, 120)
+        Label12.Margin = New Padding(2, 0, 2, 0)
+        Label12.Name = "Label12"
+        Label12.Size = New Size(106, 23)
+        Label12.TabIndex = 25
+        Label12.Text = "Softbank SDK"
+        Label12.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' cbxAirEdgeSDK
         ' 
         cbxAirEdgeSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxAirEdgeSDK.FlatStyle = FlatStyle.Flat
         cbxAirEdgeSDK.Font = New Font("Segoe UI", 9F)
         cbxAirEdgeSDK.FormattingEnabled = True
-        cbxAirEdgeSDK.Location = New Point(117, 172)
+        cbxAirEdgeSDK.Location = New Point(117, 201)
         cbxAirEdgeSDK.Margin = New Padding(2)
         cbxAirEdgeSDK.Name = "cbxAirEdgeSDK"
         cbxAirEdgeSDK.Size = New Size(113, 23)
@@ -1128,7 +1157,7 @@ Partial Class Form1
         ' 
         Label11.FlatStyle = FlatStyle.Flat
         Label11.Font = New Font("Segoe UI", 9F)
-        Label11.Location = New Point(6, 172)
+        Label11.Location = New Point(6, 201)
         Label11.Margin = New Padding(2, 0, 2, 0)
         Label11.Name = "Label11"
         Label11.Size = New Size(106, 23)
@@ -1142,7 +1171,7 @@ Partial Class Form1
         cbxVodafoneSDK.FlatStyle = FlatStyle.Flat
         cbxVodafoneSDK.Font = New Font("Segoe UI", 9F)
         cbxVodafoneSDK.FormattingEnabled = True
-        cbxVodafoneSDK.Location = New Point(117, 145)
+        cbxVodafoneSDK.Location = New Point(117, 174)
         cbxVodafoneSDK.Margin = New Padding(2)
         cbxVodafoneSDK.Name = "cbxVodafoneSDK"
         cbxVodafoneSDK.Size = New Size(113, 23)
@@ -1152,7 +1181,7 @@ Partial Class Form1
         ' 
         Label8.FlatStyle = FlatStyle.Flat
         Label8.Font = New Font("Segoe UI", 9F)
-        Label8.Location = New Point(6, 145)
+        Label8.Location = New Point(6, 174)
         Label8.Margin = New Padding(2, 0, 2, 0)
         Label8.Name = "Label8"
         Label8.Size = New Size(106, 23)
@@ -1166,7 +1195,7 @@ Partial Class Form1
         cbxFlashSDK.FlatStyle = FlatStyle.Flat
         cbxFlashSDK.Font = New Font("Segoe UI", 9F)
         cbxFlashSDK.FormattingEnabled = True
-        cbxFlashSDK.Location = New Point(117, 199)
+        cbxFlashSDK.Location = New Point(117, 228)
         cbxFlashSDK.Margin = New Padding(2)
         cbxFlashSDK.Name = "cbxFlashSDK"
         cbxFlashSDK.Size = New Size(113, 23)
@@ -1176,7 +1205,7 @@ Partial Class Form1
         ' 
         Label7.FlatStyle = FlatStyle.Flat
         Label7.Font = New Font("Segoe UI", 9F)
-        Label7.Location = New Point(6, 199)
+        Label7.Location = New Point(6, 228)
         Label7.Margin = New Padding(2, 0, 2, 0)
         Label7.Name = "Label7"
         Label7.Size = New Size(106, 23)
@@ -1199,7 +1228,7 @@ Partial Class Form1
         cbxJSKYSDK.FlatStyle = FlatStyle.Flat
         cbxJSKYSDK.Font = New Font("Segoe UI", 9F)
         cbxJSKYSDK.FormattingEnabled = True
-        cbxJSKYSDK.Location = New Point(117, 118)
+        cbxJSKYSDK.Location = New Point(117, 147)
         cbxJSKYSDK.Margin = New Padding(2)
         cbxJSKYSDK.Name = "cbxJSKYSDK"
         cbxJSKYSDK.Size = New Size(113, 23)
@@ -1209,7 +1238,7 @@ Partial Class Form1
         ' 
         Label5.FlatStyle = FlatStyle.Flat
         Label5.Font = New Font("Segoe UI", 9F)
-        Label5.Location = New Point(6, 118)
+        Label5.Location = New Point(6, 147)
         Label5.Margin = New Padding(2, 0, 2, 0)
         Label5.Name = "Label5"
         Label5.Size = New Size(106, 23)
@@ -1302,6 +1331,7 @@ Partial Class Form1
         ' 
         ' tpHelp
         ' 
+        tpHelp.Controls.Add(btnVisitKeitaiArchive)
         tpHelp.Controls.Add(GroupBox8)
         tpHelp.Controls.Add(GroupBox7)
         tpHelp.Controls.Add(btnControls)
@@ -1311,6 +1341,15 @@ Partial Class Form1
         tpHelp.TabIndex = 3
         tpHelp.Text = "Help"
         tpHelp.UseVisualStyleBackColor = True
+        ' 
+        ' btnVisitKeitaiArchive
+        ' 
+        btnVisitKeitaiArchive.Location = New Point(3, 131)
+        btnVisitKeitaiArchive.Name = "btnVisitKeitaiArchive"
+        btnVisitKeitaiArchive.Size = New Size(231, 37)
+        btnVisitKeitaiArchive.TabIndex = 5
+        btnVisitKeitaiArchive.Text = "Visit Keitai Archive"
+        btnVisitKeitaiArchive.UseVisualStyleBackColor = True
         ' 
         ' GroupBox8
         ' 
@@ -1336,7 +1375,7 @@ Partial Class Form1
         GroupBox7.Controls.Add(lblHelp_AppVer)
         GroupBox7.Location = New Point(3, 3)
         GroupBox7.Name = "GroupBox7"
-        GroupBox7.Size = New Size(231, 97)
+        GroupBox7.Size = New Size(231, 122)
         GroupBox7.TabIndex = 3
         GroupBox7.TabStop = False
         GroupBox7.Text = "About App"
@@ -1346,16 +1385,16 @@ Partial Class Form1
         lblHelp_AppVer.Dock = DockStyle.Fill
         lblHelp_AppVer.Location = New Point(3, 19)
         lblHelp_AppVer.Name = "lblHelp_AppVer"
-        lblHelp_AppVer.Size = New Size(225, 75)
+        lblHelp_AppVer.Size = New Size(225, 100)
         lblHelp_AppVer.TabIndex = 0
         lblHelp_AppVer.Text = "App Version"
         lblHelp_AppVer.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' btnControls
         ' 
-        btnControls.Location = New Point(6, 106)
+        btnControls.Location = New Point(3, 174)
         btnControls.Name = "btnControls"
-        btnControls.Size = New Size(225, 72)
+        btnControls.Size = New Size(231, 72)
         btnControls.TabIndex = 2
         btnControls.Text = "Keybinds Controls"
         btnControls.UseVisualStyleBackColor = True
@@ -1543,4 +1582,7 @@ Partial Class Form1
     Friend WithEvents cbxSJMEScaling As ComboBox
     Friend WithEvents cbxAirEdgeSDK As ComboBox
     Friend WithEvents Label11 As Label
+    Friend WithEvents btnVisitKeitaiArchive As Button
+    Friend WithEvents cbxSoftbankSDK As ComboBox
+    Friend WithEvents Label12 As Label
 End Class

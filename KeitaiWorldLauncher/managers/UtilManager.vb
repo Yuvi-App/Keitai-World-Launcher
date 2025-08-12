@@ -98,7 +98,7 @@ Namespace My.Managers
             If Not Await EnsureJava1_8IsConfiguredAsync() Then
                 MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (JDK8u152)... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
-                Await OpenURLAsync("https://scratchpad.keitaiwiki.com/s/AxTty326itLfEwE?dir=/Utilities/Java")
+                Await OpenURLAsync("https://archive.org/details/jre-8u152-windows-i586")
                 Form1.QuitApplication()
             End If
 
@@ -163,7 +163,7 @@ Namespace My.Managers
             If String.IsNullOrEmpty(javaPath) Then
                 MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (v1_8)... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8 (v1_8)")
-                Await OpenURLAsync("https://scratchpad.keitaiarchive.org/s/AxTty326itLfEwE?dir=/Utilities/Java")
+                Await OpenURLAsync("https://archive.org/details/jre-8u152-windows-i586")
                 Return False
             End If
 
@@ -729,7 +729,7 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1)
+                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
 
 
                 ' Construct all paths
@@ -859,7 +859,7 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1)
+                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
 
 
                 ' Construct all paths
@@ -961,7 +961,7 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1)
+                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
@@ -1038,7 +1038,7 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1)
+                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
@@ -1147,7 +1147,7 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1)
+                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
@@ -1219,7 +1219,7 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1)
+                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
@@ -1292,7 +1292,7 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1)
+                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
@@ -1661,7 +1661,8 @@ Namespace My.Managers
             UtilManager.HideLaunchOverlay()
             Return False
         End Function
-        Public Shared Sub ShowLaunchOverlay(parentForm As Form)
+        Public Shared Sub ShowLaunchOverlay(parentForm As Form, Text As String)
+            Dim loadingLabel As Label = New Label
             If LaunchOverlay Is Nothing Then
                 LaunchOverlay = New Panel With {
                 .BackColor = Color.FromArgb(128, Color.LightGray),
@@ -1669,14 +1670,11 @@ Namespace My.Managers
                 .Cursor = Cursors.WaitCursor
             }
 
-                ' Optional "Launching..." text
-                Dim loadingLabel As New Label With {
-                .Text = "Launching...",
-                .ForeColor = Color.Black,
-                .Font = New Font("Segoe UI", 16, FontStyle.Bold),
-                .BackColor = Color.Transparent,
-                .AutoSize = True
-            }
+                loadingLabel.Text = Text
+                loadingLabel.ForeColor = Color.Black
+                loadingLabel.Font = New Font("Segoe UI", 16, FontStyle.Bold)
+                loadingLabel.BackColor = Color.Transparent
+                loadingLabel.AutoSize = True
 
                 ' Center the label after the overlay is added
                 LaunchOverlay.Controls.Add(loadingLabel)
@@ -1684,6 +1682,8 @@ Namespace My.Managers
                                                      loadingLabel.Left = (LaunchOverlay.Width - loadingLabel.Width) \ 2
                                                      loadingLabel.Top = (LaunchOverlay.Height - loadingLabel.Height) \ 2
                                                  End Sub
+            Else
+                loadingLabel.Text = Text
             End If
 
             If Not parentForm.Controls.Contains(LaunchOverlay) Then
@@ -2069,9 +2069,9 @@ Namespace My.Managers
 
             ' Required entries
             Dim requiredEntries As New Dictionary(Of String, String) From {
-        {"TrustedAPID", "00000000000"},
-        {"MessageCode", "0000000000"}
-    }
+                {"TrustedAPID", "00000000000"},
+                {"MessageCode", "0000000000"}
+            }
 
             ' Add missing entries
             For Each entry In requiredEntries
@@ -2095,6 +2095,19 @@ Namespace My.Managers
                         lines(i) = $"PackageURL = http://localhost/{folderName}/{fileName}"
                         modified = True
                     End If
+                    Exit For
+                End If
+            Next
+
+            ' Fix SPsize: remove any spaces in its value
+            Dim spSizePattern As New Regex("^SPsize\s*=\s*(.+)$", RegexOptions.IgnoreCase)
+            For i As Integer = 0 To lines.Count - 1
+                Dim match As Match = spSizePattern.Match(lines(i))
+                If match.Success Then
+                    Dim rawValue As String = match.Groups(1).Value
+                    Dim cleanedValue As String = rawValue.Replace(" "c, "")
+                    lines(i) = $"SPsize = {cleanedValue}"
+                    modified = True
                     Exit For
                 End If
             Next
@@ -2365,6 +2378,19 @@ Namespace My.Managers
                         lines(i) = $"PackageURL = http://localhost/{folderName}/{fileName}"
                         modified = True
                     End If
+                    Exit For
+                End If
+            Next
+
+            ' Fix SPsize: remove any spaces in its value
+            Dim spSizePattern As New Regex("^SPsize\s*=\s*(.+)$", RegexOptions.IgnoreCase)
+            For i As Integer = 0 To lines.Count - 1
+                Dim match As Match = spSizePattern.Match(lines(i))
+                If match.Success Then
+                    Dim rawValue As String = match.Groups(1).Value
+                    Dim cleanedValue As String = rawValue.Replace(" "c, "")
+                    lines(i) = $"SPsize = {cleanedValue}"
+                    modified = True
                     Exit For
                 End If
             Next

@@ -24,6 +24,8 @@ Namespace My.Managers
             Form1.STAREXE = cfg("STAREXEPath")
             Form1.JSKYpath = cfg("JSKYPath")
             Form1.JSKYEXE = cfg("JSKYEXEPath")
+            Form1.SOFTBANKpath = cfg("SOFTBANKPath")
+            Form1.SOFTBANKEXE = cfg("SOFTBANKEXEPath")
             Form1.VODAFONEpath = cfg("VODAFONEPath")
             Form1.VODAFONEEXE = cfg("VODAFONEEXEPath")
             Form1.AIREDGEpath = cfg("AIREDGEPath")

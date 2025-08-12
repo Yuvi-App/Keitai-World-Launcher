@@ -16,6 +16,8 @@
   <Setting name="STAREXEPath">star.exe</Setting>
   <Setting name="JSKYPath">c:/JSKY</Setting>
   <Setting name="JSKYEXEPath">JSKY.exe</Setting>
+  <Setting name="SOFTBANKPath">c:/JSKY</Setting>
+  <Setting name="SOFTBANKEXEPath">JSKY.exe</Setting>
   <Setting name="VODAFONEPath">c:/vodafone</Setting>
   <Setting name="VODAFONEEXEPath">vodafone.exe</Setting>
   <Setting name="AIREDGEPath">c:/AIREDGE</Setting>

@@ -29,6 +29,7 @@ Public Class Form1
     Dim charadens As List(Of CharaDen)
     Dim XInputDevices As New Dictionary(Of String, Integer)
     Private Shared isGameDownloadInProgress As Boolean = False
+    Dim CompletedBootSequence As Boolean = False
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -68,6 +69,8 @@ Public Class Form1
     Public STAREXE As String
     Public JSKYpath As String
     Public JSKYEXE As String
+    Public SOFTBANKpath As String
+    Public SOFTBANKEXE As String
     Public VODAFONEpath As String
     Public VODAFONEEXE As String
     Public AIREDGEpath As String
@@ -217,6 +220,9 @@ Public Class Form1
         cbxSJMELaunchOption.SelectedIndex = 0
         cbxSJMEScaling.SelectedIndex = 1
 
+        ' Set we Completed Boot Sequence
+        CompletedBootSequence = True
+
         ' Close the splash screen
         Await SplashScreen.CloseSplashAsync()
         Me.Opacity = 1
@@ -256,10 +262,12 @@ Public Class Form1
         Dim dojaDefault As String = "iDKDoJa5.1"
         Dim starDefault As String = "iDKStar2.0"
         Dim jskyDefault As String = "JSky_0.1.5B"
+        Dim softbankDefault As String = "kemnnx64"
         Dim airedgeDefault As String = "kemnnx64"
         Dim FlashDefault As String = "FlashPlayer"
         Dim dojaFound As Boolean = False
         Dim starFound As Boolean = False
+        Dim softbankFound As Boolean = False
         Dim jskyFound As Boolean = False
         Dim airedgeFound As Boolean = False
         Dim vodafoneFound As Boolean = False
@@ -274,6 +282,8 @@ Public Class Form1
         cbxJSKYSDK.Items.Clear()
         cbxVodafoneSDK.Items.Clear()
         cbxFlashSDK.Items.Clear()
+        cbxAirEdgeSDK.Items.Clear()
+        cbxSoftbankSDK.Items.Clear()
 
         For Each SSDK In sdkFolders
             Dim folder As String = Path.GetFileName(SSDK)
@@ -302,8 +312,12 @@ Public Class Form1
                 cbxJSKYSDK.Items.Add(folder)
                 cbxDojaSDK.Items.Add(folder)
                 cbxAirEdgeSDK.Items.Add(folder)
+                cbxSoftbankSDK.Items.Add(folder)
                 If folder.Equals(airedgeDefault, StringComparison.OrdinalIgnoreCase) Then
                     airedgeFound = True
+                End If
+                If folder.Equals(softbankDefault, StringComparison.OrdinalIgnoreCase) Then
+                    softbankFound = True
                 End If
             ElseIf folder.StartsWith("Flash", StringComparison.OrdinalIgnoreCase) Then
                 cbxFlashSDK.Items.Add(folder)
@@ -332,6 +346,12 @@ Public Class Form1
             MessageBox.Show(owner:=SplashScreen, $"The default SDK '{jskyDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
 
+        If softbankFound Then
+            cbxSoftbankSDK.SelectedItem = softbankDefault
+        Else
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{softbankDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+
         If airedgeFound Then
             cbxAirEdgeSDK.SelectedItem = airedgeDefault
         Else
@@ -348,6 +368,7 @@ Public Class Form1
         Dim DojaIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "doja.gif")
         Dim StarIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "star.gif")
         Dim JskyIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "jsky.gif")
+        Dim SoftBankIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "softbank.gif")
         Dim vodafoneIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "vodafone.gif")
         Dim airedgeIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "airedge.gif")
         Dim FlashIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")
@@ -387,6 +408,8 @@ Public Class Form1
                                                                                                defaultIconPath = StarIconPath
                                                                                            Case "jsky"
                                                                                                defaultIconPath = JskyIconPath
+                                                                                           Case "softbank"
+                                                                                               defaultIconPath = SoftBankIconPath
                                                                                            Case "vodafone"
                                                                                                defaultIconPath = vodafoneIconPath
                                                                                            Case "airedge"
@@ -719,7 +742,7 @@ Public Class Form1
             CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, "bin", $"{zipNameNoExt}.jar")
             CurrentSelectedGameSP = Path.Combine(gameBasePath, variantPath, "sp", $"{zipNameNoExt}.sp")
 
-        ElseIf emulator = "jsky" Or emulator = "vodafone" Or emulator = "airedge" Then
+        ElseIf emulator = "jsky" Or emulator = "vodafone" Or emulator = "airedge" Or emulator = "softbank" Then
             If String.IsNullOrWhiteSpace(variantPath) Then
                 CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.jad")
                 CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.jar")
@@ -890,81 +913,100 @@ Public Class Form1
         ' Gather all selected games
         Dim gamesToDelete As New List(Of Game)
         For Each item As ListViewItem In ListViewGames.SelectedItems
-            Dim selectedGameTitle As String = item.Text
-            Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+            Dim selectedGameTitle = item.Text
+            Dim selectedGame = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
             If selectedGame IsNot Nothing Then
                 gamesToDelete.Add(selectedGame)
             End If
         Next
 
         ' Display confirmation
-        Dim gameList As String = String.Join(Environment.NewLine, gamesToDelete.Select(Function(g) $"{g.ENTitle} ({g.ZIPName})"))
-        Dim result As DialogResult = MessageBox.Show($"The following games will be deleted:{Environment.NewLine}{Environment.NewLine}{gameList}{Environment.NewLine}{Environment.NewLine}Do you want to proceed?", "Delete Games", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+        Dim gameList = String.Join(Environment.NewLine, gamesToDelete.Select(Function(g) $"{g.ENTitle} ({g.ZIPName})"))
+        Dim result = MessageBox.Show(
+            $"The following games will be deleted:{Environment.NewLine}{Environment.NewLine}{gameList}{Environment.NewLine}{Environment.NewLine}Do you want to proceed?",
+            "Delete Games", MessageBoxButtons.YesNo, MessageBoxIcon.Question
+        )
+        If result <> DialogResult.Yes Then Return
+        UtilManager.ShowLaunchOverlay(Me, "Deleting...")
+        Dim deletedGames As New List(Of String)
+        Dim failedGames As New List(Of String)
 
-        If result = DialogResult.Yes Then
-            Dim deletedGames As New List(Of String)
-            Dim failedGames As New List(Of String)
+        ' === Run all deletions in background and truly await completion ===
+        Await Task.Run(Async Function() As Task
+                           For Each game In gamesToDelete
+                               Try
+                                   Dim baseName = Path.GetFileNameWithoutExtension(game.ZIPName)
+                                   Dim gameFolder = Path.Combine(DownloadsFolder, baseName)
 
-            ' Run deletion work in background
-            Await Task.Run(Async Sub()
-                               For Each game In gamesToDelete
-                                   Try
-                                       Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(game.ZIPName))
+                                   If Directory.Exists(gameFolder) Then
+                                       ' 1) Remove the downloaded folder
+                                       My.Computer.FileSystem.DeleteDirectory(
+                                            gameFolder,
+                                            FileIO.UIOption.OnlyErrorDialogs,
+                                            FileIO.RecycleOption.DeletePermanently
+                                        )
+                                       deletedGames.Add(game.ENTitle)
 
-                                       If Directory.Exists(gameFolder) Then
-                                           My.Computer.FileSystem.DeleteDirectory(gameFolder, FileIO.UIOption.OnlyErrorDialogs, FileIO.RecycleOption.DeletePermanently)
-                                           deletedGames.Add(game.ENTitle)
-
-                                           ' Check if SD Card game
-                                           If Not String.IsNullOrEmpty(game.SDCardDataURL) Then
-                                               For Each emu In cbxDojaSDK.Items
-                                                   Dim CheckSDPath = Path.Combine(ToolsFolder, Path.GetFileName(emu), "lib", "storagedevice", "ext0", "SD_BIND", "SVC0000" & Path.GetFileNameWithoutExtension(game.ZIPName) & ".jam")
-                                                   If Directory.Exists(CheckSDPath) Then
-                                                       My.Computer.FileSystem.DeleteDirectory(CheckSDPath, FileIO.UIOption.OnlyErrorDialogs, FileIO.RecycleOption.DeletePermanently)
-                                                   End If
-                                               Next
-                                           End If
-
-                                           Dim configPath As String = CustomGamesTxtFile
-                                           If File.Exists(configPath) Then
-                                               Dim lines As List(Of String) = File.ReadAllLines(configPath).ToList()
-                                               Dim baseName As String = Path.GetFileNameWithoutExtension(game.ZIPName)
-
-                                               ' Remove all entries where the text before '|' equals our baseName
-                                               Dim filtered As List(Of String) = lines.
-                                                    Where(Function(line)
-                                                              Dim parts = line.Split("|"c)
-                                                              Return Not parts(0).Trim().
-                                                                     Equals(baseName, StringComparison.OrdinalIgnoreCase)
-                                                          End Function).
-                                                    ToList()
-
-                                               ' Only rewrite if something actually changed
-                                               If filtered.Count <> lines.Count Then
-                                                   File.WriteAllLines(configPath, filtered)
-                                                   Await gameListManager.RemoveGameAsync(baseName)
+                                       ' 2) If it's an SD-card title, clean up the SD_BIND folder
+                                       If Not String.IsNullOrEmpty(game.SDCardDataURL) Then
+                                           For Each emu As String In cbxDojaSDK.Items
+                                               Dim checkSD = Path.Combine(
+                                                    ToolsFolder,
+                                                    Path.GetFileName(emu),
+                                                    "lib", "storagedevice", "ext0", "SD_BIND",
+                                                    "SVC0000" & baseName & ".jam"
+                                                )
+                                               If Directory.Exists(checkSD) Then
+                                                   My.Computer.FileSystem.DeleteDirectory(
+                                                        checkSD,
+                                                        FileIO.UIOption.OnlyErrorDialogs,
+                                                        FileIO.RecycleOption.DeletePermanently
+                                                    )
                                                End If
-                                           End If
-                                       Else
-                                           failedGames.Add($"{game.ENTitle} (Not downloaded)")
+                                           Next
                                        End If
-                                   Catch ex As Exception
-                                       failedGames.Add($"{game.ENTitle} (Error: {ex.Message})")
-                                   End Try
-                               Next
-                           End Sub)
 
-            ' Show results (on UI thread)
-            If deletedGames.Count > 0 Then
-                MessageBox.Show($"Successfully deleted:{Environment.NewLine}{String.Join(Environment.NewLine, deletedGames)}", "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            End If
+                                       ' 3) Remove its line from customgames.txt and notify your manager
+                                       Dim configPath = CustomGamesTxtFile
+                                       If File.Exists(configPath) Then
+                                           Dim lines = File.ReadAllLines(configPath).ToList()
+                                           Dim filtered = lines.Where(Function(line)
+                                                                          Dim parts = line.Split("|"c)
+                                                                          Return Not parts(0).Trim().
+                                                              Equals(baseName, StringComparison.OrdinalIgnoreCase)
+                                                                      End Function).ToList()
 
-            If failedGames.Count > 0 Then
-                MessageBox.Show($"Could not delete the following games:{Environment.NewLine}{String.Join(Environment.NewLine, failedGames)}", "Deletion Errors", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-            End If
+                                           If filtered.Count <> lines.Count Then
+                                               File.WriteAllLines(configPath, filtered)
+                                               Await gameListManager.RemoveGameAsync(baseName)
+                                           End If
+                                       End If
+                                   Else
+                                       failedGames.Add($"{game.ENTitle} (Not downloaded)")
+                                   End If
+                               Catch ex As Exception
+                                   failedGames.Add($"{game.ENTitle} (Error: {ex.Message})")
+                               End Try
+                           Next
+                       End Function)
+        ' === End Task.Run ===
 
+        ' Show results (back on the UI thread)
+        If deletedGames.Count > 0 Then
+            MessageBox.Show(
+            $"Successfully deleted:{Environment.NewLine}{String.Join(Environment.NewLine, deletedGames)}",
+            "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information
+        )
             Await FilterAndHighlightGamesAsync()
         End If
+
+        If failedGames.Count > 0 Then
+            MessageBox.Show(
+            $"Could not delete the following games:{Environment.NewLine}{String.Join(Environment.NewLine, failedGames)}",
+            "Deletion Errors", MessageBoxButtons.OK, MessageBoxIcon.Warning
+        )
+        End If
+        UtilManager.HideLaunchOverlay()
     End Function
     Public Async Function DeleteMachiCharaAsync() As Task
         If ListViewMachiChara.SelectedItems.Count = 0 Then
@@ -1628,21 +1670,48 @@ Public Class Form1
             End If
 
         ElseIf sdkLower.StartsWith("squirreljme") Then
-            MessageBox.Show(
-            "DISCLAIMER: SquirrelJME support is still in active development." & vbCrLf &
-            "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-            "when launching or interacting with the emulator. Use at your own risk."
-            )
+            If CompletedBootSequence = True Then
+                MessageBox.Show(
+                "DISCLAIMER: SquirrelJME support is still in active development." & vbCrLf &
+                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                "when launching or interacting with the emulator. Use at your own risk."
+                )
+            End If
             DOJAEXE = Path.Combine(DOJApath, "squirreljme.exe")
             gbxSJMELaunchOptions.Enabled = True
 
         ElseIf sdkLower.StartsWith("kemnnx64") Then
-            MessageBox.Show(
-            "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
-            "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-            "when launching or interacting with the emulator. Use at your own risk."
-            )
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                    "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
+                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                    "when launching or interacting with the emulator. Use at your own risk."
+                    )
+            End If
             DOJAEXE = Path.Combine(DOJApath, "KEmulator.jar")
+        End If
+    End Sub
+    Private Sub cbxSoftbankSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxSoftbankSDK.SelectedIndexChanged
+        If cbxSoftbankSDK.SelectedItem Is Nothing Then
+            MessageBox.Show("Please select a SOFTBANK SDK before launching.")
+            Return
+        End If
+
+        Dim selectedSDK As String = cbxSoftbankSDK.SelectedItem.ToString()
+        Dim sdkLower As String = selectedSDK.ToLowerInvariant()
+        SOFTBANKpath = Path.Combine(ToolsFolder, selectedSDK)
+
+        If sdkLower.StartsWith("kemnnx64") Then
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                    "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
+                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                    "when launching or interacting with the emulator. Use at your own risk."
+                    )
+            End If
+            SOFTBANKEXE = Path.Combine(SOFTBANKpath, "KEmulator.jar")
         End If
     End Sub
     Private Sub cbxJSKYSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxJSKYSDK.SelectedIndexChanged
@@ -1659,13 +1728,37 @@ Public Class Form1
             JSKYEXE = Path.Combine(JSKYpath, "jbmidp.jar")
 
         ElseIf sdkLower.StartsWith("kemnnx64") Then
-            Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-            MessageBox.Show(
-            "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
-            "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-            "when launching or interacting with the emulator. Use at your own risk."
-            )
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                    "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
+                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                    "when launching or interacting with the emulator. Use at your own risk."
+                    )
+            End If
             JSKYEXE = Path.Combine(JSKYpath, "KEmulator.jar")
+        End If
+    End Sub
+    Private Sub cbxVODAFONESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxVodafoneSDK.SelectedIndexChanged
+        If cbxVodafoneSDK.SelectedItem Is Nothing Then
+            MessageBox.Show("Please select a SOFTBANK SDK before launching.")
+            Return
+        End If
+
+        Dim selectedSDK As String = cbxVodafoneSDK.SelectedItem.ToString()
+        Dim sdkLower As String = selectedSDK.ToLowerInvariant()
+        VODAFONEpath = Path.Combine(ToolsFolder, selectedSDK)
+
+        If sdkLower.StartsWith("kemnnx64") Then
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
+                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                "when launching or interacting with the emulator. Use at your own risk."
+                )
+            End If
+            VODAFONEEXE = Path.Combine(VODAFONEpath, "KEmulator.jar")
         End If
     End Sub
     Private Async Sub cbxGameControllers_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxGameControllers.SelectedIndexChanged
@@ -1873,6 +1966,7 @@ Public Class Form1
                 {cbxDojaSDK, "Doja"},
                 {cbxStarSDK, "Star"},
                 {cbxJSKYSDK, "JSKY"},
+                {cbxSoftbankSDK, "SOFTBANK"},
                 {cbxAirEdgeSDK, "AIREDGE"},
                 {cbxVodafoneSDK, "VODAFONE"}, ' This will be treated as optional
                 {cbxFlashSDK, "FLASH"}
@@ -1908,6 +2002,7 @@ Public Class Form1
             Dim selectedStarSDK = selectedSDKs("Star")
             Dim selectedAIREDGESDK = selectedSDKs("AIREDGE")
             Dim selectedJSKYSDK = selectedSDKs("JSKY")
+            Dim selectedSOFTBANKSDK = selectedSDKs("SOFTBANK")
             Dim selectedFlashSDK = selectedSDKs("FLASH")
             Dim selectedVODAFONESDK As String = selectedSDKs.GetValueOrDefault("VODAFONE", "")
 
@@ -2007,6 +2102,11 @@ Public Class Form1
                     Logger.LogInfo("Launching game using AIREDGE emulator.")
                     utilManager.LaunchCustom_KEmulatorGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
                     Logger.LogInfo($"Launched with: AIREDGEPath={AIREDGEpath}, AIREDGEEXE={AIREDGEEXE}, GamePath={CurrentSelectedGameJAM}")
+
+                Case "softbank"
+                    Logger.LogInfo("Launching game using SOFTBANK emulator.")
+                    utilManager.LaunchCustom_KEmulatorGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
+                    Logger.LogInfo($"Launched with: SOFTBANKPath={SOFTBANKpath}, SOFTBANKEXE={SOFTBANKEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "flash"
                     Logger.LogInfo("Launching game using flash Player.")
@@ -2293,41 +2393,43 @@ Public Class Form1
         End If
     End Sub
     Private Sub btnAddCustomApps_Click(sender As Object, e As EventArgs) Handles btnAddCustomApps.Click
-        ' —— 1) Pick emulator via a MaterialForm + ComboBox —— '
-        Dim emus() As String = {"Doja", "Star", "JSky", "AirEdge", "Vodafone", "Flash"}
+        ' —— 1) Pick emulator via a MaterialForm + ComboBox + Recursive checkbox —— '
+        Dim emus() As String = {"Doja", "Star", "JSky", "AirEdge", "Softbank", "Vodafone", "Flash"}
 
-        ' Use Realtaizor MaterialForm
         Dim picker As New MaterialForm() With {
         .Text = "Choose Emulator",
-        .Size = New Size(300, 220),
+        .Size = New Size(300, 260),
         .FormBorderStyle = FormBorderStyle.FixedDialog,
         .StartPosition = FormStartPosition.CenterParent,
         .MaximizeBox = False,
         .MinimizeBox = False,
-        .KeyPreview = True    ' allow KeyDown at form level
+        .KeyPreview = True
     }
 
-        ' Standard ComboBox is fine
         Dim cmb As New MaterialComboBox() With {
         .DataSource = emus,
         .DropDownStyle = ComboBoxStyle.DropDownList,
-        .Location = New Point(35, 85),
+        .Location = New Point(35, 80),
         .Width = 240
     }
 
-        ' Realtaizor Buttons
+        Dim chkRecursive As New MaterialCheckBox() With {
+        .Text = "Recursive",
+        .Location = New Point(35, 130),
+        .Width = 240
+    }
+
         Dim btnOK As New MaterialButton() With {
         .Text = "OK",
-        .Location = New Point(35, 155),
+        .Location = New Point(35, 175),
         .Width = 90
     }
         Dim btnCancel As New MaterialButton() With {
         .Text = "Cancel",
-        .Location = New Point(195, 155),
+        .Location = New Point(155, 175),
         .Width = 90
     }
 
-        ' clicking sets the form result
         AddHandler btnOK.Click, Sub()
                                     picker.DialogResult = DialogResult.OK
                                     picker.Close()
@@ -2337,14 +2439,15 @@ Public Class Form1
                                         picker.Close()
                                     End Sub
 
-        picker.Controls.AddRange(New Control() {cmb, btnOK, btnCancel})
+        picker.Controls.AddRange(New Control() {cmb, chkRecursive, btnOK, btnCancel})
 
         If picker.ShowDialog(Me) <> DialogResult.OK Then
-            ' user cancelled
             Exit Sub
         End If
 
         Dim selectedEmulator = cmb.SelectedItem.ToString().ToLower()
+        Dim isRecursive = chkRecursive.Checked
+        Dim searchOpt = If(isRecursive, SearchOption.AllDirectories, SearchOption.TopDirectoryOnly)
 
         ' —— 2) Determine extensions —— '
         Dim requiredExts As New List(Of String)()
@@ -2353,7 +2456,7 @@ Public Class Form1
             Case "doja", "star"
                 requiredExts.AddRange({".jar", ".jam"})
                 optionalExts.Add(".sp")
-            Case "jsky", "airedge", "vodafone"
+            Case "jsky", "airedge", "vodafone", "softbank"
                 requiredExts.AddRange({".jar", ".jad"})
                 optionalExts.Add(".rms")
             Case "flash"
@@ -2366,12 +2469,16 @@ Public Class Form1
         ' —— 3) Pick folder & scan —— '
         If MessageBox.Show(
         $"Select the folder with your games.{vbCrLf}Ensure {String.Join("/", requiredExts)} share the same base name.",
-        "Add Custom Games", MessageBoxButtons.OKCancel) = DialogResult.Cancel Then Exit Sub
+        "Add Custom Games", MessageBoxButtons.OKCancel) = DialogResult.Cancel Then
+            Exit Sub
+        End If
 
         Using dlg As New FolderBrowserDialog() With {.Description = $"Locate *{requiredExts(0)} files"}
             If dlg.ShowDialog() <> DialogResult.OK Then Exit Sub
             Dim folder = dlg.SelectedPath
-            Dim primaries = Directory.GetFiles(folder, "*" & requiredExts(0))
+
+            ' grab all primary files (recursive if requested)
+            Dim primaries = Directory.GetFiles(folder, "*" & requiredExts(0), searchOpt)
 
             Dim toDo = New Dictionary(Of String, Tuple(Of String(), String()))()
             Dim validBases = New List(Of String)()
@@ -2381,17 +2488,27 @@ Public Class Form1
                 Dim name = Path.GetFileNameWithoutExtension(f)
                 Dim dest = Path.Combine("data", "downloads", name)
 
+                ' find other required files anywhere under the folder
                 Dim otherReq = requiredExts.Skip(1).
-                           Select(Function(ext) Path.Combine(folder, name & ext)).
-                           ToArray()
-                If otherReq.All(AddressOf File.Exists) Then
+                Select(Function(ext)
+                           Dim matches = Directory.GetFiles(folder, name & ext, searchOpt)
+                           Return If(matches.Any(), matches(0), Nothing)
+                       End Function).
+                ToArray()
+
+                If otherReq.All(Function(p) p IsNot Nothing) Then
                     If Directory.Exists(dest) Then
                         skipped.Add(name)
                     Else
+                        ' find optional files the same way
                         Dim opts = optionalExts.
-                               Select(Function(ext) Path.Combine(folder, name & ext)).
-                               Where(AddressOf File.Exists).
-                               ToArray()
+                        Select(Function(ext)
+                                   Dim matches = Directory.GetFiles(folder, name & ext, searchOpt)
+                                   Return If(matches.Any(), matches(0), Nothing)
+                               End Function).
+                        Where(Function(p) p IsNot Nothing).
+                        ToArray()
+
                         Dim allReq = (New String() {f}).Concat(otherReq).ToArray()
                         toDo.Add(name, Tuple.Create(allReq, opts))
                         validBases.Add(name)
@@ -2431,8 +2548,8 @@ Public Class Form1
                     Next
                 Else
                     Directory.CreateDirectory(dest)
-                    For Each f In kvp.Value.Item1.Concat(kvp.Value.Item2)
-                        File.Copy(f, Path.Combine(dest, Path.GetFileName(f)), True)
+                    For Each f2 In kvp.Value.Item1.Concat(kvp.Value.Item2)
+                        File.Copy(f2, Path.Combine(dest, Path.GetFileName(f2)), True)
                     Next
                 End If
 
@@ -2450,6 +2567,7 @@ Public Class Form1
             Application.Restart()
         End Using
     End Sub
+
     Private Sub btnSaveDataManagement_Click(sender As Object, e As EventArgs) Handles btnSaveDataManagement.Click
         SaveDataManagerForm.ShowDialog()
     End Sub
@@ -2484,7 +2602,7 @@ Public Class Form1
         "Steps to fix:" & vbCrLf &
         "  • Try redownloading the game:" & vbCrLf &
         "    → Right-click the game title, choose 'Redownload'" & vbCrLf &
-        "  • Make sure Java 8 (32-bit) is installed" & vbCrLf &
+        "  • Make sure Java 8 (32-bit) is installed or try reinstalling" & vbCrLf &
         "  • Ensure the folder path has NO spaces" & vbCrLf & vbCrLf &
         "If you're still having trouble," & vbCrLf &
         "ask for help in the #troubleshooting channel."
@@ -2492,124 +2610,15 @@ Public Class Form1
 
         Dim aboutText As String =
         "Keitai World Launcher" & Environment.NewLine & Environment.NewLine &
-        $"Version: B{KeitaiWorldLauncher.My.Application.Info.Version.ToString}"
+        $"Version: B{KeitaiWorldLauncher.My.Application.Info.Version.ToString}" & Environment.NewLine & Environment.NewLine &
+        $"Website: KeitaiArchive.org"
         lblHelp_AppVer.Text = aboutText
 
     End Sub
-    Private Sub btnAboutApp_Click(sender As Object, e As EventArgs)
-        ' Create a new MaterialForm for About
-        Dim aboutForm As New ReaLTaiizor.Forms.MaterialForm With {
-        .Text = "About",
-        .Size = New Size(400, 250),
-        .StartPosition = FormStartPosition.CenterScreen,
-        .Sizable = False,
-        .FormBorderStyle = FormBorderStyle.FixedDialog,
-        .MaximizeBox = False,
-        .MinimizeBox = False
-    }
-
-        ' Build the About text
-        Dim aboutText =
-        "Keitai World Launcher" & Environment.NewLine & Environment.NewLine &
-        $"Version: B{My.Application.Info.Version.ToString}"
-
-        ' Create label for content
-        Dim lblAbout As New Label With {
-        .Text = aboutText,
-        .AutoSize = False,
-        .Left = 20,
-        .Top = 80,
-        .Width = aboutForm.ClientSize.Width - 40,
-        .Height = 80,
-        .Font = New Font("Segoe UI", 10, FontStyle.Regular),
-        .ForeColor = Color.Black
-    }
-
-        ' Create Close button
-        Dim btnClose As New MaterialButton With {
-        .Text = "Close",
-        .Width = 100,
-        .Height = 36,
-        .Left = aboutForm.ClientSize.Width - 120,
-        .Top = aboutForm.ClientSize.Height - 60,
-        .HighEmphasis = True,
-        .Type = MaterialButton.MaterialButtonType.Contained
-    }
-        AddHandler btnClose.Click, Sub() aboutForm.Close()
-
-        ' Add controls and show
-        aboutForm.Controls.Add(lblAbout)
-        aboutForm.Controls.Add(btnClose)
-        aboutForm.ShowDialog()
-    End Sub
-    Private Sub btnTroubleshooting_Click(sender As Object, e As EventArgs)
-        ' Create a new MaterialForm
-        Dim TroubleShootingForm As New ReaLTaiizor.Forms.MaterialForm With {
-            .Text = "Troubleshooting",
-            .Size = New Size(600, 500),
-            .StartPosition = FormStartPosition.CenterScreen,
-            .Sizable = False,
-            .FormBorderStyle = FormBorderStyle.FixedDialog,
-            .MaximizeBox = False,
-            .MinimizeBox = False
-        }
-
-        Dim troubleshootingMessage =
-            "   TROUBLESHOOTING DOJA/STAR ISSUES" & vbCrLf & vbCrLf &
-        "Grey Screen After Launching App:" & vbCrLf &
-        "If the app launches and DOJA/STAR appears but the screen stays grey," & vbCrLf &
-        "it usually means the required registry entries are missing." & vbCrLf &
-        "To fix this:" & vbCrLf &
-        "  • Navigate to: data/tools/idkDOJA5.1" & vbCrLf &
-        "    → Run: doja.reg" & vbCrLf &
-        "  • Navigate to: data/tools/idkSTAR2.0" & vbCrLf &
-        "    → Run: star.reg" & vbCrLf & vbCrLf &
-        """Failed to Detect Doja/Star Running"" Error:" & vbCrLf &
-        "This error typically means one of the following:" & vbCrLf &
-        "  1. The download is corrupted" & vbCrLf &
-        "  2. Java is not correctly installed" & vbCrLf &
-        "  3. Your file path contains spaces" & vbCrLf & vbCrLf &
-        "Steps to fix:" & vbCrLf &
-        "  • Try redownloading the game:" & vbCrLf &
-        "    → Right-click the game title, choose 'Redownload'" & vbCrLf &
-        "  • Make sure Java 8 (32-bit) is installed" & vbCrLf &
-        "  • Ensure the folder path has NO spaces" & vbCrLf & vbCrLf &
-        "If you're still having trouble," & vbCrLf &
-        "ask for help in the #troubleshooting channel."
-
-        Dim rtbMessage As New RichTextBox With {
-        .Text = troubleshootingMessage,
-        .ReadOnly = True,
-        .Multiline = True,
-        .ScrollBars = RichTextBoxScrollBars.Vertical,
-        .BorderStyle = BorderStyle.None,
-        .Font = New Font("Consolas", 10, FontStyle.Regular),
-        .ForeColor = Color.Black,
-        .BackColor = TroubleShootingForm.BackColor,
-        .Left = 20,
-        .Top = 70,
-        .Width = TroubleShootingForm.ClientSize.Width - 40,
-        .Height = TroubleShootingForm.ClientSize.Height - 80,
-        .Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Bottom
-    }
-
-        Dim btnClose As New MaterialButton With {
-            .Text = "Close",
-            .Width = 100,
-            .Height = 36,
-            .Left = TroubleShootingForm.ClientSize.Width - 120,
-            .Top = TroubleShootingForm.ClientSize.Height - 50,
-            .HighEmphasis = True,
-            .Type = MaterialButton.MaterialButtonType.Contained,
-            .Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
-        }
-
-        AddHandler btnClose.Click, Sub() TroubleShootingForm.Close()
-
-        ' Add controls to form and show
-        TroubleShootingForm.Controls.Add(rtbMessage)
-        TroubleShootingForm.Controls.Add(btnClose)
-        TroubleShootingForm.ShowDialog()
+    Private Sub btnVisitKeitaiArchive_Click(sender As Object, e As EventArgs) Handles btnVisitKeitaiArchive.Click
+        Dim url As String = "https://keitaiarchive.org"
+        Dim psi As New ProcessStartInfo(url) With {.UseShellExecute = True}
+        Process.Start(psi)
     End Sub
     Private Sub btnControls_Click(sender As Object, e As EventArgs) Handles btnControls.Click
         ' Create a new MaterialForm
@@ -2694,5 +2703,4 @@ Public Class Form1
             LoadPlaytimesToListView()
         End If
     End Sub
-
 End Class

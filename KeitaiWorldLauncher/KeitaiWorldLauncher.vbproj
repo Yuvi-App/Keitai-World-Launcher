@@ -8,8 +8,8 @@
     <MyType>WindowsForms</MyType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ForceDesignerDPIUnaware>true</ForceDesignerDPIUnaware>
-    <AssemblyVersion>0.6.2</AssemblyVersion>
-    <FileVersion>0.6.2</FileVersion>
+    <AssemblyVersion>0.6.5</AssemblyVersion>
+    <FileVersion>0.6.5</FileVersion>
     <ApplicationIcon>kwl.ico</ApplicationIcon>
     <Title>$(AssemblyName)</Title>
     <Copyright>KWL</Copyright>

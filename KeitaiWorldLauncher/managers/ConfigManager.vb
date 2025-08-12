@@ -26,6 +26,8 @@ Namespace My.Managers
         {"STAREXEPath", "star.exe"},
         {"JSKYPath", "c:\JSKY"},
         {"JSKYEXEPath", "JSKY.exe"},
+        {"SOFTBANKPath", "c:\MEXA"},
+        {"SOFTBANKEXEPath", "mexa.exe"},
         {"VODAFONEPath", "c:\vodafone"},
         {"VODAFONEEXEPath", "vodafone.exe"},
         {"AIREDGEPath", "c:\AIREDGE"},
@@ -118,7 +120,6 @@ Namespace My.Managers
                 logger.Logger.LogError($"Failed to update the UseShadeGlass setting: {ex.Message}")
             End Try
         End Sub
-
         Public Sub UpdateUseDialPadSetting(isChecked As Boolean)
             Try
                 ' Load the XML document
@@ -163,7 +164,6 @@ Namespace My.Managers
                                End Try
                            End Sub)
         End Function
-
         Public Sub UpdateDOJASoundSetting(SoundType As String)
             Try
                 ' Load the XML document
