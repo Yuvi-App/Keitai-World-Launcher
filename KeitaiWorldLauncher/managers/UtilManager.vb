@@ -1703,7 +1703,7 @@ Namespace My.Managers
         'Check and Close Functions
         Shared Function CheckAndCloseAllEmulators() As Boolean
             Dim emulatorProcesses As New Dictionary(Of String, String()) From {
-                {"DOCO Emulator", {"doja"}},
+                {"DOJA Emulator", {"doja"}},
                 {"SquirrelJME", {"squirreljme"}},
                 {"Star Emulator", {"star"}},
                 {"Java-based runtime", {"java", "javaw", "jbime"}},

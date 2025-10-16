@@ -263,6 +263,7 @@ Public Class Form1
         Dim starDefault As String = "iDKStar2.0"
         Dim jskyDefault As String = "JSky_0.1.5B"
         Dim softbankDefault As String = "kemnnx64"
+        Dim vodafoneDefault As String = "kemnnx64"
         Dim airedgeDefault As String = "kemnnx64"
         Dim FlashDefault As String = "FlashPlayer"
         Dim dojaFound As Boolean = False
@@ -313,11 +314,15 @@ Public Class Form1
                 cbxDojaSDK.Items.Add(folder)
                 cbxAirEdgeSDK.Items.Add(folder)
                 cbxSoftbankSDK.Items.Add(folder)
+                cbxVodafoneSDK.Items.Add(folder)
                 If folder.Equals(airedgeDefault, StringComparison.OrdinalIgnoreCase) Then
                     airedgeFound = True
                 End If
                 If folder.Equals(softbankDefault, StringComparison.OrdinalIgnoreCase) Then
                     softbankFound = True
+                End If
+                If folder.Equals(vodafoneDefault, StringComparison.OrdinalIgnoreCase) Then
+                    vodafoneFound = True
                 End If
             ElseIf folder.StartsWith("Flash", StringComparison.OrdinalIgnoreCase) Then
                 cbxFlashSDK.Items.Add(folder)
@@ -350,6 +355,12 @@ Public Class Form1
             cbxSoftbankSDK.SelectedItem = softbankDefault
         Else
             MessageBox.Show(owner:=SplashScreen, $"The default SDK '{softbankDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+
+        If vodafoneFound Then
+            cbxVodafoneSDK.SelectedItem = vodafoneDefault
+        Else
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{vodafoneDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
 
         If airedgeFound Then
@@ -2095,7 +2106,7 @@ Public Class Form1
 
                 Case "vodafone"
                     Logger.LogInfo("Launching game using VODAFONE emulator.")
-                    MessageBox.Show("Vodafone support has been temporarily disabled...")
+                    utilManager.LaunchCustom_KEmulatorGameCommand(VODAFONEpath, VODAFONEEXE, CurrentSelectedGameJAM)
                     Logger.LogInfo($"Launched with: VODAFONEPath={VODAFONEpath}, VODAFONEEXE={VODAFONEEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "airedge"

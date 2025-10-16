@@ -148,6 +148,7 @@ Partial Class Form1
         lblHelp_AppVer = New Label()
         btnControls = New Button()
         MaterialTabSelector1 = New ReaLTaiizor.Controls.MaterialTabSelector()
+        MaterialComboBox1 = New ReaLTaiizor.Controls.MaterialComboBox()
         cmsGameLV.SuspendLayout()
         GroupBox2.SuspendLayout()
         cmsMachiCharaLV.SuspendLayout()
@@ -645,6 +646,7 @@ Partial Class Form1
         ' 
         ' GroupBox3
         ' 
+        GroupBox3.Controls.Add(MaterialComboBox1)
         GroupBox3.Controls.Add(chkbxDialpadNumpad)
         GroupBox3.Controls.Add(chkboxControllerVibration)
         GroupBox3.Controls.Add(cbxControllerProfile)
@@ -1415,6 +1417,28 @@ Partial Class Form1
         MaterialTabSelector1.TabIndex = 9
         MaterialTabSelector1.Text = "MaterialTabSelector1"
         ' 
+        ' MaterialComboBox1
+        ' 
+        MaterialComboBox1.AutoResize = False
+        MaterialComboBox1.BackColor = Color.FromArgb(CByte(255), CByte(255), CByte(255))
+        MaterialComboBox1.Depth = 0
+        MaterialComboBox1.DrawMode = DrawMode.OwnerDrawVariable
+        MaterialComboBox1.DropDownHeight = 174
+        MaterialComboBox1.DropDownStyle = ComboBoxStyle.DropDownList
+        MaterialComboBox1.DropDownWidth = 121
+        MaterialComboBox1.Font = New Font("Roboto Medium", 14F, FontStyle.Bold, GraphicsUnit.Pixel)
+        MaterialComboBox1.ForeColor = Color.FromArgb(CByte(222), CByte(0), CByte(0), CByte(0))
+        MaterialComboBox1.FormattingEnabled = True
+        MaterialComboBox1.IntegralHeight = False
+        MaterialComboBox1.ItemHeight = 43
+        MaterialComboBox1.Location = New Point(183, 87)
+        MaterialComboBox1.MaxDropDownItems = 4
+        MaterialComboBox1.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.OUT
+        MaterialComboBox1.Name = "MaterialComboBox1"
+        MaterialComboBox1.Size = New Size(121, 49)
+        MaterialComboBox1.StartIndex = 0
+        MaterialComboBox1.TabIndex = 17
+        ' 
         ' Form1
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
@@ -1585,4 +1609,5 @@ Partial Class Form1
     Friend WithEvents btnVisitKeitaiArchive As Button
     Friend WithEvents cbxSoftbankSDK As ComboBox
     Friend WithEvents Label12 As Label
+    Friend WithEvents MaterialComboBox1 As ReaLTaiizor.Controls.MaterialComboBox
 End Class
