@@ -1,6 +1,6 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class SplashScreen
-    Inherits System.Windows.Forms.Form
+    Inherits ReaLTaiizor.Forms.PoisonForm
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
@@ -26,15 +26,14 @@ Partial Class SplashScreen
         ' 
         ' SplashScreen
         ' 
-        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
+        AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        BackColor = Color.White
+        BackColor = Color.FromArgb(CByte(255), CByte(255), CByte(255))
         ClientSize = New Size(650, 250)
         ForeColor = Color.White
-        FormBorderStyle = FormBorderStyle.None
         Name = "SplashScreen"
-        StartPosition = FormStartPosition.CenterScreen
         Text = "SplashScreen"
+        TextAlign = ReaLTaiizor.Enum.Poison.FormTextAlignType.Center
         TopMost = True
         ResumeLayout(False)
     End Sub
