@@ -22,18 +22,18 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, "For the first-time setup, this application requires administrator privileges to configure necessary settings." & vbCrLf & vbCrLf &
                         "Please restart the application as an Administrator by right-clicking the executable and selecting 'Run as administrator'.",
                         "Administrator Privileges Required", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                Form1.QuitApplication()
+                MainForm.QuitApplication()
                 Return False
             End If
 
             ' === Begin pre-req checks ===
-            Dim DOJAEmulator = Form1.DOJAEXE
-            Dim StarEmulator = Form1.STAREXE
+            Dim DOJAEmulator = MainForm.DOJAEXE
+            Dim StarEmulator = MainForm.STAREXE
             Dim localeEmuLoc = "data\tools\locale_emulator\LEProc.exe"
             Dim ShaderGlassLoc = "data\tools\shaderglass\ShaderGlass.exe"
 
             ' Setup DOJA and STAR Reg
-            Dim toolDojaDirs = Directory.GetDirectories(Form1.ToolsFolder, "idkDoja*")
+            Dim toolDojaDirs = Directory.GetDirectories(MainForm.ToolsFolder, "idkDoja*")
             For Each dir As String In toolDojaDirs
                 Dim regFile As String = Path.Combine(dir, "doja.reg")
                 Dim dojaExe As String = Path.Combine(dir, "bin", "doja.exe")
@@ -45,7 +45,7 @@ Namespace My.Managers
                 End If
             Next
 
-            Dim toolStarDirs = Directory.GetDirectories(Form1.ToolsFolder, "idkStar*")
+            Dim toolStarDirs = Directory.GetDirectories(MainForm.ToolsFolder, "idkStar*")
             For Each dir As String In toolStarDirs
                 Dim regFile As String = Path.Combine(dir, "star.reg")
                 Dim starExe As String = Path.Combine(dir, "bin", "star.exe")
@@ -63,7 +63,7 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, $"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {DOJAEmulator}")
                 My.logger.Logger.LogInfo("Missing DOJA 5.1 Emulator")
                 Await OpenURLAsync("https://archive.org/details/iappli-tool-dev-tools")
-                Form1.QuitApplication()
+                MainForm.QuitApplication()
             End If
 
             ' Check for STAR Emulator
@@ -72,7 +72,7 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, $"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {StarEmulator}")
                 My.logger.Logger.LogInfo("Missing STAR 2.0 Emulator")
                 Await OpenURLAsync("https://archive.org/details/iappli-tool-dev-tools")
-                Form1.QuitApplication()
+                MainForm.QuitApplication()
             End If
 
             ' Check for Locale Emulator
@@ -81,7 +81,7 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, $"Missing Locale Emulator... Download is required{vbCrLf}LocaleEmu Files need to be located at {localeEmuLoc}")
                 My.logger.Logger.LogInfo("Missing Locale Emulator")
                 Await OpenURLAsync("https://github.com/xupefei/Locale-Emulator/releases")
-                Form1.QuitApplication()
+                MainForm.QuitApplication()
             End If
 
             ' Check for ShaderGlass
@@ -90,7 +90,7 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, $"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files need to be located at {ShaderGlassLoc}")
                 My.logger.Logger.LogInfo("Missing ShaderGlass")
                 Await OpenURLAsync("https://github.com/mausimus/ShaderGlass/releases")
-                Form1.QuitApplication()
+                MainForm.QuitApplication()
             End If
 
             ' Check for Java 1.8
@@ -99,7 +99,7 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (JDK8u152)... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
                 Await OpenURLAsync("https://archive.org/details/jre-8u152-windows-i586")
-                Form1.QuitApplication()
+                MainForm.QuitApplication()
             End If
 
             ' Check for Visual C++ Runtimes
@@ -108,7 +108,7 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, "Unable to Detect C++ Runtimes... To ensure compatibility, we recommend you install this Runtime AIO Package.")
                 My.logger.Logger.LogInfo("Missing C++ Runtimes")
                 Await OpenURLAsync("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
-                Form1.QuitApplication()
+                MainForm.QuitApplication()
             End If
 
             ' Check for .net 8 Runtime
@@ -117,7 +117,7 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, "Unable to Detect .Net 8.0.15+ Runtimes... Download is required")
                 My.logger.Logger.LogInfo("Missing .Net 8.0.15+ Runtimes")
                 Await OpenURLAsync("https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-8.0.15-windows-x86-installer?cid=getdotnetcore")
-                Form1.QuitApplication()
+                MainForm.QuitApplication()
             End If
             Return True
         End Function
@@ -168,7 +168,7 @@ Namespace My.Managers
             End If
 
             ' Step 2: Set Java Bin Path
-            Form1.Java1_8BinFolderPath = Path.Combine(javaPath, "bin")
+            MainForm.Java1_8BinFolderPath = Path.Combine(javaPath, "bin")
 
             ' Step 3: Update CurrentVersion registry key to 1.8
             Dim keyPaths As String() = {
@@ -502,7 +502,7 @@ Namespace My.Managers
         End Function
         Public Shared Sub ShowSnackBar(InputString As String)
             Dim snackBar As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
-            snackBar.Show(Form1)
+            snackBar.Show(MainForm)
         End Sub
 
         'Generate Controls
@@ -693,9 +693,9 @@ Namespace My.Managers
         End Function
         Private Sub UpdateListViewItemIcon(gameTitle As String, newIconPath As String)
             ' Ensure the ImageList exists
-            If Form1.ListViewGames.SmallImageList Is Nothing Then
-                Form1.ListViewGames.SmallImageList = New ImageList()
-                Form1.ListViewGames.SmallImageList.ImageSize = New Size(24, 24)
+            If MainForm.ListViewGames.SmallImageList Is Nothing Then
+                MainForm.ListViewGames.SmallImageList = New ImageList()
+                MainForm.ListViewGames.SmallImageList.ImageSize = New Size(24, 24)
             End If
 
             ' Load the new icon
@@ -704,12 +704,12 @@ Namespace My.Managers
                 Dim newImageKey As String = Path.GetFileNameWithoutExtension(newIconPath)
 
                 ' Add the new icon to the ImageList (if not already added)
-                If Not Form1.ListViewGames.SmallImageList.Images.ContainsKey(newImageKey) Then
-                    Form1.ListViewGames.SmallImageList.Images.Add(newImageKey, newIcon)
+                If Not MainForm.ListViewGames.SmallImageList.Images.ContainsKey(newImageKey) Then
+                    MainForm.ListViewGames.SmallImageList.Images.Add(newImageKey, newIcon)
                 End If
 
                 ' Find and update the ListView item
-                For Each item As ListViewItem In Form1.ListViewGames.Items
+                For Each item As ListViewItem In MainForm.ListViewGames.Items
                     If item.Text = gameTitle Then
                         item.ImageKey = newImageKey ' Update the item's ImageKey
                         Exit For
@@ -729,12 +729,12 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
 
 
                 ' Construct all paths
                 Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
-                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
                 Dim appPath As String
                 Dim arguments As String
                 Dim dojaExePath As String = DOJAEXELocation.Trim
@@ -761,7 +761,7 @@ Namespace My.Managers
                 End If
 
                 ' Update UI skin
-                If Not Await UpdateDOJADeviceSkin(DOJAPATH, Form1.chkbxHidePhoneUI.Checked) Then
+                If Not Await UpdateDOJADeviceSkin(DOJAPATH, MainForm.chkbxHidePhoneUI.Checked) Then
                     logger.Logger.LogError("[Launch] Failed to update DOJA skins.")
                     MessageBox.Show("Failed to update DOJA skins.", "Skin Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Exit Sub
@@ -781,8 +781,8 @@ Namespace My.Managers
                 End If
 
                 ' Update sound config
-                Await UpdateDOJASoundConf(DOJAPATH, Form1.cbxAudioType.SelectedItem.ToString())
-                logger.Logger.LogInfo($"[Launch] Updated DOJA sound config to {Form1.cbxAudioType.SelectedItem}")
+                Await UpdateDOJASoundConf(DOJAPATH, MainForm.cbxAudioType.SelectedItem.ToString())
+                logger.Logger.LogInfo($"[Launch] Updated DOJA sound config to {MainForm.cbxAudioType.SelectedItem}")
 
                 ' Update app config and JAM entries
                 Dim NoGameJameUpdatedList As List(Of String) = gameManager.NoUpdateJAMGames
@@ -834,14 +834,14 @@ Namespace My.Managers
                 End If
 
                 ' ShaderGlass launch if enabled
-                If Form1.chkbxShaderGlass.Checked Then
+                If MainForm.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
-                If Form1.chkbxEnableController.Checked = True Then
+                If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
-                    If Form1.chkboxControllerVibration.Checked = True Then
+                    If MainForm.chkboxControllerVibration.Checked = True Then
                         Await StartVibratorBmpMonitorAsync(Path.Combine(DOJAPATH, "lib", "skin", "device1", "vibrator.bmp"))
                     End If
                 End If
@@ -859,12 +859,12 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
 
 
                 ' Construct all paths
                 Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
-                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
                 Dim appPath As String
                 Dim arguments As String
                 Dim dojaExePath As String = DOJASJMEEXELocation.Trim
@@ -887,8 +887,8 @@ Namespace My.Managers
                 ' Determine launch method
                 Dim SJMELaunchMethod As String
                 Dim SJMEProcessWatch As String
-                Dim selectedSJMELaunchOption = Form1.cbxSJMELaunchOption.SelectedItem.ToString
-                Dim selectedSJMEScaling = Form1.cbxSJMEScaling.SelectedItem.ToString
+                Dim selectedSJMELaunchOption = MainForm.cbxSJMELaunchOption.SelectedItem.ToString
+                Dim selectedSJMEScaling = MainForm.cbxSJMEScaling.SelectedItem.ToString
                 If selectedSJMELaunchOption = "SpringCoat" Then
                     SJMELaunchMethod = "springcoat"
                     SJMEProcessWatch = "squirreljme"
@@ -932,16 +932,16 @@ Namespace My.Managers
                 End If
 
                 ' ShaderGlass launch if enabled
-                If Form1.chkbxShaderGlass.Checked Then
+                If MainForm.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass(AppName)
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
-                If Form1.chkbxEnableController.Checked = True Then
+                If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
-                    If Form1.chkboxControllerVibration.Checked = True Then
+                    If MainForm.chkboxControllerVibration.Checked = True Then
                         MessageBox.Show("Disabling Vibration due to no supported with SquirrelJME")
-                        Form1.chkboxControllerVibration.Checked = False
+                        MainForm.chkboxControllerVibration.Checked = False
                     End If
                 End If
                 ProcessManager.StartMonitoring(jamPath)
@@ -961,16 +961,16 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
-                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
                 Dim appPath As String
                 Dim arguments As String
 
                 ' Make Full Paths
-                Dim Java32EXE As String = Path.Combine(Form1.Java1_8BinFolderPath, "java.exe")
+                Dim Java32EXE As String = Path.Combine(MainForm.Java1_8BinFolderPath, "java.exe")
                 Dim exePath As String = KEMUEXELocation.Trim
                 Dim jadjamPath As String = Path.Combine(baseDir, GameJAM).Trim()
                 Dim jarPath As String = Path.Combine(Path.GetDirectoryName(jadjamPath), Path.GetFileNameWithoutExtension(jadjamPath) & ".jar")
@@ -1009,12 +1009,12 @@ Namespace My.Managers
                 End If
 
                 ' ShaderGlass launch if enabled
-                If Form1.chkbxShaderGlass.Checked Then
+                If MainForm.chkbxShaderGlass.Checked Then
                     logger.Logger.LogInfo("[ShaderGlass] Not Supported for KEmulator, Disabling")
-                    Form1.chkbxShaderGlass.Checked = False
+                    MainForm.chkbxShaderGlass.Checked = False
                     MessageBox.Show("ShaderGlass is not supported with KEmulator. Please manually resize the KEmulator window by dragging it larger.")
                 End If
-                If Form1.chkbxEnableController.Checked = True Then
+                If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                 End If
                 ProcessManager.StartMonitoring(jadjamPath)
@@ -1038,11 +1038,11 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
-                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
                 Dim appPath As String
                 Dim arguments As String
 
@@ -1067,7 +1067,7 @@ Namespace My.Managers
                 End If
 
                 ' Update STAR UI skin
-                If Not Await UpdateSTARDeviceSkin(STARPATH, Form1.chkbxHidePhoneUI.Checked) Then
+                If Not Await UpdateSTARDeviceSkin(STARPATH, MainForm.chkbxHidePhoneUI.Checked) Then
                     logger.Logger.LogError("[Launch] Failed to update STAR skins.")
                     MessageBox.Show("Failed to update STAR skins.", "Skin Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Exit Sub
@@ -1079,8 +1079,8 @@ Namespace My.Managers
                 logger.Logger.LogInfo($"[Launch] STAR draw size set to {dimensions.Item1}x{dimensions.Item2}")
 
                 ' Config updates
-                Await UpdateSTARSoundConf(STARPATH, Form1.cbxAudioType.SelectedItem.ToString())
-                logger.Logger.LogInfo($"[Launch] STAR sound config set to {Form1.cbxAudioType.SelectedItem}")
+                Await UpdateSTARSoundConf(STARPATH, MainForm.cbxAudioType.SelectedItem.ToString())
+                logger.Logger.LogInfo($"[Launch] STAR sound config set to {MainForm.cbxAudioType.SelectedItem}")
                 Await UpdateSTARAppconfig(STARPATH, GameJAM)
                 Await EnsureSTARJamFileEntries(GameJAM)
                 logger.Logger.LogInfo("[Launch] STAR app configuration and JAM entries updated.")
@@ -1116,14 +1116,14 @@ Namespace My.Managers
                 End If
 
                 ' ShaderGlass launch if enabled
-                If Form1.chkbxShaderGlass.Checked Then
+                If MainForm.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass(Path.GetFileNameWithoutExtension(jamPath))
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
-                If Form1.chkbxEnableController.Checked = True Then
+                If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
-                    If Form1.chkboxControllerVibration.Checked = True Then
+                    If MainForm.chkboxControllerVibration.Checked = True Then
                         Await StartVibratorBmpMonitorAsync(Path.Combine(STARPATH, "lib", "skin", "device1", "vibrator.bmp"))
                     End If
                 End If
@@ -1147,16 +1147,16 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
-                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
                 Dim appPath As String
                 Dim arguments As String
 
                 ' Make Full Paths
-                Dim Java32EXE As String = Path.Combine(Form1.Java1_8BinFolderPath, "java.exe")
+                Dim Java32EXE As String = Path.Combine(MainForm.Java1_8BinFolderPath, "java.exe")
                 Dim exePath As String = JSKYEXELocation.Trim
                 Dim jadPath As String = Path.Combine(baseDir, GameJAM).Trim()
 
@@ -1184,7 +1184,7 @@ Namespace My.Managers
                 End If
 
                 ' ShaderGlass launch if enabled
-                If Form1.chkbxShaderGlass.Checked Then
+                If MainForm.chkbxShaderGlass.Checked Then
                     logger.Logger.LogInfo("[ShaderGlass] Waiting for JSKY to become idle...")
                     If Await WaitForProcessWindowAsync({"java"}, "WaitForJavaToStart") Then
                         Await LaunchShaderGlass("J-SKY Application Emulator")
@@ -1195,7 +1195,7 @@ Namespace My.Managers
                     End If
                 End If
 
-                If Form1.chkbxEnableController.Checked = True Then
+                If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                 End If
                 ProcessManager.StartMonitoring(jadPath)
@@ -1219,11 +1219,11 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
-                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
                 Dim appPath As String
                 Dim arguments As String
 
@@ -1263,12 +1263,12 @@ Namespace My.Managers
                 End If
 
                 ' ShaderGlass launch if enabled
-                If Form1.chkbxShaderGlass.Checked Then
+                If MainForm.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass("V-appli Emulator")
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
-                If Form1.chkbxEnableController.Checked = True Then
+                If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                 End If
                 ProcessManager.StartMonitoring(jadPath)
@@ -1292,11 +1292,11 @@ Namespace My.Managers
                 End If
 
                 'Start overlay
-                UtilManager.ShowLaunchOverlay(Form1, "Launching...")
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
 
                 ' Prepare all paths
                 Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
-                Dim useLocaleEmulator As Boolean = Form1.chkbxLocalEmulator.Checked
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
                 Dim appPath As String
                 Dim arguments As String
 
@@ -1344,12 +1344,12 @@ Namespace My.Managers
                 End If
 
                 ' ShaderGlass launch if enabled
-                If Form1.chkbxShaderGlass.Checked Then
+                If MainForm.chkbxShaderGlass.Checked Then
                     Await LaunchShaderGlass("Adobe Flash Player 10")
                     logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
                 End If
 
-                If Form1.chkbxEnableController.Checked = True Then
+                If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                 End If
                 ProcessManager.StartMonitoring(GameJAM)
@@ -1373,7 +1373,7 @@ Namespace My.Managers
 
                 Dim processInfo As New ProcessStartInfo()
 
-                If Form1.chkboxMachiCharaLocalEmulator.Checked = True Then
+                If MainForm.chkboxMachiCharaLocalEmulator.Checked = True Then
                     ' Launch using Locale Emulator
                     processInfo.FileName = LocalEmulatorPath
                     processInfo.Arguments = $"{guidArg} ""{machicharaexePath}"" ""{CFDPath}"""
@@ -1407,7 +1407,7 @@ Namespace My.Managers
 
                 Dim processInfo As New ProcessStartInfo()
 
-                If Form1.chkboxCharadenLocalEmulator.Checked = True Then
+                If MainForm.chkboxCharadenLocalEmulator.Checked = True Then
                     ' Launch using Locale Emulator
                     processInfo.FileName = LocalEmulatorPath
                     processInfo.Arguments = $"{guidArg} ""{charadenexePath}"" ""{AFDPath}"""
@@ -1464,14 +1464,14 @@ Namespace My.Managers
             End Try
         End Function
         Public Async Function LaunchControllerProfileAMGP() As Task
-            Dim selectedProfile As String = TryCast(Form1.cbxControllerProfile.SelectedItem, String)
-            Dim selectedController As String = TryCast(Form1.cbxGameControllers.SelectedItem, String)
+            Dim selectedProfile As String = TryCast(MainForm.cbxControllerProfile.SelectedItem, String)
+            Dim selectedController As String = TryCast(MainForm.cbxGameControllers.SelectedItem, String)
 
             If String.IsNullOrEmpty(selectedProfile) OrElse String.IsNullOrEmpty(selectedController) Then
                 Return
             End If
 
-            Dim controllerIndex As Integer = Form1.cbxGameControllers.SelectedIndex
+            Dim controllerIndex As Integer = MainForm.cbxGameControllers.SelectedIndex
 
             Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
             Dim appPath As String = Path.Combine(baseDir, "data", "tools", "antimicrox", "bin", "antimicrox.exe")
@@ -1884,7 +1884,7 @@ Namespace My.Managers
                 Return False
             End If
 
-            If Form1.NetworkUID.ToLower.Trim = "nullgwdocomo" Then
+            If MainForm.NetworkUID.ToLower.Trim = "nullgwdocomo" Then
                 logger.Logger.LogInfo("Skipping update to NetworkUID in Jam due to it Not being set (still NULLGWDOCOMO).")
                 Return True
             End If
@@ -1896,7 +1896,7 @@ Namespace My.Managers
             For Each line In originalLines
                 If Regex.IsMatch(line, "NULLGWDOCOMO", RegexOptions.IgnoreCase) Then
                     replacementCount += Regex.Matches(line, "NULLGWDOCOMO", RegexOptions.IgnoreCase).Count
-                    Dim newLine = Regex.Replace(line, "NULLGWDOCOMO", Form1.NetworkUID, RegexOptions.IgnoreCase)
+                    Dim newLine = Regex.Replace(line, "NULLGWDOCOMO", MainForm.NetworkUID, RegexOptions.IgnoreCase)
                     lines.Add(newLine)
                 Else
                     lines.Add(line)
@@ -1904,7 +1904,7 @@ Namespace My.Managers
             Next
 
             If replacementCount > 0 Then
-                logger.Logger.LogInfo($"Replaced {replacementCount} occurrence(s) of 'NULLGWDOCOMO' with '{Form1.NetworkUID}' in {JamFile}")
+                logger.Logger.LogInfo($"Replaced {replacementCount} occurrence(s) of 'NULLGWDOCOMO' with '{MainForm.NetworkUID}' in {JamFile}")
             Else
                 logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
             End If
@@ -2549,7 +2549,7 @@ Namespace My.Managers
             Await File.WriteAllLinesAsync(filePath, lines)
         End Function
         Public Async Function ModifyScalingWindow(filePath As String) As Task
-            Dim selectedValue As String = Form1.cbxShaderGlassScaling.SelectedItem.ToString()
+            Dim selectedValue As String = MainForm.cbxShaderGlassScaling.SelectedItem.ToString()
             Dim scaleValue As Integer
 
             Select Case selectedValue

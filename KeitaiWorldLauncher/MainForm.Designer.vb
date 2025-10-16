@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
-Partial Class Form1
+Partial Class MainForm
     Inherits ReaLTaiizor.Forms.MaterialForm
 
     'Form overrides dispose to clean up the component list.
@@ -23,7 +23,7 @@ Partial Class Form1
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Form1))
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(MainForm))
         ImageListGames = New ImageList(components)
         cmsGameLV = New ContextMenuStrip(components)
         cmsGameLV_Launch = New ToolStripMenuItem()
@@ -1317,7 +1317,6 @@ Partial Class Form1
         ' 
         ' lvwPlaytimes
         ' 
-        lvwPlaytimes.Dock = DockStyle.Fill
         lvwPlaytimes.Font = New Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         lvwPlaytimes.FullRowSelect = True
         lvwPlaytimes.GridLines = True
@@ -1402,6 +1401,7 @@ Partial Class Form1
         ' MaterialTabSelector1
         ' 
         MaterialTabSelector1.BaseTabControl = MaterialTabControl1
+        MaterialTabSelector1.CausesValidation = False
         MaterialTabSelector1.CharacterCasing = ReaLTaiizor.Controls.MaterialTabSelector.CustomCharacterCasing.Normal
         MaterialTabSelector1.Depth = 0
         MaterialTabSelector1.Dock = DockStyle.Top
@@ -1415,7 +1415,7 @@ Partial Class Form1
         MaterialTabSelector1.TabIndex = 9
         MaterialTabSelector1.Text = "MaterialTabSelector1"
         ' 
-        ' Form1
+        ' MainForm
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
         AutoScaleMode = AutoScaleMode.Dpi
@@ -1425,7 +1425,7 @@ Partial Class Form1
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Margin = New Padding(2)
         MaximizeBox = False
-        Name = "Form1"
+        Name = "MainForm"
         Padding = New Padding(0, 63, 0, 0)
         Sizable = False
         StartPosition = FormStartPosition.CenterScreen

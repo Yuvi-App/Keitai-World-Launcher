@@ -138,9 +138,9 @@ Namespace My.Managers
         End Sub
         Public Sub UpdateNetworkUIDSetting(NewNetworkUID As String)
             Try
-                Dim CurrentNetworkUID = Form1.NetworkUID
+                Dim CurrentNetworkUID = MainForm.NetworkUID
                 NewNetworkUID = NewNetworkUID.Trim
-                File.WriteAllText(Form1.NetworkUIDTxtFile, NewNetworkUID)
+                File.WriteAllText(MainForm.NetworkUIDTxtFile, NewNetworkUID)
                 logger.Logger.LogInfo($"Updated NetworkUID from {CurrentNetworkUID} to {NewNetworkUID}")
             Catch ex As Exception
                 MessageBox.Show($"Failed to update the NetworkUID setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)

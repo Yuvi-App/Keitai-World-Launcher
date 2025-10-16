@@ -1,4 +1,6 @@
 ﻿Imports System.IO
+Imports ReaLTaiizor.Child.Material
+Imports ReaLTaiizor.Controls
 
 Public Class SaveDataManagerForm
     Dim DownloadFolder = Path.Combine("data", "downloads")
@@ -6,12 +8,14 @@ Public Class SaveDataManagerForm
     Private Sub SaveDataManager_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         lbxInstalledAppli.Items.Clear()
         For Each F In Directory.GetDirectories(DownloadFolder)
-            lbxInstalledAppli.Items.Add(Path.GetFileName(F))
+            lbxInstalledAppli.Items.Add(New MaterialListBoxItem(Path.GetFileName(F)))
         Next
     End Sub
-    Private Sub lbxInstalledAppli_SelectedIndexChanged(sender As Object, e As EventArgs) Handles lbxInstalledAppli.SelectedIndexChanged
+    Private Sub lbxInstalledAppli_SelectedIndexChanged(sender As Object, item As MaterialListBoxItem) Handles lbxInstalledAppli.SelectedIndexChanged
         LoadSaves()
     End Sub
+
+
     Private Async Sub BtnBackup_Click(sender As Object, e As EventArgs) Handles btnBackup.Click
         Try
             ' Ensure the backup folder exists
@@ -25,7 +29,7 @@ Public Class SaveDataManagerForm
             End If
 
             ' Get the selected game name
-            Dim selectedGameFolder As String = lbxInstalledAppli.SelectedItem.ToString()
+            Dim selectedGameFolder As String = lbxInstalledAppli.SelectedItem.Text.ToString()
             Dim fullGameFolderPath As String = Path.Combine(DownloadFolder, selectedGameFolder)
 
             If Not Directory.Exists(fullGameFolderPath) Then
@@ -86,7 +90,7 @@ Public Class SaveDataManagerForm
         End If
 
         ' Get the selected game name
-        Dim selectedGameFolder As String = lbxInstalledAppli.SelectedItem.ToString()
+        Dim selectedGameFolder As String = lbxInstalledAppli.SelectedItem.Text.ToString()
 
         ' Build the backup folder path for the selected game
         Dim gameBackupFolder As String = Path.Combine(BackupFolder, selectedGameFolder)
@@ -106,7 +110,7 @@ Public Class SaveDataManagerForm
         ' Add each file (relative path) to the listbox
         For Each filePath In backupFiles
             Dim relativePath As String = Path.GetRelativePath(gameBackupFolder, filePath)
-            lbxBackupSaves.Items.Add(relativePath)
+            lbxBackupSaves.Items.Add(New MaterialListBoxItem(relativePath))
         Next
     End Sub
     Private Sub DeleteToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles DeleteToolStripMenuItem.Click
@@ -120,8 +124,8 @@ Public Class SaveDataManagerForm
             Exit Sub
         End If
 
-        Dim selectedGameFolder As String = lbxInstalledAppli.SelectedItem.ToString()
-        Dim selectedBackupRelativePath As String = lbxBackupSaves.SelectedItem.ToString()
+        Dim selectedGameFolder As String = lbxInstalledAppli.SelectedItem.Text.ToString()
+        Dim selectedBackupRelativePath As String = lbxBackupSaves.SelectedItem.Text.ToString()
         Dim fullBackupFilePath As String = Path.Combine(BackupFolder, selectedGameFolder, selectedBackupRelativePath)
 
         If Not File.Exists(fullBackupFilePath) Then
@@ -158,8 +162,8 @@ Public Class SaveDataManagerForm
             Exit Sub
         End If
 
-        Dim selectedGameFolder As String = lbxInstalledAppli.SelectedItem.ToString()
-        Dim selectedBackupRelativePath As String = lbxBackupSaves.SelectedItem.ToString()
+        Dim selectedGameFolder As String = lbxInstalledAppli.SelectedItem.Text.ToString()
+        Dim selectedBackupRelativePath As String = lbxBackupSaves.SelectedItem.Text.ToString()
 
         Dim fullBackupFilePath As String = Path.Combine(BackupFolder, selectedGameFolder, selectedBackupRelativePath)
         Dim fullGameFolderPath As String = Path.Combine(DownloadFolder, selectedGameFolder)

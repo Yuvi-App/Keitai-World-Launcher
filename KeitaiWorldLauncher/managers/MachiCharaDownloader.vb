@@ -28,7 +28,7 @@ Namespace My.Managers
                     .BackColor = Color.FromArgb(160, Color.White),
                     .Visible = True
                 }
-                Form1.Controls.Add(overlay)
+                MainForm.Controls.Add(overlay)
                 overlay.BringToFront()
                 Dim loadingLabel As New Label With {
                     .Text = "Downloading...",

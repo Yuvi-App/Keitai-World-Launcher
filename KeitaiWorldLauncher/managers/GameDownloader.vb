@@ -59,7 +59,7 @@ Namespace My.Managers
                     .BackColor = Color.FromArgb(160, Color.White),
                     .Visible = True
                 }
-                Form1.Controls.Add(overlay)
+                MainForm.Controls.Add(overlay)
                 overlay.BringToFront()
                 Dim loadingLabel As New Label With {
                     .Text = "Downloading...",
@@ -105,10 +105,10 @@ Namespace My.Managers
                 'Finish Up Processing App DL
                 If Not BatchDownload Then
                     logger.Logger.LogInfo($"[Download] Generating dynamic controls from: {JAMLocation}")
-                    UtilManager.GenerateDynamicControlsFromLines(JAMLocation, Form1.panelDynamic)
+                    UtilManager.GenerateDynamicControlsFromLines(JAMLocation, MainForm.panelDynamic)
                 End If
                 logger.Logger.LogInfo("[Download] Refreshing game highlighting.")
-                Form1.RefreshGameHighlighting()
+                MainForm.RefreshGameHighlighting()
                 logger.Logger.LogInfo("[Download] Extracting and resizing app icon.")
                 Await utilManager.ExtractAndResizeAppIconAsync(JARLocation, JAMLocation, Inputgame)
 
@@ -141,9 +141,9 @@ Namespace My.Managers
 
                 Select Case game.Emulator.ToLower()
                     Case "doja"
-                        destinationPath = $"{Form1.DOJApath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
+                        destinationPath = $"{MainForm.DOJApath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
                     Case "star"
-                        destinationPath = $"{Form1.STARpath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
+                        destinationPath = $"{MainForm.STARpath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
                     Case "jsky"
                         logger.Logger.LogWarning("[Download] JSKY SD Card URL Detected but we are not handling this yet.")
                         Return
@@ -175,7 +175,7 @@ Namespace My.Managers
 
             ' Hide overlay
             progressBar.Visible = False
-            Form1.Controls.Remove(overlay)
+            MainForm.Controls.Remove(overlay)
 
             If e.Error IsNot Nothing Then
                 MessageBox.Show($"Failed to download the game: {e.Error.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -185,10 +185,10 @@ Namespace My.Managers
                     File.Delete(downloadFilePath)
 
                     If Isthisbatchdownload = False Then
-                        UtilManager.GenerateDynamicControlsFromLines(ReadJam, Form1.panelDynamic)
+                        UtilManager.GenerateDynamicControlsFromLines(ReadJam, MainForm.panelDynamic)
                     End If
 
-                    Form1.RefreshGameHighlighting()
+                    MainForm.RefreshGameHighlighting()
                     Await utilManager.ExtractAndResizeAppIconAsync(ReadJar, ReadJam, SelectedGame)
 
                 Catch ex As Exception

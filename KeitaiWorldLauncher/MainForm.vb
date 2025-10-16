@@ -8,7 +8,7 @@ Imports ReaLTaiizor.[Enum].Poison
 Imports ReaLTaiizor.Forms
 Imports SharpDX.XInput
 
-Public Class Form1
+Public Class MainForm
     'Global Vars
     Private splash As SplashScreen
     Dim isDebug As Boolean = False
@@ -84,12 +84,12 @@ Public Class Form1
     Public Java1_8BinFolderPath As String
 
     ' FORM Close/Load
-    Private Sub Form1_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
+    Private Sub MainForm_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
         UtilManager.CheckAndCloseAllEmulators()
         UtilManager.CheckAndCloseAMX()
         UtilManager.CheckAndCloseAHK()
     End Sub
-    Private Async Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Opacity = 0
         Application.EnableVisualStyles()
 
@@ -144,7 +144,7 @@ Public Class Form1
         Else
             Logger.LogInfo("Invalid FirstStart Parameter in Config")
             MessageBox.Show("Invalid FirstStart parameter in AppConfig.xml, Please set to true and relaunch app.")
-            Form1.QuitApplication()
+            MainForm.QuitApplication()
         End If
 
         'Needs Internet If none we skip and use local file
@@ -190,7 +190,7 @@ Public Class Form1
         'We need to check for java every run, since these get used for all emu's
         Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
         If Not javaReady Then
-            Form1.QuitApplication()
+            MainForm.QuitApplication()
             Return
         End If
 

@@ -24,13 +24,13 @@ Partial Class SaveDataManagerForm
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
         GroupBox1 = New GroupBox()
-        lbxInstalledAppli = New ListBox()
-        btnBackup = New Button()
-        btnRestoreBackup = New Button()
         GroupBox2 = New GroupBox()
-        lbxBackupSaves = New ListBox()
         ContextMenuStrip1 = New ContextMenuStrip(components)
         DeleteToolStripMenuItem = New ToolStripMenuItem()
+        btnBackup = New ReaLTaiizor.Controls.MaterialButton()
+        btnRestoreBackup = New ReaLTaiizor.Controls.MaterialButton()
+        lbxBackupSaves = New ReaLTaiizor.Controls.MaterialListBox()
+        lbxInstalledAppli = New ReaLTaiizor.Controls.MaterialListBox()
         GroupBox1.SuspendLayout()
         GroupBox2.SuspendLayout()
         ContextMenuStrip1.SuspendLayout()
@@ -46,34 +46,6 @@ Partial Class SaveDataManagerForm
         GroupBox1.TabStop = False
         GroupBox1.Text = "Installed Appli"
         ' 
-        ' lbxInstalledAppli
-        ' 
-        lbxInstalledAppli.Dock = DockStyle.Fill
-        lbxInstalledAppli.FormattingEnabled = True
-        lbxInstalledAppli.ItemHeight = 15
-        lbxInstalledAppli.Location = New Point(3, 19)
-        lbxInstalledAppli.Name = "lbxInstalledAppli"
-        lbxInstalledAppli.Size = New Size(398, 445)
-        lbxInstalledAppli.TabIndex = 0
-        ' 
-        ' btnBackup
-        ' 
-        btnBackup.Location = New Point(416, 207)
-        btnBackup.Name = "btnBackup"
-        btnBackup.Size = New Size(111, 56)
-        btnBackup.TabIndex = 1
-        btnBackup.Text = "Backup -->"
-        btnBackup.UseVisualStyleBackColor = True
-        ' 
-        ' btnRestoreBackup
-        ' 
-        btnRestoreBackup.Location = New Point(416, 318)
-        btnRestoreBackup.Name = "btnRestoreBackup"
-        btnRestoreBackup.Size = New Size(111, 64)
-        btnRestoreBackup.TabIndex = 2
-        btnRestoreBackup.Text = "<-- Restore"
-        btnRestoreBackup.UseVisualStyleBackColor = True
-        ' 
         ' GroupBox2
         ' 
         GroupBox2.Controls.Add(lbxBackupSaves)
@@ -83,17 +55,6 @@ Partial Class SaveDataManagerForm
         GroupBox2.TabIndex = 3
         GroupBox2.TabStop = False
         GroupBox2.Text = "Backup Saves"
-        ' 
-        ' lbxBackupSaves
-        ' 
-        lbxBackupSaves.ContextMenuStrip = ContextMenuStrip1
-        lbxBackupSaves.Dock = DockStyle.Fill
-        lbxBackupSaves.FormattingEnabled = True
-        lbxBackupSaves.ItemHeight = 15
-        lbxBackupSaves.Location = New Point(3, 19)
-        lbxBackupSaves.Name = "lbxBackupSaves"
-        lbxBackupSaves.Size = New Size(454, 442)
-        lbxBackupSaves.TabIndex = 0
         ' 
         ' ContextMenuStrip1
         ' 
@@ -107,14 +68,88 @@ Partial Class SaveDataManagerForm
         DeleteToolStripMenuItem.Size = New Size(107, 22)
         DeleteToolStripMenuItem.Text = "Delete"
         ' 
+        ' btnBackup
+        ' 
+        btnBackup.AutoSize = False
+        btnBackup.AutoSizeMode = AutoSizeMode.GrowAndShrink
+        btnBackup.Density = ReaLTaiizor.Controls.MaterialButton.MaterialButtonDensity.Default
+        btnBackup.Depth = 0
+        btnBackup.HighEmphasis = True
+        btnBackup.Icon = Nothing
+        btnBackup.IconType = ReaLTaiizor.Controls.MaterialButton.MaterialIconType.Rebase
+        btnBackup.Location = New Point(416, 200)
+        btnBackup.Margin = New Padding(4, 6, 4, 6)
+        btnBackup.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
+        btnBackup.Name = "btnBackup"
+        btnBackup.NoAccentTextColor = Color.Empty
+        btnBackup.Size = New Size(111, 53)
+        btnBackup.TabIndex = 4
+        btnBackup.Text = "Backup -->"
+        btnBackup.Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+        btnBackup.UseAccentColor = False
+        btnBackup.UseVisualStyleBackColor = True
+        ' 
+        ' btnRestoreBackup
+        ' 
+        btnRestoreBackup.AutoSize = False
+        btnRestoreBackup.AutoSizeMode = AutoSizeMode.GrowAndShrink
+        btnRestoreBackup.Density = ReaLTaiizor.Controls.MaterialButton.MaterialButtonDensity.Default
+        btnRestoreBackup.Depth = 0
+        btnRestoreBackup.HighEmphasis = True
+        btnRestoreBackup.Icon = Nothing
+        btnRestoreBackup.IconType = ReaLTaiizor.Controls.MaterialButton.MaterialIconType.Rebase
+        btnRestoreBackup.Location = New Point(416, 345)
+        btnRestoreBackup.Margin = New Padding(4, 6, 4, 6)
+        btnRestoreBackup.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
+        btnRestoreBackup.Name = "btnRestoreBackup"
+        btnRestoreBackup.NoAccentTextColor = Color.Empty
+        btnRestoreBackup.Size = New Size(111, 53)
+        btnRestoreBackup.TabIndex = 5
+        btnRestoreBackup.Text = "<-- Restore"
+        btnRestoreBackup.Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+        btnRestoreBackup.UseAccentColor = False
+        btnRestoreBackup.UseVisualStyleBackColor = True
+        ' 
+        ' lbxBackupSaves
+        ' 
+        lbxBackupSaves.BackColor = Color.White
+        lbxBackupSaves.BorderColor = Color.LightGray
+        lbxBackupSaves.ContextMenuStrip = ContextMenuStrip1
+        lbxBackupSaves.Depth = 0
+        lbxBackupSaves.Dock = DockStyle.Fill
+        lbxBackupSaves.Font = New Font("Roboto", 16F, FontStyle.Regular, GraphicsUnit.Pixel)
+        lbxBackupSaves.Location = New Point(3, 19)
+        lbxBackupSaves.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
+        lbxBackupSaves.Name = "lbxBackupSaves"
+        lbxBackupSaves.SelectedIndex = -1
+        lbxBackupSaves.SelectedItem = Nothing
+        lbxBackupSaves.Size = New Size(454, 442)
+        lbxBackupSaves.TabIndex = 0
+        ' 
+        ' lbxInstalledAppli
+        ' 
+        lbxInstalledAppli.BackColor = Color.White
+        lbxInstalledAppli.BorderColor = Color.LightGray
+        lbxInstalledAppli.ContextMenuStrip = ContextMenuStrip1
+        lbxInstalledAppli.Depth = 0
+        lbxInstalledAppli.Dock = DockStyle.Fill
+        lbxInstalledAppli.Font = New Font("Roboto", 16F, FontStyle.Regular, GraphicsUnit.Pixel)
+        lbxInstalledAppli.Location = New Point(3, 19)
+        lbxInstalledAppli.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
+        lbxInstalledAppli.Name = "lbxInstalledAppli"
+        lbxInstalledAppli.SelectedIndex = -1
+        lbxInstalledAppli.SelectedItem = Nothing
+        lbxInstalledAppli.Size = New Size(398, 445)
+        lbxInstalledAppli.TabIndex = 0
+        ' 
         ' SaveDataManagerForm
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(999, 540)
-        Controls.Add(GroupBox2)
         Controls.Add(btnRestoreBackup)
         Controls.Add(btnBackup)
+        Controls.Add(GroupBox2)
         Controls.Add(GroupBox1)
         MaximizeBox = False
         Name = "SaveDataManagerForm"
@@ -128,11 +163,11 @@ Partial Class SaveDataManagerForm
     End Sub
 
     Friend WithEvents GroupBox1 As GroupBox
-    Friend WithEvents lbxInstalledAppli As ListBox
-    Friend WithEvents btnBackup As Button
-    Friend WithEvents btnRestoreBackup As Button
     Friend WithEvents GroupBox2 As GroupBox
-    Friend WithEvents lbxBackupSaves As ListBox
     Friend WithEvents ContextMenuStrip1 As ContextMenuStrip
     Friend WithEvents DeleteToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents btnBackup As ReaLTaiizor.Controls.MaterialButton
+    Friend WithEvents btnRestoreBackup As ReaLTaiizor.Controls.MaterialButton
+    Friend WithEvents lbxInstalledAppli As ReaLTaiizor.Controls.MaterialListBox
+    Friend WithEvents lbxBackupSaves As ReaLTaiizor.Controls.MaterialListBox
 End Class
