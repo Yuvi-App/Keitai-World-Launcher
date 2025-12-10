@@ -102,10 +102,15 @@ Partial Class MainForm
         DeleteCMS_CharaDen = New ToolStripMenuItem()
         lblCharadenTotalCount = New Label()
         tpConfig = New TabPage()
+        GroupBox11 = New GroupBox()
+        lblInvalidUID = New Label()
+        Label14 = New Label()
+        txtCurrentUID = New TextBox()
+        Label13 = New Label()
+        btnUpdateNetworkUID = New Button()
         GroupBox6 = New GroupBox()
         btnSaveDataManagement = New Button()
         btnAddCustomApps = New Button()
-        btnUpdateNetworkUID = New Button()
         btnLoadShaderGlassConfig = New Button()
         btnLaunchAppConfig = New Button()
         btnLaunchKey2Pad = New Button()
@@ -163,6 +168,7 @@ Partial Class MainForm
         GroupBox10.SuspendLayout()
         cmsCharadenLV.SuspendLayout()
         tpConfig.SuspendLayout()
+        GroupBox11.SuspendLayout()
         GroupBox6.SuspendLayout()
         GroupBox5.SuspendLayout()
         gbxSJMELaunchOptions.SuspendLayout()
@@ -878,6 +884,7 @@ Partial Class MainForm
         ' 
         ' tpConfig
         ' 
+        tpConfig.Controls.Add(GroupBox11)
         tpConfig.Controls.Add(GroupBox6)
         tpConfig.Controls.Add(GroupBox5)
         tpConfig.Controls.Add(GroupBox4)
@@ -888,17 +895,75 @@ Partial Class MainForm
         tpConfig.Text = "Config"
         tpConfig.UseVisualStyleBackColor = True
         ' 
+        ' GroupBox11
+        ' 
+        GroupBox11.Controls.Add(lblInvalidUID)
+        GroupBox11.Controls.Add(Label14)
+        GroupBox11.Controls.Add(txtCurrentUID)
+        GroupBox11.Controls.Add(Label13)
+        GroupBox11.Controls.Add(btnUpdateNetworkUID)
+        GroupBox11.Location = New Point(566, 3)
+        GroupBox11.Name = "GroupBox11"
+        GroupBox11.Size = New Size(314, 121)
+        GroupBox11.TabIndex = 18
+        GroupBox11.TabStop = False
+        GroupBox11.Text = "Network Config"
+        ' 
+        ' lblInvalidUID
+        ' 
+        lblInvalidUID.ForeColor = Color.Firebrick
+        lblInvalidUID.Location = New Point(87, 87)
+        lblInvalidUID.Name = "lblInvalidUID"
+        lblInvalidUID.Size = New Size(135, 23)
+        lblInvalidUID.TabIndex = 6
+        lblInvalidUID.Text = "Invalid UID"
+        lblInvalidUID.TextAlign = ContentAlignment.TopCenter
+        lblInvalidUID.Visible = False
+        ' 
+        ' Label14
+        ' 
+        Label14.Location = New Point(6, 60)
+        Label14.Name = "Label14"
+        Label14.Size = New Size(75, 23)
+        Label14.TabIndex = 5
+        Label14.Text = "Current UID:"
+        Label14.TextAlign = ContentAlignment.MiddleRight
+        ' 
+        ' txtCurrentUID
+        ' 
+        txtCurrentUID.Location = New Point(87, 61)
+        txtCurrentUID.Name = "txtCurrentUID"
+        txtCurrentUID.ReadOnly = True
+        txtCurrentUID.Size = New Size(135, 23)
+        txtCurrentUID.TabIndex = 4
+        ' 
+        ' Label13
+        ' 
+        Label13.Location = New Point(6, 22)
+        Label13.Name = "Label13"
+        Label13.Size = New Size(278, 36)
+        Label13.TabIndex = 0
+        Label13.Text = "To access online features in supported games, please create a Network UID."
+        ' 
+        ' btnUpdateNetworkUID
+        ' 
+        btnUpdateNetworkUID.Location = New Point(228, 61)
+        btnUpdateNetworkUID.Name = "btnUpdateNetworkUID"
+        btnUpdateNetworkUID.Size = New Size(80, 55)
+        btnUpdateNetworkUID.TabIndex = 3
+        btnUpdateNetworkUID.Text = "Update NetworkUID"
+        btnUpdateNetworkUID.UseVisualStyleBackColor = True
+        ' 
         ' GroupBox6
         ' 
         GroupBox6.Controls.Add(btnSaveDataManagement)
         GroupBox6.Controls.Add(btnAddCustomApps)
-        GroupBox6.Controls.Add(btnUpdateNetworkUID)
         GroupBox6.Controls.Add(btnLoadShaderGlassConfig)
         GroupBox6.Controls.Add(btnLaunchAppConfig)
         GroupBox6.Controls.Add(btnLaunchKey2Pad)
         GroupBox6.Location = New Point(3, 3)
         GroupBox6.Name = "GroupBox6"
-        GroupBox6.Size = New Size(557, 84)
+        GroupBox6.Size = New Size(557, 121)
         GroupBox6.TabIndex = 17
         GroupBox6.TabStop = False
         GroupBox6.Text = "General Config"
@@ -907,32 +972,23 @@ Partial Class MainForm
         ' 
         btnSaveDataManagement.Location = New Point(6, 22)
         btnSaveDataManagement.Name = "btnSaveDataManagement"
-        btnSaveDataManagement.Size = New Size(93, 55)
+        btnSaveDataManagement.Size = New Size(201, 55)
         btnSaveDataManagement.TabIndex = 5
         btnSaveDataManagement.Text = "Save Data Management"
         btnSaveDataManagement.UseVisualStyleBackColor = True
         ' 
         ' btnAddCustomApps
         ' 
-        btnAddCustomApps.Location = New Point(191, 22)
+        btnAddCustomApps.Location = New Point(213, 22)
         btnAddCustomApps.Name = "btnAddCustomApps"
         btnAddCustomApps.Size = New Size(80, 55)
         btnAddCustomApps.TabIndex = 4
         btnAddCustomApps.Text = "Add Custom Apps"
         btnAddCustomApps.UseVisualStyleBackColor = True
         ' 
-        ' btnUpdateNetworkUID
-        ' 
-        btnUpdateNetworkUID.Location = New Point(105, 22)
-        btnUpdateNetworkUID.Name = "btnUpdateNetworkUID"
-        btnUpdateNetworkUID.Size = New Size(80, 55)
-        btnUpdateNetworkUID.TabIndex = 3
-        btnUpdateNetworkUID.Text = "Update NetworkUID"
-        btnUpdateNetworkUID.UseVisualStyleBackColor = True
-        ' 
         ' btnLoadShaderGlassConfig
         ' 
-        btnLoadShaderGlassConfig.Location = New Point(449, 22)
+        btnLoadShaderGlassConfig.Location = New Point(471, 22)
         btnLoadShaderGlassConfig.Name = "btnLoadShaderGlassConfig"
         btnLoadShaderGlassConfig.Size = New Size(80, 55)
         btnLoadShaderGlassConfig.TabIndex = 2
@@ -941,7 +997,7 @@ Partial Class MainForm
         ' 
         ' btnLaunchAppConfig
         ' 
-        btnLaunchAppConfig.Location = New Point(363, 22)
+        btnLaunchAppConfig.Location = New Point(385, 22)
         btnLaunchAppConfig.Name = "btnLaunchAppConfig"
         btnLaunchAppConfig.Size = New Size(80, 55)
         btnLaunchAppConfig.TabIndex = 1
@@ -950,7 +1006,7 @@ Partial Class MainForm
         ' 
         ' btnLaunchKey2Pad
         ' 
-        btnLaunchKey2Pad.Location = New Point(277, 22)
+        btnLaunchKey2Pad.Location = New Point(299, 22)
         btnLaunchKey2Pad.Name = "btnLaunchKey2Pad"
         btnLaunchKey2Pad.Size = New Size(80, 55)
         btnLaunchKey2Pad.TabIndex = 0
@@ -964,9 +1020,9 @@ Partial Class MainForm
         GroupBox5.Controls.Add(lblAudioWarning)
         GroupBox5.Controls.Add(Label1)
         GroupBox5.Controls.Add(cbxAudioType)
-        GroupBox5.Location = New Point(245, 93)
+        GroupBox5.Location = New Point(245, 131)
         GroupBox5.Name = "GroupBox5"
-        GroupBox5.Size = New Size(315, 286)
+        GroupBox5.Size = New Size(315, 262)
         GroupBox5.TabIndex = 16
         GroupBox5.TabStop = False
         GroupBox5.Text = "Doja/Star SDK Options"
@@ -1110,9 +1166,9 @@ Partial Class MainForm
         GroupBox4.Controls.Add(cbxStarSDK)
         GroupBox4.Controls.Add(cbxDojaSDK)
         GroupBox4.Controls.Add(Label4)
-        GroupBox4.Location = New Point(3, 93)
+        GroupBox4.Location = New Point(3, 131)
         GroupBox4.Name = "GroupBox4"
-        GroupBox4.Size = New Size(236, 469)
+        GroupBox4.Size = New Size(236, 447)
         GroupBox4.TabIndex = 15
         GroupBox4.TabStop = False
         GroupBox4.Text = "SDK Configuration"
@@ -1449,6 +1505,8 @@ Partial Class MainForm
         GroupBox10.ResumeLayout(False)
         cmsCharadenLV.ResumeLayout(False)
         tpConfig.ResumeLayout(False)
+        GroupBox11.ResumeLayout(False)
+        GroupBox11.PerformLayout()
         GroupBox6.ResumeLayout(False)
         GroupBox5.ResumeLayout(False)
         GroupBox5.PerformLayout()
@@ -1585,4 +1643,9 @@ Partial Class MainForm
     Friend WithEvents btnVisitKeitaiArchive As Button
     Friend WithEvents cbxSoftbankSDK As ComboBox
     Friend WithEvents Label12 As Label
+    Friend WithEvents GroupBox11 As GroupBox
+    Friend WithEvents Label13 As Label
+    Friend WithEvents lblInvalidUID As Label
+    Private WithEvents Label14 As Label
+    Friend WithEvents txtCurrentUID As TextBox
 End Class

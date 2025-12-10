@@ -30,6 +30,7 @@ Public Class MainForm
     Dim XInputDevices As New Dictionary(Of String, Integer)
     Private Shared isGameDownloadInProgress As Boolean = False
     Dim CompletedBootSequence As Boolean = False
+    Public Shared UsingJDK1_8 As Boolean = False
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -193,6 +194,7 @@ Public Class MainForm
             MainForm.QuitApplication()
             Return
         End If
+        Logger.LogInfo($"Using JDK: {UsingJDK1_8}")
 
         ' Load Custom Games
         Await LoadCustomGamesAsync()
@@ -2402,6 +2404,7 @@ Public Class MainForm
             configManager.UpdateNetworkUIDSetting(newNetworkUID)
             NetworkUID = newNetworkUID
         End If
+        FillCurrnetUIDLabel()
     End Sub
     Private Sub btnAddCustomApps_Click(sender As Object, e As EventArgs) Handles btnAddCustomApps.Click
         ' —— 1) Pick emulator via a MaterialForm + ComboBox + Recursive checkbox —— '
@@ -2578,7 +2581,6 @@ Public Class MainForm
             Application.Restart()
         End Using
     End Sub
-
     Private Sub btnSaveDataManagement_Click(sender As Object, e As EventArgs) Handles btnSaveDataManagement.Click
         SaveDataManagerForm.ShowDialog()
     End Sub
@@ -2592,7 +2594,14 @@ Public Class MainForm
         startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
         Dim process As Process = Process.Start(startInfo)
     End Sub
-
+    Private Sub FillCurrnetUIDLabel()
+        txtCurrentUID.Text = $"{NetworkUID}"
+        If txtCurrentUID.Text = "" Or txtCurrentUID.Text.ToUpper = "NULLGWDOCOMO" Then
+            lblInvalidUID.Visible = True
+        Else
+            lblInvalidUID.Visible = False
+        End If
+    End Sub
     'Help Options in TabPage
     Private Sub SetupLabelsinOptions()
         Dim troubleshootingMessage As String =
@@ -2710,8 +2719,11 @@ Public Class MainForm
 
     'TabPage Changes
     Private Sub tab(sender As Object, e As EventArgs) Handles MaterialTabControl1.SelectedIndexChanged
+
         If MaterialTabControl1.SelectedTab Is tpStats Then
             LoadPlaytimesToListView()
+        ElseIf MaterialTabControl1.SelectedTab Is tpConfig Then
+            FillCurrnetUIDLabel()
         End If
     End Sub
 End Class

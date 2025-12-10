@@ -98,7 +98,6 @@ Namespace My.Managers
             If Not Await EnsureJava1_8IsConfiguredAsync() Then
                 MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (JDK8u152)... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
-                Await OpenURLAsync("https://archive.org/details/jre-8u152-windows-i586")
                 MainForm.QuitApplication()
             End If
 
@@ -124,9 +123,9 @@ Namespace My.Managers
         Public Shared Async Function EnsureJava1_8IsConfiguredAsync() As Task(Of Boolean)
             ' Step 0: Check for problematic Java 1.4 installation
             Dim java14Keys As String() = {
-                "SOFTWARE\JavaSoft\Java Runtime Environment\1.4",
-                "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.4"
-            }
+        "SOFTWARE\JavaSoft\Java Runtime Environment\1.4",
+        "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.4"
+    }
 
             For Each regPath In java14Keys
                 Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
@@ -134,46 +133,114 @@ Namespace My.Managers
                         My.logger.Logger.LogWarning("Detected incompatible Java 1.4 installation.")
                         MessageBox.Show(owner:=SplashScreen,
                     "Java 1.4 is installed on this system, which is incompatible with Keitai World Launcher. We recommend you uninstall it and reinstall Java 1.8.",
-                    "Java Compatibility Issue", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                    "Java Compatibility Issue",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning)
                     End If
                 End Using
             Next
 
-            ' Step 1: Locate Java 1.8 path
-            Dim javaPath As String = Await Task.Run(Function()
-                                                        Dim javaVersions As String() = {
-                                                            "SOFTWARE\JavaSoft\Java Runtime Environment\1.8",
-                                                            "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8"
-                                                        }
+            ' Step 1: Locate JDK 1.8 first
+            Dim jdkPath As String = Await Task.Run(Function()
+                                                       Dim jdkKeys As String() = {
+                                                   "SOFTWARE\JavaSoft\Java Development Kit\1.8",
+                                                   "SOFTWARE\WOW6432Node\JavaSoft\Java Development Kit\1.8"
+                                               }
 
-                                                        For Each regPath In javaVersions
-                                                            Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
-                                                                If key IsNot Nothing Then
-                                                                    Dim javaHome = key.GetValue("JavaHome")
-                                                                    If javaHome IsNot Nothing Then
-                                                                        Return javaHome.ToString()
-                                                                    End If
-                                                                End If
-                                                            End Using
-                                                        Next
+                                                       For Each regPath In jdkKeys
+                                                           Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                                                               If key IsNot Nothing Then
+                                                                   Dim javaHome = key.GetValue("JavaHome")
+                                                                   If javaHome IsNot Nothing Then
+                                                                       Return javaHome.ToString()
+                                                                   End If
+                                                               End If
+                                                           End Using
+                                                       Next
+                                                       Return Nothing
+                                                   End Function)
 
-                                                        Return Nothing
-                                                    End Function)
+            Dim javaPath As String = Nothing
 
-            If String.IsNullOrEmpty(javaPath) Then
-                MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (v1_8)... Download is required")
-                My.logger.Logger.LogInfo("Missing JAVA 8 (v1_8)")
-                Await OpenURLAsync("https://archive.org/details/jre-8u152-windows-i586")
-                Return False
+            If Not String.IsNullOrEmpty(jdkPath) Then
+                ' Found JDK
+                MainForm.UsingJDK1_8 = True
+                javaPath = jdkPath
+                My.logger.Logger.LogInfo($"Found JDK 1.8 at: {jdkPath}")
+            Else
+                ' Fall back to JRE
+                Dim jrePath As String = Await Task.Run(Function()
+                                                           Dim javaVersions As String() = {
+                                                       "SOFTWARE\JavaSoft\Java Runtime Environment\1.8",
+                                                       "SOFTWARE\WOW6432Node\JavaSoft\Java Runtime Environment\1.8"
+                                                   }
+
+                                                           For Each regPath In javaVersions
+                                                               Using key As RegistryKey = Registry.LocalMachine.OpenSubKey(regPath)
+                                                                   If key IsNot Nothing Then
+                                                                       Dim javaHome = key.GetValue("JavaHome")
+                                                                       If javaHome IsNot Nothing Then
+                                                                           Return javaHome.ToString()
+                                                                       End If
+                                                                   End If
+                                                               End Using
+                                                           Next
+
+                                                           Return Nothing
+                                                       End Function)
+
+                If String.IsNullOrEmpty(jrePath) Then
+                    Dim result = MessageBox.Show(
+                        owner:=SplashScreen,
+                        text:="Missing Java 8 (JDK or JRE v1.8). A Java 8 installation is required." & Environment.NewLine &
+                              "JDK 8u152 x86 is recommended." & Environment.NewLine & Environment.NewLine &
+                              "Click OK to open the download page now.",
+                        caption:="Java 8 Required",
+                        buttons:=MessageBoxButtons.OKCancel,
+                        icon:=MessageBoxIcon.Error
+                    )
+
+                    My.logger.Logger.LogInfo("Missing Java 8 (JDK and JRE v1.8)")
+
+                    If result = DialogResult.OK Then
+                        Await OpenURLAsync("https://archive.org/download/Java-Archive/Java%20SE%208%20%288u202%20and%20earlier%29/8u152/JDK/jdk-8u152-windows-i586.exe")
+                        My.logger.Logger.LogInfo("User chose to open Java 8 download URL.")
+                    Else
+                        My.logger.Logger.LogInfo("User cancelled Java 8 download prompt.")
+                    End If
+
+                    Return False
+                End If
+
+                MainForm.UsingJDK1_8 = False
+                javaPath = jrePath
+                My.logger.Logger.LogWarning("JDK 1.8 not found. Falling back to JRE 1.8.")
+                Dim jdkResult = MessageBox.Show(
+                    owner:=SplashScreen,
+                    text:="Java Development Kit (JDK) 1.8 was not found." & Environment.NewLine &
+                          "STAR features will be unavailable until it is installed." & Environment.NewLine & Environment.NewLine &
+                          "Click OK to open the JDK 8 download page.",
+                    caption:="JDK 1.8 Not Detected",
+                    buttons:=MessageBoxButtons.OKCancel,
+                    icon:=MessageBoxIcon.Information
+                )
+
+                If jdkResult = DialogResult.OK Then
+                    Await OpenURLAsync("https://archive.org/download/Java-Archive/Java%20SE%208%20%288u202%20and%20earlier%29/8u152/JDK/jdk-8u152-windows-i586.exe")
+                    My.logger.Logger.LogInfo("User chose to download JDK 1.8.")
+                Else
+                    My.logger.Logger.LogInfo("User skipped JDK 1.8 download.")
+                End If
             End If
 
             ' Step 2: Set Java Bin Path
             MainForm.Java1_8BinFolderPath = Path.Combine(javaPath, "bin")
+            My.logger.Logger.LogInfo($"Using Java 1.8 bin folder: {MainForm.Java1_8BinFolderPath}")
 
             ' Step 3: Update CurrentVersion registry key to 1.8
             Dim keyPaths As String() = {
-                "SOFTWARE\Wow6432Node\JavaSoft\Java Runtime Environment"
-            }
+        "SOFTWARE\Wow6432Node\JavaSoft\Java Runtime Environment"
+    }
 
             For Each path In keyPaths
                 Try
@@ -181,6 +248,8 @@ Namespace My.Managers
                         If baseKey IsNot Nothing Then
                             baseKey.SetValue("CurrentVersion", "1.8", RegistryValueKind.String)
                             My.logger.Logger.LogInfo($"Set CurrentVersion to 1.8 in HKLM\{path}")
+                        Else
+                            My.logger.Logger.LogWarning($"Could not open HKLM\{path} to update CurrentVersion.")
                         End If
                     End Using
                 Catch ex As Exception
@@ -189,20 +258,23 @@ Namespace My.Managers
             Next
 
             ' Step 4: Verify
-            Dim regKey As RegistryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\Wow6432Node\JavaSoft\Java Runtime Environment")
-            Dim currentVersion = regKey?.GetValue("CurrentVersion")?.ToString()
-            My.logger.Logger.LogInfo("Checking for JRE CurrentVersion regKey 1.8")
+            Using regKey As RegistryKey = Registry.LocalMachine.OpenSubKey("SOFTWARE\Wow6432Node\JavaSoft\Java Runtime Environment")
+                Dim currentVersion = regKey?.GetValue("CurrentVersion")?.ToString()
+                My.logger.Logger.LogInfo("Checking for JRE CurrentVersion regKey 1.8")
 
-            If currentVersion <> "1.8" Then
-                My.logger.Logger.LogInfo("Incorrect JRE CurrentVersion regKey")
-                MessageBox.Show(owner:=SplashScreen,
-                "Java Runtime CurrentVersion Registry key must be set to 1.8. Please rerun app as admin to update it.",
-                "Java Registry Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return False
-            End If
+                If currentVersion <> "1.8" Then
+                    MessageBox.Show(owner:=SplashScreen,
+                            "Java Runtime CurrentVersion registry key must be set to 1.8. Please rerun the app as Administrator.",
+                            "Java Registry Error",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+                    Return False
+                End If
+            End Using
 
             Return True
         End Function
+
         Public Shared Async Function IsVCRuntime2022InstalledAsync() As Task(Of Boolean)
             Return Await Task.Run(Function()
                                       Dim vcPaths As String() = {
