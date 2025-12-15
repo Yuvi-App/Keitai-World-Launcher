@@ -136,15 +136,47 @@ Namespace My.Managers
                 logger.Logger.LogError($"Failed to update the UseDialPad setting: {ex.Message}")
             End Try
         End Sub
-        Public Sub UpdateNetworkUIDSetting(NewNetworkUID As String)
+        Public Sub UpdateNetworkAndTerminalIDSetting(NewNetworkUID As String, NewTerminalID As String)
             Try
-                Dim CurrentNetworkUID = MainForm.NetworkUID
-                NewNetworkUID = NewNetworkUID.Trim
-                File.WriteAllText(MainForm.NetworkUIDTxtFile, NewNetworkUID)
-                logger.Logger.LogInfo($"Updated NetworkUID from {CurrentNetworkUID} to {NewNetworkUID}")
+                Dim currentNetworkUID As String = MainForm.NetworkUID
+                Dim currentTerminalID As String = MainForm.TerminalID
+                Dim networkUID As String = If(String.IsNullOrWhiteSpace(NewNetworkUID), currentNetworkUID, NewNetworkUID.Trim())
+                Dim terminalID As String = If(String.IsNullOrWhiteSpace(NewTerminalID), currentTerminalID, NewTerminalID.Trim())
+                Dim lines As New List(Of String)
+
+                ' Load existing config if present
+                If File.Exists(MainForm.NetworkUIDTxtFile) Then
+                    lines.AddRange(File.ReadAllLines(MainForm.NetworkUIDTxtFile))
+                End If
+
+                ' Ensure file has two lines
+                While lines.Count < 2
+                    lines.Add(String.Empty)
+                End While
+
+                ' Line 1 = Network UID
+                lines(0) = networkUID
+
+                ' Line 2 = Terminal ID
+                lines(1) = terminalID
+
+                File.WriteAllLines(MainForm.NetworkUIDTxtFile, lines)
+
+                logger.Logger.LogInfo(
+                    $"Updated NetworkUID from '{currentNetworkUID}' to '{networkUID}', " &
+                    $"TerminalID from '{currentTerminalID}' to '{terminalID}'"
+                )
+
             Catch ex As Exception
-                MessageBox.Show($"Failed to update the NetworkUID setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                logger.Logger.LogError($"Failed to update the NetworkUID setting: {ex.Message}")
+                MessageBox.Show(
+                    $"Failed to update Network/Terminal ID settings: {ex.Message}",
+                    "Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                )
+                logger.Logger.LogError(
+                    $"Failed to update Network/Terminal ID settings: {ex.Message}"
+                )
             End Try
         End Sub
         Public Async Function UpdateFirstRunSettingAsync(FirstRun As String) As Task

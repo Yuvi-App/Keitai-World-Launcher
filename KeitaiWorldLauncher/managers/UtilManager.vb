@@ -1,6 +1,7 @@
 ﻿Imports System.IO
 Imports System.IO.Compression
 Imports System.Net
+Imports System.Net.Http
 Imports System.Reflection
 Imports System.Security.Principal
 Imports System.Text
@@ -274,7 +275,6 @@ Namespace My.Managers
 
             Return True
         End Function
-
         Public Shared Async Function IsVCRuntime2022InstalledAsync() As Task(Of Boolean)
             Return Await Task.Run(Function()
                                       Dim vcPaths As String() = {
@@ -569,6 +569,27 @@ Namespace My.Managers
                 End Using
             Catch ex As Exception
                 My.logger.Logger.LogError($"Internet check exception for {InputUrl}: {ex.Message}")
+                Return False
+            End Try
+        End Function
+        Public Shared Async Function CanReachFileAsync(url As String) As Task(Of Boolean)
+            Try
+                Using client As New HttpClient() With {
+                    .Timeout = TimeSpan.FromSeconds(10)
+                }
+                    Using request As New HttpRequestMessage(HttpMethod.Head, url)
+                        Using response As HttpResponseMessage =
+                            Await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
+                            ' 2xx or 3xx = reachable
+                            Return response.IsSuccessStatusCode OrElse
+                                   (CInt(response.StatusCode) >= 300 AndAlso CInt(response.StatusCode) < 400)
+                        End Using
+                    End Using
+                End Using
+            Catch ex As TaskCanceledException
+                ' Timeout
+                Return False
+            Catch ex As Exception
                 Return False
             End Try
         End Function
@@ -873,7 +894,10 @@ Namespace My.Managers
                         logger.Logger.LogInfo("[Launch] Ensured DOJA jam entries")
                     End If
                 End If
+
+                'Update NetworkUID in JAM if found
                 Await UpdateNetworkUIDinJAMAsync(GameJAM)
+                Await UpdateNetworkURLSinJAMAsync(GameJAM)
 
                 ' Let filesystem settle (especially important on slower drives)
                 Await Task.Delay(500)
@@ -983,6 +1007,7 @@ Namespace My.Managers
 
                 ' Update NetworkURLS in Jam
                 Await UpdateNetworkUIDinJAMAsync(GameJAM)
+                Await UpdateNetworkURLSinJAMAsync(GameJAM)
 
                 ' Let filesystem settle (especially important on slower drives)
                 Await Task.Delay(500)
@@ -1157,6 +1182,7 @@ Namespace My.Managers
                 Await EnsureSTARJamFileEntries(GameJAM)
                 logger.Logger.LogInfo("[Launch] STAR app configuration and JAM entries updated.")
                 Await UpdateNetworkUIDinJAMAsync(GameJAM)
+                Await UpdateNetworkURLSinJAMAsync(GameJAM)
 
                 Await Task.Delay(500) ' Let the filesystem settle
 
@@ -1950,6 +1976,7 @@ Namespace My.Managers
         End Function
 
         'Iappli Helpers
+
         Public Shared Async Function UpdateNetworkUIDinJAMAsync(JamFile As String) As Task(Of Boolean)
             If Not File.Exists(JamFile) Then
                 logger.Logger.LogError($"ERROR Did Not find {JamFile} to update networkUID")
@@ -1960,8 +1987,8 @@ Namespace My.Managers
                 logger.Logger.LogInfo("Skipping update to NetworkUID in Jam due to it Not being set (still NULLGWDOCOMO).")
                 Return True
             End If
-
-            Dim originalLines As String() = Await File.ReadAllLinesAsync(JamFile)
+            Dim enc = Encoding.GetEncoding(932)
+            Dim originalLines As String() = Await File.ReadAllLinesAsync(JamFile, enc)
             Dim lines As New List(Of String)
             Dim replacementCount As Integer = 0
 
@@ -1981,9 +2008,126 @@ Namespace My.Managers
                 logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
             End If
 
-            Await File.WriteAllLinesAsync(JamFile, lines)
+            Await File.WriteAllLinesAsync(JamFile, lines, enc)
             logger.Logger.LogInfo($"Successfully updated {JamFile}")
             Return True
+        End Function
+        Public Shared Async Function UpdateNetworkURLSinJAMAsync(JamFile As String) As Task(Of Boolean)
+            If Not File.Exists(JamFile) Then
+                logger.Logger.LogError($"ERROR Did not find {JamFile} to update network URLs")
+                Return False
+            End If
+
+            If MainForm.chkboxNetworkModifyURLS.Checked = False Then
+                logger.Logger.LogInfo("Skipping update to network URLs in Jam due to option being unchecked.")
+                Return True
+            End If
+
+            ' key   = source domain suffix
+            ' value = replacement domain
+            Dim domainMap As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase) From {
+                {"mbga.jp", "mobage.gs.keitaiarchive.org"},
+                {"gree.jp", "gree.gs.keitaiarchive.org"}
+            }
+
+            Dim enc = Encoding.GetEncoding(932)
+            Dim originalLines As String() = Await File.ReadAllLinesAsync(JamFile, enc)
+            Dim lines As New List(Of String)
+            Dim replacementCount As Integer = 0
+            Dim urlRegex As New Regex(
+                "(https?://)([^/]+)",
+                RegexOptions.IgnoreCase Or RegexOptions.Compiled
+            )
+            For Each line In originalLines
+                If urlRegex.IsMatch(line) Then
+                    Dim newLine As String = urlRegex.Replace(
+                line,
+                Function(m)
+                    Dim protocol = m.Groups(1).Value
+                    Dim host = m.Groups(2).Value
+
+                    For Each kvp In domainMap
+                        If host.EndsWith(kvp.Key, StringComparison.OrdinalIgnoreCase) Then
+                            replacementCount += 1
+                            Return protocol & kvp.Value
+                        End If
+                    Next
+
+                    Return m.Value
+                End Function
+            )
+                    lines.Add(newLine)
+                Else
+                    lines.Add(line)
+                End If
+            Next
+            If replacementCount > 0 Then
+                logger.Logger.LogInfo(
+            $"Replaced {replacementCount} network URL host(s) in {JamFile}"
+        )
+            Else
+                logger.Logger.LogInfo(
+            $"No matching network URLs found in {JamFile}. No changes made."
+        )
+            End If
+            Await File.WriteAllLinesAsync(JamFile, lines, enc)
+            logger.Logger.LogInfo($"Successfully updated network URLs in {JamFile}")
+            Return True
+        End Function
+
+        'EXE Get/Patchers
+        Public Function ReadRawStringFromExe(exePath As String, offset As Long, Optional length As Integer = 37) As String
+            If Not File.Exists(exePath) Then
+                Throw New FileNotFoundException("EXE not found.", exePath)
+            End If
+
+            Using fs As New FileStream(exePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                If offset < 0 OrElse offset + length > fs.Length Then
+                    Throw New ArgumentOutOfRangeException(
+                    NameOf(offset),
+                    $"Offset out of range. File length={fs.Length}"
+                )
+                End If
+
+                fs.Seek(offset, SeekOrigin.Begin)
+
+                Dim buffer(length - 1) As Byte
+                fs.Read(buffer, 0, buffer.Length)
+
+                Return Encoding.ASCII.GetString(buffer)
+            End Using
+        End Function
+        Public Shared Function PatchTerminalAndUidInExe(exePath As String, offset As Long, terminalId As String, networkUid As String) As Boolean
+            Try
+                If Not File.Exists(exePath) Then Throw New FileNotFoundException("EXE not found.", exePath)
+                terminalId = terminalId.Trim()
+                networkUid = networkUid.Trim()
+
+                If terminalId.Length <> 15 Then
+                    Throw New ArgumentException($"TerminalID must be exactly 15 characters. Got {terminalId.Length}.")
+                End If
+
+                ' UID: truncate if too long, otherwise pad with '-' to exactly 20
+                If networkUid.Length > 20 Then
+                    networkUid = networkUid.Substring(0, 20)
+                ElseIf networkUid.Length < 20 Then
+                    networkUid = networkUid.PadRight(20, "-"c)
+                End If
+
+                Dim patchText As String = terminalId & "#" & networkUid & "#"
+                Dim patchBytes As Byte() = Encoding.GetEncoding(932).GetBytes(patchText) ' 37 bytes
+
+                Using bw As New BinaryWriter(File.Open(exePath, FileMode.Open), Encoding.GetEncoding(932))
+                    bw.BaseStream.Position = offset
+                    bw.Write(patchBytes)
+                    bw.Flush()
+                End Using
+                logger.Logger.LogInfo($"Successfully patched EXE for UID/TID at offset {offset:X} in {exePath}")
+                Return True
+            Catch ex As Exception
+                logger.Logger.LogError($"Failed to patch EXE for UID/TID: {ex.Message}")
+                Return False
+            End Try
         End Function
 
         'DOJA Helpers
@@ -2481,7 +2625,8 @@ Namespace My.Managers
             End If
 
             Try
-                Dim lines As String() = Await File.ReadAllLinesAsync(jadFilePath)
+                Dim enc = Encoding.GetEncoding(932)
+                Dim lines As String() = Await File.ReadAllLinesAsync(jadFilePath, enc)
                 Dim updatedLines As New List(Of String)
                 Dim updatedJarUrl As Boolean = False
                 Dim updatedDescription As Boolean = False
@@ -2500,7 +2645,7 @@ Namespace My.Managers
                 Next
 
                 If updatedJarUrl OrElse updatedDescription Then
-                    Await File.WriteAllLinesAsync(jadFilePath, updatedLines)
+                    Await File.WriteAllLinesAsync(jadFilePath, updatedLines, enc)
                     logger.Logger.LogInfo($"Updated JAD file: MIDlet-Jar-URL set to {jarFileName}, MIDlet-Description cleared in {jadFilePath}")
                     Return True
                 Else

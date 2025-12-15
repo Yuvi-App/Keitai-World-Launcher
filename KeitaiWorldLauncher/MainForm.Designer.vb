@@ -103,6 +103,10 @@ Partial Class MainForm
         lblCharadenTotalCount = New Label()
         tpConfig = New TabPage()
         GroupBox11 = New GroupBox()
+        lblInvalidTID = New Label()
+        Label16 = New Label()
+        txtCurrentTID = New TextBox()
+        chkboxNetworkModifyURLS = New CheckBox()
         lblInvalidUID = New Label()
         Label14 = New Label()
         txtCurrentUID = New TextBox()
@@ -897,6 +901,10 @@ Partial Class MainForm
         ' 
         ' GroupBox11
         ' 
+        GroupBox11.Controls.Add(lblInvalidTID)
+        GroupBox11.Controls.Add(Label16)
+        GroupBox11.Controls.Add(txtCurrentTID)
+        GroupBox11.Controls.Add(chkboxNetworkModifyURLS)
         GroupBox11.Controls.Add(lblInvalidUID)
         GroupBox11.Controls.Add(Label14)
         GroupBox11.Controls.Add(txtCurrentUID)
@@ -904,10 +912,50 @@ Partial Class MainForm
         GroupBox11.Controls.Add(btnUpdateNetworkUID)
         GroupBox11.Location = New Point(566, 3)
         GroupBox11.Name = "GroupBox11"
-        GroupBox11.Size = New Size(314, 121)
+        GroupBox11.Size = New Size(314, 196)
         GroupBox11.TabIndex = 18
         GroupBox11.TabStop = False
         GroupBox11.Text = "Network Config"
+        ' 
+        ' lblInvalidTID
+        ' 
+        lblInvalidTID.ForeColor = Color.Firebrick
+        lblInvalidTID.Location = New Point(87, 139)
+        lblInvalidTID.Name = "lblInvalidTID"
+        lblInvalidTID.Size = New Size(135, 23)
+        lblInvalidTID.TabIndex = 10
+        lblInvalidTID.Text = "Invalid TID"
+        lblInvalidTID.TextAlign = ContentAlignment.TopCenter
+        lblInvalidTID.Visible = False
+        ' 
+        ' Label16
+        ' 
+        Label16.Location = New Point(6, 112)
+        Label16.Name = "Label16"
+        Label16.Size = New Size(75, 23)
+        Label16.TabIndex = 9
+        Label16.Text = "Current TID:"
+        Label16.TextAlign = ContentAlignment.MiddleRight
+        ' 
+        ' txtCurrentTID
+        ' 
+        txtCurrentTID.Location = New Point(87, 113)
+        txtCurrentTID.Name = "txtCurrentTID"
+        txtCurrentTID.ReadOnly = True
+        txtCurrentTID.Size = New Size(135, 23)
+        txtCurrentTID.TabIndex = 8
+        ' 
+        ' chkboxNetworkModifyURLS
+        ' 
+        chkboxNetworkModifyURLS.AutoSize = True
+        chkboxNetworkModifyURLS.Checked = True
+        chkboxNetworkModifyURLS.CheckState = CheckState.Checked
+        chkboxNetworkModifyURLS.Location = New Point(6, 165)
+        chkboxNetworkModifyURLS.Name = "chkboxNetworkModifyURLS"
+        chkboxNetworkModifyURLS.Size = New Size(248, 19)
+        chkboxNetworkModifyURLS.TabIndex = 7
+        chkboxNetworkModifyURLS.Text = "Modify URL's for supported online games."
+        chkboxNetworkModifyURLS.UseVisualStyleBackColor = True
         ' 
         ' lblInvalidUID
         ' 
@@ -943,15 +991,15 @@ Partial Class MainForm
         Label13.Name = "Label13"
         Label13.Size = New Size(278, 36)
         Label13.TabIndex = 0
-        Label13.Text = "To access online features in supported games, please create a Network UID."
+        Label13.Text = "To access online features in supported games, please create a Network UID and Terminal ID."
         ' 
         ' btnUpdateNetworkUID
         ' 
         btnUpdateNetworkUID.Location = New Point(228, 61)
         btnUpdateNetworkUID.Name = "btnUpdateNetworkUID"
-        btnUpdateNetworkUID.Size = New Size(80, 55)
+        btnUpdateNetworkUID.Size = New Size(80, 98)
         btnUpdateNetworkUID.TabIndex = 3
-        btnUpdateNetworkUID.Text = "Update NetworkUID"
+        btnUpdateNetworkUID.Text = "Update Network Config"
         btnUpdateNetworkUID.UseVisualStyleBackColor = True
         ' 
         ' GroupBox6
@@ -1648,4 +1696,8 @@ Partial Class MainForm
     Friend WithEvents lblInvalidUID As Label
     Private WithEvents Label14 As Label
     Friend WithEvents txtCurrentUID As TextBox
+    Friend WithEvents chkboxNetworkModifyURLS As CheckBox
+    Friend WithEvents lblInvalidTID As Label
+    Private WithEvents Label16 As Label
+    Friend WithEvents txtCurrentTID As TextBox
 End Class

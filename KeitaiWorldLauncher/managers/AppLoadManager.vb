@@ -37,17 +37,41 @@ Namespace My.Managers
             MainForm.CharaDenpath = cfg("CharaDenPath")
             MainForm.CharaDenExe = cfg("CharaDenEXEPath")
         End Sub
-        Public Shared Sub LoadNetworkUID()
-            ' Get NetworkUIDConfig
-            If File.Exists(MainForm.NetworkUIDTxtFile) = False Then
-                Using sw As StreamWriter = New StreamWriter(File.Open(MainForm.NetworkUIDTxtFile, FileMode.Create))
-                    sw.WriteLine("NULLGWDOCOMO")
-                    sw.Flush()
-                    sw.Close()
-                End Using
-            End If
-            MainForm.NetworkUID = File.ReadAllText(MainForm.NetworkUIDTxtFile).Trim
-        End Sub
+        Public Shared Sub LoadNetworkUIDTerminaID()
+            Dim defaultNetworkUID As String = "NULLGWDOCOMO"
+            Dim defaultTerminalID As String = "123456789ABCDEF"
 
+            ' Create file if missing
+            If Not File.Exists(MainForm.NetworkUIDTxtFile) Then
+                File.WriteAllLines(MainForm.NetworkUIDTxtFile, {defaultNetworkUID, defaultTerminalID})
+            End If
+            Dim lines As New List(Of String)(File.ReadAllLines(MainForm.NetworkUIDTxtFile))
+            Dim needsWriteBack As Boolean = False
+            ' Ensure at least 2 lines (legacy upgrade)
+            While lines.Count < 2
+                lines.Add(String.Empty)
+                needsWriteBack = True
+            End While
+            ' Line 1: Network UID
+            If Not String.IsNullOrWhiteSpace(lines(0)) Then
+                MainForm.NetworkUID = lines(0).Trim()
+            Else
+                MainForm.NetworkUID = defaultNetworkUID
+                lines(0) = defaultNetworkUID
+                needsWriteBack = True
+            End If
+            ' Line 2: Terminal ID
+            If Not String.IsNullOrWhiteSpace(lines(1)) Then
+                MainForm.TerminalID = lines(1).Trim()
+            Else
+                MainForm.TerminalID = defaultTerminalID
+                lines(1) = defaultTerminalID
+                needsWriteBack = True
+            End If
+            ' Write back only if we fixed something
+            If needsWriteBack Then
+                File.WriteAllLines(MainForm.NetworkUIDTxtFile, lines)
+            End If
+        End Sub
     End Class
 End Namespace

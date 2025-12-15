@@ -62,6 +62,7 @@ Public Class MainForm
     Public UseShaderGlass As Boolean
     Public UseDialPad As Boolean
     Public NetworkUID As String
+    Public TerminalID As String
     Public DOJApath As String
     Public DOJAEXE As String
     Public DOJAHideUI As Boolean
@@ -111,7 +112,6 @@ Public Class MainForm
         isDebug = True
 #End If
 
-
         ' Setup DIRs
         Await UtilManager.SetupDIRSAsync()
 
@@ -127,8 +127,8 @@ Public Class MainForm
         ' Access and Assign Config settings
         AppLoadManager.LoadConfigValues(config)
 
-        ' Get NetworkUIDConfig
-        AppLoadManager.LoadNetworkUID()
+        ' Get NetworkUID & TerminalID Config
+        AppLoadManager.LoadNetworkUIDTerminaID()
 
         ' Check PreREQs if First Run
         Await UtilManager.CheckForSpacesInPathAsync()
@@ -149,43 +149,51 @@ Public Class MainForm
         End If
 
         'Needs Internet If none we skip and use local file
-        Dim uri As New Uri(versionCheckUrl)
-        Dim domainOnly As String = uri.Scheme & "://" & uri.Host
         Logger.LogInfo("Checking internet connectivity...")
-        If Await UtilManager.IsInternetAvailableAsync("https://google.com") Then
-            'Set the User to online
-            isOnline = True
-
-            ' Check for App update
-            Logger.LogInfo("Getting App Update")
-            If autoUpdate = True Then
-                Await UpdateManager.CheckAndLaunchUpdaterAsync(versionCheckUrl, SplashScreen)
+        Dim DomainCheck = "https://google.com"
+        If Await UtilManager.IsInternetAvailableAsync(DomainCheck) Then
+            'Check if we can get the VersionCheck File from Server
+            If Await UtilManager.CanReachFileAsync(versionCheckUrl) Then
+                isOnline = True
+                Logger.LogInfo("Server reachable and responding.")
+            Else
+                isOnline = False
+                Me.Text = "Keitai World Launcher - Offline"
+                Logger.LogInfo("Internet is up, but server is unreachable. Setting to offline mode.")
             End If
 
-            ' Get Updated Game List  
-            Logger.LogInfo("Getting gamelist.xml")
-            If autoUpdateGameList = True Then
-                Await GameListManager.DownloadGameListAsync(gameListUrl)
-            End If
+            If isOnline = True Then
+                ' Check for App update
+                Logger.LogInfo("Getting App Update")
+                If autoUpdate = True Then
+                    Await UpdateManager.CheckAndLaunchUpdaterAsync(versionCheckUrl, SplashScreen)
+                End If
 
-            ' Get Updated MachiChara List  
-            Logger.LogInfo("Getting machicharalist.xml")
-            If autoUpdatemachicharaList = True Then
-                Await MachiCharaListManager.DownloadMachiCharaListAsync(machicharaListUrl)
-            End If
+                ' Get Updated Game List  
+                Logger.LogInfo("Getting gamelist.xml")
+                If autoUpdateGameList = True Then
+                    Await GameListManager.DownloadGameListAsync(gameListUrl)
+                End If
 
-            ' Get Updated Charaden List  
-            Logger.LogInfo("Getting charadenlist.xml")
-            If autoUpdatemachicharaList = True Then
-                Await CharaDenListManager.DownloadCharaDenListAsync(charadenListUrl)
-            End If
+                ' Get Updated MachiChara List  
+                Logger.LogInfo("Getting machicharalist.xml")
+                If autoUpdatemachicharaList = True Then
+                    Await MachiCharaListManager.DownloadMachiCharaListAsync(machicharaListUrl)
+                End If
 
-            ' Send Launch Stats
-            UtilManager.SendKWLLaunchStats()
+                ' Get Updated Charaden List  
+                Logger.LogInfo("Getting charadenlist.xml")
+                If autoUpdatemachicharaList = True Then
+                    Await CharaDenListManager.DownloadCharaDenListAsync(charadenListUrl)
+                End If
+
+                ' Send Launch Stats
+                UtilManager.SendKWLLaunchStats()
+            End If
         Else
             isOnline = False
             Me.Text = "Keitai World Launcher - Offline"
-            Logger.LogWarning($"No internet connection to Domain {domainOnly}. Skipping online checks.")
+            Logger.LogInfo($"No internet connection to Domain {DomainCheck}. Skipping online checks.")
         End If
 
         'We need to check for java every run, since these get used for all emu's
@@ -385,6 +393,7 @@ Public Class MainForm
         Dim vodafoneIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "vodafone.gif")
         Dim airedgeIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "airedge.gif")
         Dim FlashIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")
+        Dim ezweb
 
         ' Validate default icons
         If Not File.Exists(DojaIconPath) OrElse Not File.Exists(StarIconPath) OrElse Not File.Exists(JskyIconPath) Then
@@ -438,7 +447,7 @@ Public Class MainForm
                                                                                        End Using
                                                                                    End If
 
-                                                                                   result(game.ENTitle) = iconToUse
+                                                                                   result(game.DownloadURL) = iconToUse
 
                                                                                Catch ex As Exception
                                                                                    Logger.LogError($"Failed to load icon for game: {game.ENTitle}", ex)
@@ -476,6 +485,15 @@ Public Class MainForm
                                       End If
                                   End Function).ToList()
 
+            'Check for Dupes
+            Dim dups = games.GroupBy(Function(g) g.ENTitle).
+                Where(Function(gr) gr.Count() > 1).
+                Select(Function(gr) $"{gr.Key} x{gr.Count()}").
+                ToList()
+            If dups.Any() Then
+                Logger.LogInfo("Duplicate titles found:" & Environment.NewLine & String.Join(Environment.NewLine, dups))
+            End If
+
             lblTotalGameCount.Text = $"Total: {games.Count}"
 
             ' Clear ListView and ImageList
@@ -502,8 +520,8 @@ Public Class MainForm
                 End If
 
                 Dim item As New ListViewItem(game.ENTitle) With {
-                .ImageKey = game.ENTitle
-            }
+                .ImageKey = game.DownloadURL
+                }
                 ListViewGames.Items.Add(item)
             Next
 
@@ -613,6 +631,7 @@ Public Class MainForm
 
                                                                         For Each game In games
                                                                             Dim gameTitle As String = game.ENTitle
+                                                                            Dim gameDownloadURL As String = game.DownloadURL
                                                                             Dim emulatorType As String = game.Emulator.ToLower()
                                                                             Dim zipFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName)
 
@@ -631,7 +650,7 @@ Public Class MainForm
 
                                                                             If matchesSearch AndAlso matchesFilter Then
                                                                                 Dim item As New ListViewItem(gameTitle) With {
-                                                                                    .ImageKey = gameTitle
+                                                                                    .ImageKey = gameDownloadURL
                                                                                 }
 
                                                                                 If isInstalled AndAlso isFavorited Then
@@ -781,6 +800,12 @@ Public Class MainForm
 
         ' Check if the game is already downloaded
         If isOnline = False Then
+            If File.Exists(CurrentSelectedGameJAM) Then
+                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+                ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
+            Else
+                panelDynamic.Controls.Clear()
+            End If
             Exit Function
         End If
         Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
@@ -1903,6 +1928,7 @@ Public Class MainForm
             Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
         End If
     End Sub
+
     'Game Specific Context Menu Options
     Private Async Sub tsmBPSImportStage_Click(sender As Object, e As EventArgs) Handles tsmBPSImportStage1.Click, tsmBPSImportStage2.Click, tsmBPSImportStage3.Click, tsmBPSImportStage4.Click, tsmBPSImportStage5.Click, tsmBPSImportStage6.Click, tsmBPSImportStage7.Click, tsmBPSImportStage8.Click, tsmBPSImportStage9.Click, tsmBPSImportStage10.Click
         Dim clickedItem As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
@@ -1938,6 +1964,7 @@ Public Class MainForm
         Dim CompressedString = Await gameManager.BomberManPuzzleSpecial_ExportStage(SPFilepath, stageNumber)
         ShowCopyableDialogBox($"Exported Stage {stageNumber.ToString}", $"Here's your stage code — share it so your friends can play your level!", CompressedString)
     End Sub
+
     'MachiChara CMS
     Private Sub DownloadCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DownloadCMS_MachiChara.Click
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
@@ -1948,6 +1975,7 @@ Public Class MainForm
     Private Async Sub DeleteCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DeleteCMS_MachiChara.Click
         Await DeleteMachiCharaAsync()
     End Sub
+
     'Charaden CMS
     Private Sub DownloadCMS_CharaDen_Click(sender As Object, e As EventArgs) Handles DownloadCMS_CharaDen.Click
         If ListViewCharaDen.SelectedItems.Count = 0 Then Return
@@ -1958,6 +1986,7 @@ Public Class MainForm
     Private Async Sub DeleteCMS_CharaDen_Click(sender As Object, e As EventArgs) Handles DeleteCMS_CharaDen.Click
         Await DeleteCharadenAsync()
     End Sub
+
     'Launch Apps Buttons
     Private Async Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
         Try
@@ -2073,8 +2102,7 @@ Public Class MainForm
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
             Dim isEmulatorsRunning As Boolean = UtilManager.CheckAndCloseAllEmulators()
             If isEmulatorsRunning Then
-                Logger.LogWarning("An emulator is still running. Aborting launch.")
-                Return
+                Logger.LogWarning("An emulator is still running. User is attempting to Launch another App.")
             End If
             Select Case CorrectedEmulator.ToLower()
                 Case "doja"
@@ -2342,41 +2370,52 @@ Public Class MainForm
     End Sub
     Private Sub btnUpdateNetworkUID_Click(sender As Object, e As EventArgs) Handles btnUpdateNetworkUID.Click
         Dim promptForm As New ReaLTaiizor.Forms.MaterialForm With {
-            .Text = "Enter Network UID",
-            .Size = New Size(540, 320),
+            .Text = "Enter Network UID & Terminal ID",
+            .Size = New Size(540, 400),
             .FormBorderStyle = FormBorderStyle.FixedDialog,
             .StartPosition = FormStartPosition.CenterScreen,
             .Sizable = False
         }
 
-        ' Push everything down by starting higher top margin
         Dim lblInstructions As New Label With {
             .Text = "How to get your Network UID:" & Environment.NewLine &
                     "1. Join the Keitai Wiki Discord." & Environment.NewLine &
                     "2. Navigate to the #i-mode channel." & Environment.NewLine &
-                    "3. Type '/get-uid' and ButlerSheep will DM you your UID.",
+                    "3. Type '/get-uid' and ButlerSheep will DM you your UID & TID." & Environment.NewLine,
             .AutoSize = False,
             .Left = 20,
-            .Top = 80, ' increased spacing from top
+            .Top = 80,
             .Width = 490,
-            .Height = 90
+            .Height = 120
         }
 
-        Dim txtInput As New ReaLTaiizor.Controls.MaterialTextBoxEdit With {
+        ' Network UID
+        Dim txtNetworkUID As New ReaLTaiizor.Controls.MaterialTextBoxEdit With {
             .Left = 20,
-            .Top = lblInstructions.Top + lblInstructions.Height + 20,
+            .Top = lblInstructions.Top + lblInstructions.Height + 10,
             .Size = New Size(490, 40),
             .Text = NetworkUID,
             .MaxLength = 50,
             .UseSystemPasswordChar = False,
-            .Hint = "Enter your Network UID..."
+            .Hint = "Enter your Network UID (e.g. NULLGWDOCOMO)..."
+        }
+
+        ' Terminal ID
+        Dim txtTerminalID As New ReaLTaiizor.Controls.MaterialTextBoxEdit With {
+            .Left = 20,
+            .Top = txtNetworkUID.Top + txtNetworkUID.Height + 15,
+            .Size = New Size(490, 40),
+            .Text = TerminalID,
+            .MaxLength = 50,
+            .UseSystemPasswordChar = False,
+            .Hint = "Enter your Terminal ID (TID)..."
         }
 
         Dim btnOk As New ReaLTaiizor.Controls.MaterialButton With {
             .Text = "OK",
             .DialogResult = DialogResult.OK,
             .Left = 290,
-            .Top = txtInput.Top + txtInput.Height + 25,
+            .Top = txtTerminalID.Top + txtTerminalID.Height + 25,
             .Width = 100,
             .HighEmphasis = True,
             .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
@@ -2386,25 +2425,49 @@ Public Class MainForm
             .Text = "CANCEL",
             .DialogResult = DialogResult.Cancel,
             .Left = 400,
-            .Top = txtInput.Top + txtInput.Height + 25,
+            .Top = txtTerminalID.Top + txtTerminalID.Height + 25,
             .Width = 100,
             .HighEmphasis = False,
             .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Text
         }
 
         promptForm.Controls.Add(lblInstructions)
-        promptForm.Controls.Add(txtInput)
+        promptForm.Controls.Add(txtNetworkUID)
+        promptForm.Controls.Add(txtTerminalID)
         promptForm.Controls.Add(btnOk)
         promptForm.Controls.Add(btnCancel)
+
         promptForm.AcceptButton = btnOk
         promptForm.CancelButton = btnCancel
 
         If promptForm.ShowDialog() = DialogResult.OK Then
-            Dim newNetworkUID As String = txtInput.Text.Trim().ToUpper
-            configManager.UpdateNetworkUIDSetting(newNetworkUID)
-            NetworkUID = newNetworkUID
+            Dim newNetworkUID As String = txtNetworkUID.Text.Trim().ToUpper()
+            Dim newTerminalID As String = txtTerminalID.Text.Trim().ToUpper()
+
+            If Not String.IsNullOrWhiteSpace(newNetworkUID) AndAlso Not String.IsNullOrWhiteSpace(newTerminalID) Then
+                configManager.UpdateNetworkAndTerminalIDSetting(newNetworkUID, newTerminalID)
+                NetworkUID = newNetworkUID
+                TerminalID = newTerminalID
+                'Update display
+                FillCurrenttUIDLabel()
+                'Update EXE's
+                UtilManager.PatchTerminalAndUidInExe(DOJAEXE, 2291784, TerminalID, NetworkUID)
+            End If
         End If
-        FillCurrnetUIDLabel()
+    End Sub
+    Private Sub FillCurrenttUIDLabel()
+        txtCurrentUID.Text = $"{NetworkUID}"
+        If txtCurrentUID.Text = "" Or txtCurrentUID.Text.ToUpper = "NULLGWDOCOMO" Then
+            lblInvalidUID.Visible = True
+        Else
+            lblInvalidUID.Visible = False
+        End If
+        txtCurrentTID.Text = $"{TerminalID}"
+        If txtCurrentTID.Text = "" Or txtCurrentTID.Text.ToUpper = "123456789ABCDEF" Then
+            lblInvalidTID.Visible = True
+        Else
+            lblInvalidTID.Visible = False
+        End If
     End Sub
     Private Sub btnAddCustomApps_Click(sender As Object, e As EventArgs) Handles btnAddCustomApps.Click
         ' —— 1) Pick emulator via a MaterialForm + ComboBox + Recursive checkbox —— '
@@ -2594,14 +2657,7 @@ Public Class MainForm
         startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
         Dim process As Process = Process.Start(startInfo)
     End Sub
-    Private Sub FillCurrnetUIDLabel()
-        txtCurrentUID.Text = $"{NetworkUID}"
-        If txtCurrentUID.Text = "" Or txtCurrentUID.Text.ToUpper = "NULLGWDOCOMO" Then
-            lblInvalidUID.Visible = True
-        Else
-            lblInvalidUID.Visible = False
-        End If
-    End Sub
+
     'Help Options in TabPage
     Private Sub SetupLabelsinOptions()
         Dim troubleshootingMessage As String =
@@ -2718,12 +2774,11 @@ Public Class MainForm
     End Sub
 
     'TabPage Changes
-    Private Sub tab(sender As Object, e As EventArgs) Handles MaterialTabControl1.SelectedIndexChanged
-
+    Private Sub tabs(sender As Object, e As EventArgs) Handles MaterialTabControl1.SelectedIndexChanged
         If MaterialTabControl1.SelectedTab Is tpStats Then
             LoadPlaytimesToListView()
         ElseIf MaterialTabControl1.SelectedTab Is tpConfig Then
-            FillCurrnetUIDLabel()
+            FillCurrenttUIDLabel()
         End If
     End Sub
 End Class
