@@ -491,7 +491,7 @@ Public Class MainForm
                 Select(Function(gr) $"{gr.Key} x{gr.Count()}").
                 ToList()
             If dups.Any() Then
-                Logger.LogInfo("Duplicate titles found:" & Environment.NewLine & String.Join(Environment.NewLine, dups))
+                'Logger.LogInfo("Duplicate titles found:" & Environment.NewLine & String.Join(Environment.NewLine, dups))
             End If
 
             lblTotalGameCount.Text = $"Total: {games.Count}"
@@ -520,7 +520,8 @@ Public Class MainForm
                 End If
 
                 Dim item As New ListViewItem(game.ENTitle) With {
-                .ImageKey = game.DownloadURL
+                .ImageKey = game.DownloadURL,
+                .Tag = game
                 }
                 ListViewGames.Items.Add(item)
             Next
@@ -650,7 +651,8 @@ Public Class MainForm
 
                                                                             If matchesSearch AndAlso matchesFilter Then
                                                                                 Dim item As New ListViewItem(gameTitle) With {
-                                                                                    .ImageKey = gameDownloadURL
+                                                                                    .ImageKey = gameDownloadURL,
+                                                                                    .Tag = game
                                                                                 }
 
                                                                                 If isInstalled AndAlso isFavorited Then
