@@ -1,4 +1,5 @@
-﻿Imports System.IO
+﻿Imports System.ComponentModel
+Imports System.IO
 Imports System.Text
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
@@ -23,6 +24,7 @@ Public Class MainForm
     Dim charadenListManager As New CharaDenListManager()
     Dim SaveDataManager As New SaveDataManager()
     Dim zipManager As New ZipManager()
+    Dim UIDialogManager As New UIDialogManager()
     Dim config As Dictionary(Of String, String)
     Dim games As List(Of Game)
     Dim machicharas As List(Of MachiChara)
@@ -493,8 +495,10 @@ Public Class MainForm
             If dups.Any() Then
                 'Logger.LogInfo("Duplicate titles found:" & Environment.NewLine & String.Join(Environment.NewLine, dups))
             End If
-
             lblTotalGameCount.Text = $"Total: {games.Count}"
+
+            ' Start Migration of Downloaded Folders if needed
+            AppLoadManager.MigrateDownloadsByZipPlusEmulator(DownloadsFolder, games)
 
             ' Clear ListView and ImageList
             ListViewGames.BeginUpdate()
@@ -635,11 +639,11 @@ Public Class MainForm
                                                                             Dim gameDownloadURL As String = game.DownloadURL
                                                                             Dim emulatorType As String = game.Emulator.ToLower()
                                                                             Dim zipFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName)
-
+                                                                            Dim InstallKeyName As String = $"{Path.GetFileNameWithoutExtension(game.ZIPName)}_{game.Emulator}".ToLowerInvariant()
                                                                             Dim matchesSearch As Boolean = gameTitle.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0
                                                                             Dim isFavorited As Boolean = favoriteGames.Contains(gameTitle)
                                                                             Dim isCustom As Boolean = customGames.Contains(gameTitle)
-                                                                            Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(game.ZIPName) AndAlso installedGames.Contains(zipFileName)
+                                                                            Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(InstallKeyName) AndAlso installedGames.Contains(InstallKeyName)
                                                                             Dim isFanTranslation As Boolean = gameTitle.IndexOf("Patch", StringComparison.OrdinalIgnoreCase) >= 0
 
                                                                             Dim matchesFilter As Boolean = selectedFilter = "all" OrElse
@@ -697,25 +701,27 @@ Public Class MainForm
             Return
         End If
 
-        ' Get selected game title
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-
-        ' Find the game on a background thread
-        Dim selectedGame As Game = Await Task.Run(Function()
-                                                      Return games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-                                                  End Function)
+        ' Get selected game directly from Tag
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
 
         If selectedGame Is Nothing OrElse String.IsNullOrWhiteSpace(selectedGame.Variants) Then
             lblTotalVariantCount.Text = "Variants: 0"
             Return
         End If
 
+        ' If you still want this async signature, keep a tiny await
+        Await Task.Yield()
+
         ' Split the variants string safely
         Dim variants As String() = selectedGame.Variants.Split(","c)
 
         ' Add to ListView on the UI thread
         For Each v As String In variants
-            ListViewGamesVariants.Items.Add(New ListViewItem(v.Trim()))
+            Dim trimmed = v.Trim()
+            If trimmed.Length > 0 Then
+                ListViewGamesVariants.Items.Add(New ListViewItem(trimmed))
+            End If
         Next
 
         If ListViewGamesVariants.Items.Count = 1 Then
@@ -727,16 +733,16 @@ Public Class MainForm
     Private Async Function DownloadGames(ContextDownload As Boolean) As Task
         ' Ensure a game is selected
         If ListViewGames.SelectedItems.Count = 0 Then
-            MessageBox.Show("Please select a game", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            UIDialogManager.ShowMaterialError(Me, "Please select a game")
             Return
         End If
 
         ' Get the selected game
         Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
         If selectedGame Is Nothing Then
-            MessageBox.Show("Selected game could not be found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            MessageBox.Show("Selected game could not be found (missing Tag).", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Return
         End If
 
@@ -752,10 +758,11 @@ Public Class MainForm
         ' Construct paths for game files
         ' Build shared paths
         Dim zipNameNoExt As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
-        Dim gameBasePath As String = Path.Combine(DownloadsFolder, zipNameNoExt)
+        Dim InstallKeyName As String = $"{zipNameNoExt}_{emulator}"
+        Dim gameBasePath As String = Path.Combine(DownloadsFolder, InstallKeyName)
         Dim gameVariantsRaw As String = selectedGame.Variants
         Dim gameVariantsSplit() As String = If(Not String.IsNullOrEmpty(gameVariantsRaw), gameVariantsRaw.Split(","c), {})
-        Dim downloadFileZipPath As String = $"{DownloadsFolder}\{selectedGame.ZIPName}"
+        Dim downloadFileZipPath As String = Path.Combine(DownloadsFolder, selectedGame.ZIPName)
 
         ' Determine fallback variant (if needed)
         Dim fallbackVariant As String = If(gameVariantsSplit.Length > 0, gameVariantsSplit(0), "")
@@ -819,7 +826,8 @@ Public Class MainForm
                     "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 Try
                     If result = DialogResult.Yes Then
-                        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
+                        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+                        Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
                         Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
                         isGameDownloadInProgress = True
                         Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
@@ -849,15 +857,13 @@ Public Class MainForm
 
             ' Game not downloaded - prompt user to download it
             Dim result As DialogResult = MessageBox.Show(
-                $"The game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded. Would you like to download it?",
+                $"Game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded.{vbCrLf}Would you like to download it?",
                 "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
-
             If result = DialogResult.Yes Then
                 isGameDownloadInProgress = True
                 Try
                     Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
                     Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
-
                     If File.Exists(CurrentSelectedGameJAM) Then
                         UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
                         ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
@@ -874,14 +880,7 @@ Public Class MainForm
         End If
 
     End Function
-    Private Async Function StartGameDownload(
-        selectedGame As Game,
-        downloadFileZipPath As String,
-        extractFolder As String,
-        jamFilePath As String,
-        jarFilePath As String
-    ) As Task
-
+    Private Async Function StartGameDownload(selectedGame As Game, downloadFileZipPath As String, extractFolder As String, jamFilePath As String, jarFilePath As String) As Task
         Try
             Dim gameDownloader As New GameDownloader(pbGameDL)
             Await gameDownloader.DownloadGameAsync(
@@ -951,10 +950,11 @@ Public Class MainForm
         End If
 
         ' Gather all selected games
+        ' Gather all selected games
         Dim gamesToDelete As New List(Of Game)
+
         For Each item As ListViewItem In ListViewGames.SelectedItems
-            Dim selectedGameTitle = item.Text
-            Dim selectedGame = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+            Dim selectedGame As Game = TryCast(item.Tag, Game)
             If selectedGame IsNot Nothing Then
                 gamesToDelete.Add(selectedGame)
             End If
@@ -976,59 +976,70 @@ Public Class MainForm
                            For Each game In gamesToDelete
                                Try
                                    Dim baseName = Path.GetFileNameWithoutExtension(game.ZIPName)
-                                   Dim gameFolder = Path.Combine(DownloadsFolder, baseName)
+
+                                   ' NEW format folder/zip (ZIPNameNoExt + "_" + Emulator)
+                                   Dim gameFolder = Path.Combine(DownloadsFolder, $"{baseName}_{game.Emulator}")
+                                   Dim zipPath = Path.Combine(DownloadsFolder, $"{baseName}_{game.Emulator}.zip")
 
                                    If Directory.Exists(gameFolder) Then
                                        ' 1) Remove the downloaded folder
                                        My.Computer.FileSystem.DeleteDirectory(
-                                            gameFolder,
-                                            FileIO.UIOption.OnlyErrorDialogs,
-                                            FileIO.RecycleOption.DeletePermanently
-                                        )
-                                       deletedGames.Add(game.ENTitle)
+                                   gameFolder,
+                                   FileIO.UIOption.OnlyErrorDialogs,
+                                   FileIO.RecycleOption.DeletePermanently
+                               )
 
-                                       ' 2) If it's an SD-card title, clean up the SD_BIND folder
+                                       deletedGames.Add($"{game.ENTitle} [{game.Emulator}]")
+
+                                       ' Optional: delete the cached zip if you keep it
+                                       If File.Exists(zipPath) Then
+                                           File.Delete(zipPath)
+                                       End If
+
+                                       ' 2) If it's an SD-card title, clean up the SD_BIND file
                                        If Not String.IsNullOrEmpty(game.SDCardDataURL) Then
                                            For Each emu As String In cbxDojaSDK.Items
-                                               Dim checkSD = Path.Combine(
-                                                    ToolsFolder,
-                                                    Path.GetFileName(emu),
-                                                    "lib", "storagedevice", "ext0", "SD_BIND",
-                                                    "SVC0000" & baseName & ".jam"
-                                                )
-                                               If Directory.Exists(checkSD) Then
-                                                   My.Computer.FileSystem.DeleteDirectory(
-                                                        checkSD,
-                                                        FileIO.UIOption.OnlyErrorDialogs,
-                                                        FileIO.RecycleOption.DeletePermanently
-                                                    )
+                                               Dim sdJamFile = Path.Combine(
+                                           ToolsFolder,
+                                           Path.GetFileName(emu),
+                                           "lib", "storagedevice", "ext0", "SD_BIND",
+                                           "SVC0000" & baseName & ".jam"
+                                       )
+
+                                               If File.Exists(sdJamFile) Then
+                                                   File.Delete(sdJamFile)
                                                End If
                                            Next
                                        End If
 
-                                       ' 3) Remove its line from customgames.txt and notify your manager
+                                       ' 3) Remove its line from customgames.txt and notify manager
                                        Dim configPath = CustomGamesTxtFile
                                        If File.Exists(configPath) Then
                                            Dim lines = File.ReadAllLines(configPath).ToList()
+
                                            Dim filtered = lines.Where(Function(line)
                                                                           Dim parts = line.Split("|"c)
+                                                                          If parts.Length = 0 Then Return True
+
                                                                           Return Not parts(0).Trim().
-                                                              Equals(baseName, StringComparison.OrdinalIgnoreCase)
+                                                                      Equals($"{baseName}", StringComparison.OrdinalIgnoreCase)
                                                                       End Function).ToList()
 
                                            If filtered.Count <> lines.Count Then
                                                File.WriteAllLines(configPath, filtered)
-                                               Await gameListManager.RemoveGameAsync(baseName)
+                                               Await gameListManager.RemoveGameAsync($"{baseName}_{game.Emulator}")
                                            End If
                                        End If
                                    Else
-                                       failedGames.Add($"{game.ENTitle} (Not downloaded)")
+                                       failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Not downloaded)")
                                    End If
+
                                Catch ex As Exception
-                                   failedGames.Add($"{game.ENTitle} (Error: {ex.Message})")
+                                   failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Error: {ex.Message})")
                                End Try
                            Next
                        End Function)
+
         ' === End Task.Run ===
 
         ' Show results (back on the UI thread)
@@ -1134,45 +1145,50 @@ Public Class MainForm
         Dim favoritesManager As New FavoritesManager()
 
         For Each item As ListViewItem In ListViewGames.Items
-            ' Get the corresponding game object
-            Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = item.Text)
 
-            If selectedGame IsNot Nothing Then
-                ' Check if the game is favorited
-                Dim isFavorited As Boolean = favoritesManager.IsGameFavorited(item.Text)
+            Dim game As Game = TryCast(item.Tag, Game)
+            If game Is Nothing Then
+                item.BackColor = Color.White
+                Continue For
+            End If
 
-                ' Check if the game is installed
-                Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName))
-                Dim isInstalled As Boolean = Directory.Exists(gameFolder)
+            Dim baseName = Path.GetFileNameWithoutExtension(game.ZIPName)
+            Dim gameKey = $"{baseName}_{game.Emulator}"
 
-                ' Determine the appropriate highlighting
-                If isInstalled AndAlso isFavorited Then
-                    item.BackColor = Color.LightSeaGreen ' Both installed and favorited (customizable color)
-                ElseIf isInstalled Then
-                    item.BackColor = Color.LightGreen ' Only installed
-                ElseIf isFavorited Then
-                    item.BackColor = Color.LightGoldenrodYellow ' Only favorited
-                Else
-                    item.BackColor = Color.White ' Neither installed nor favorited
-                End If
+            ' Installed check (new format)
+            Dim gameFolder As String = Path.Combine(DownloadsFolder, gameKey)
+            Dim isInstalled As Boolean = Directory.Exists(gameFolder)
+
+            ' Favorited check (use same unique key!)
+            Dim isFavorited As Boolean = favoritesManager.IsGameFavorited(gameKey)
+
+            ' Determine the appropriate highlighting
+            If isInstalled AndAlso isFavorited Then
+                item.BackColor = Color.LightSeaGreen
+            ElseIf isInstalled Then
+                item.BackColor = Color.LightGreen
+            ElseIf isFavorited Then
+                item.BackColor = Color.LightGoldenrodYellow
+            Else
+                item.BackColor = Color.White
             End If
         Next
     End Sub
     Public Async Function VerifyGameDownloadedAsync() As Task(Of Boolean)
-        ' Check if any item is selected in ListViewGames
         If ListViewGames.SelectedItems.Count = 0 Then
             MessageBox.Show("Please select a game.")
             Return False
         End If
 
-        ' Get selected game
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-        If selectedGame Is Nothing Then
-            Return False
-        End If
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
+        If selectedGame Is Nothing Then Return False
 
-        ' Check variant selection
+        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+        Dim gameKeyName As String = $"{baseName}_{selectedGame.Emulator}"
+        Dim gameFolder As String = Path.Combine(DownloadsFolder, gameKeyName)
+
+        ' Variant selection
         Dim selectedVariant As String = String.Empty
         If ListViewGamesVariants.SelectedItems.Count > 0 Then
             selectedVariant = ListViewGamesVariants.SelectedItems(0).Text.Trim()
@@ -1181,25 +1197,17 @@ Public Class MainForm
             Return False
         End If
 
-        ' Run directory check on background thread
         Return Await Task.Run(Function()
-                                  Dim expectedFolderName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+                                  If Not Directory.Exists(gameFolder) Then
+                                      Return False
+                                  End If
 
-                                  For Each f In Directory.GetDirectories(DownloadsFolder)
-                                      If Path.GetFileName(f).Equals(expectedFolderName, StringComparison.OrdinalIgnoreCase) Then
-                                          If String.IsNullOrEmpty(selectedVariant) Then
-                                              Return True
-                                          Else
-                                              For Each variantDir In Directory.GetDirectories(f)
-                                                  If Path.GetFileName(variantDir).Equals(selectedVariant, StringComparison.OrdinalIgnoreCase) Then
-                                                      Return True
-                                                  End If
-                                              Next
-                                          End If
-                                      End If
-                                  Next
+                                  If String.IsNullOrEmpty(selectedVariant) Then
+                                      Return True
+                                  End If
 
-                                  Return False
+                                  Dim variantFolder As String = Path.Combine(gameFolder, selectedVariant)
+                                  Return Directory.Exists(variantFolder)
                               End Function)
     End Function
     Public Function VerifyEmulatorType_JAM(GameJAM As String) As String
@@ -1261,7 +1269,7 @@ Public Class MainForm
             End Using
         End If
 
-        ' 2) Read + dedupe (still on full lines: "appName | emulator")
+        ' 2) Read + dedupe
         Dim allLines As String() = Await File.ReadAllLinesAsync(customGamesFile)
         Dim customGameLines As List(Of String) = allLines _
         .Select(Function(line) line.Trim()) _
@@ -1275,15 +1283,17 @@ Public Class MainForm
 
         ' 3) Supported emulator set
         Dim supportedEmus = New HashSet(Of String)(StringComparer.OrdinalIgnoreCase) From {
-        "doja", "star", "jsky", "airedge", "vodafone", "flash"
-    }
+            "doja", "star", "jsky", "airedge", "vodafone", "softbank", "flash"
+        }
 
         ' 4) Process each line
         For Each entry In customGameLines
-            ' Split at '|' → [0] = appName, [1] = emulator (if present)
             Dim parts = entry.Split("|"c)
-            Dim appName = parts(0).Trim()
-            Dim emulatorValue As String = "doja"                                 ' default
+
+            Dim appName As String = parts(0).Trim()
+            If String.IsNullOrWhiteSpace(appName) Then Continue For
+
+            Dim emulatorValue As String = "doja" ' default
             If parts.Length > 1 AndAlso Not String.IsNullOrWhiteSpace(parts(1)) Then
                 Dim candidate = parts(1).Trim().ToLowerInvariant()
                 If supportedEmus.Contains(candidate) Then
@@ -1291,8 +1301,11 @@ Public Class MainForm
                 End If
             End If
 
+            ' NEW format folder name: appName_emulator
+            Dim gameKey As String = $"{appName}_{emulatorValue}"
+            Dim gameFolderPath As String = Path.Combine(DownloadsFolder, gameKey)
+
             ' Only add if the folder actually exists
-            Dim gameFolderPath = Path.Combine(DownloadsFolder, appName)
             If Directory.Exists(gameFolderPath) Then
                 Dim game As New Game With {
                 .ENTitle = appName,
@@ -1303,6 +1316,7 @@ Public Class MainForm
                 .Emulator = emulatorValue,
                 .Variants = ""
             }
+
                 Await gameListManager.AddGameAsync(game)
             End If
         Next
@@ -1554,9 +1568,8 @@ Public Class MainForm
         Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
 
         ' Find the game on a background thread
-        Dim selectedGame As Game = Await Task.Run(Function()
-                                                      Return games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-                                                  End Function)
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
 
         ' Perform actions once after all selections are done
         Await LoadGameVariantsAsync()
@@ -1914,57 +1927,107 @@ Public Class MainForm
     End Sub
     Private Sub OpenGameFolderToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles OpenGameFolderToolStripMenuItem.Click
         If ListViewGames.SelectedItems.Count = 0 Then Return
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
+        If selectedGame Is Nothing Then Return
+        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+        Dim gameKey As String = $"{baseName}_{selectedGame.Emulator}"
+        Dim gameFolder As String = Path.Combine(DownloadsFolder, gameKey)
         If Directory.Exists(gameFolder) Then
             Process.Start("explorer.exe", gameFolder)
+        Else
+            MessageBox.Show("Game folder not found.", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
         End If
     End Sub
     Private Async Sub BackupSaveToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles BackupSaveToolStripMenuItem.Click
         If ListViewGames.SelectedItems.Count = 0 Then Return
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
-        If Directory.Exists(gameFolder) = True Then
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
+        If selectedGame Is Nothing Then Return
+        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+        Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
+        If Directory.Exists(gameFolder) Then
             Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
+        Else
+            MessageBox.Show("Game folder not found. Is the game downloaded?", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
         End If
     End Sub
 
     'Game Specific Context Menu Options
-    Private Async Sub tsmBPSImportStage_Click(sender As Object, e As EventArgs) Handles tsmBPSImportStage1.Click, tsmBPSImportStage2.Click, tsmBPSImportStage3.Click, tsmBPSImportStage4.Click, tsmBPSImportStage5.Click, tsmBPSImportStage6.Click, tsmBPSImportStage7.Click, tsmBPSImportStage8.Click, tsmBPSImportStage9.Click, tsmBPSImportStage10.Click
+    Private Async Sub tsmBPSImportStage_Click(sender As Object, e As EventArgs) Handles _
+    tsmBPSImportStage1.Click, tsmBPSImportStage2.Click, tsmBPSImportStage3.Click, tsmBPSImportStage4.Click, tsmBPSImportStage5.Click,
+    tsmBPSImportStage6.Click, tsmBPSImportStage7.Click, tsmBPSImportStage8.Click, tsmBPSImportStage9.Click, tsmBPSImportStage10.Click
+
         Dim clickedItem As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
         Dim stageNumber As Integer = Integer.Parse(clickedItem.Name.Replace("tsmBPSImportStage", ""))
+
         If ListViewGames.SelectedItems.Count = 0 Then Return
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
-        Dim gameName As String = selectedGame.ZIPName.Replace(".zip", "")
-        'Variant Selection
+
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
+        If selectedGame Is Nothing Then Return
+
+        ' Variant Selection
         If ListViewGamesVariants.SelectedItems.Count = 0 Then Return
-        Dim selectedGameVariant As String = ListViewGamesVariants.SelectedItems(0).Text
-        Dim SPFilepath = Path.Combine(gameFolder, selectedGameVariant, "sp", gameName & ".sp")
-        Dim StageCode = InputBox("Import Stage Code", "Enter the stage code you want to import:", "")
-        If String.IsNullOrEmpty(StageCode) = False Then
-            Await gameManager.BomberManPuzzleSpecial_ImportStage(SPFilepath, stageNumber, StageCode)
+        Dim selectedGameVariant As String = ListViewGamesVariants.SelectedItems(0).Text.Trim()
+
+        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+        Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
+
+        If Not Directory.Exists(gameFolder) Then
+            MessageBox.Show("Game folder not found. Is the game downloaded?", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        Dim spFilePath As String = Path.Combine(gameFolder, selectedGameVariant, "sp", baseName & ".sp")
+        If Not File.Exists(spFilePath) Then
+            MessageBox.Show($"SP file not found:{vbCrLf}{spFilePath}", "Missing File", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Dim stageCode As String = InputBox("Import Stage Code", "Enter the stage code you want to import:", "")
+        If Not String.IsNullOrWhiteSpace(stageCode) Then
+            Await gameManager.BomberManPuzzleSpecial_ImportStage(spFilePath, stageNumber, stageCode)
             MessageBox.Show("Import Stage Success!")
         End If
     End Sub
-    Private Async Sub tsmBPSExportStage_Click(sender As Object, e As EventArgs) Handles tsmBPSExportStage1.Click, tsmBPSExportStage2.Click, tsmBPSExportStage3.Click, tsmBPSExportStage4.Click, tsmBPSExportStage5.Click, tsmBPSExportStage6.Click, tsmBPSExportStage7.Click, tsmBPSExportStage8.Click, tsmBPSExportStage9.Click, tsmBPSExportStage10.Click
+    Private Async Sub tsmBPSExportStage_Click(sender As Object, e As EventArgs) Handles _
+    tsmBPSExportStage1.Click, tsmBPSExportStage2.Click, tsmBPSExportStage3.Click, tsmBPSExportStage4.Click, tsmBPSExportStage5.Click,
+    tsmBPSExportStage6.Click, tsmBPSExportStage7.Click, tsmBPSExportStage8.Click, tsmBPSExportStage9.Click, tsmBPSExportStage10.Click
+
         Dim clickedItem As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
         Dim stageNumber As Integer = Integer.Parse(clickedItem.Name.Replace("tsmBPSExportStage", ""))
-        If ListViewGames.SelectedItems.Count = 0 Then Return
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-        Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, Path.GetFileNameWithoutExtension(selectedGame.ZIPName.Replace(".zip", "")))
-        Dim gameName As String = selectedGame.ZIPName.Replace(".zip", "")
-        'Variant Selection
-        If ListViewGamesVariants.SelectedItems.Count = 0 Then Return
-        Dim selectedGameVariant As String = ListViewGamesVariants.SelectedItems(0).Text
 
-        Dim SPFilepath = Path.Combine(gameFolder, selectedGameVariant, "sp", gameName & ".sp")
-        Dim CompressedString = Await gameManager.BomberManPuzzleSpecial_ExportStage(SPFilepath, stageNumber)
-        ShowCopyableDialogBox($"Exported Stage {stageNumber.ToString}", $"Here's your stage code — share it so your friends can play your level!", CompressedString)
+        If ListViewGames.SelectedItems.Count = 0 Then Return
+
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
+        If selectedGame Is Nothing Then Return
+
+        ' Variant Selection
+        If ListViewGamesVariants.SelectedItems.Count = 0 Then Return
+        Dim selectedGameVariant As String = ListViewGamesVariants.SelectedItems(0).Text.Trim()
+
+        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
+        Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
+
+        If Not Directory.Exists(gameFolder) Then
+            MessageBox.Show("Game folder not found. Is the game downloaded?", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        Dim spFilePath As String = Path.Combine(gameFolder, selectedGameVariant, "sp", baseName & ".sp")
+        If Not File.Exists(spFilePath) Then
+            MessageBox.Show($"SP file not found:{vbCrLf}{spFilePath}", "Missing File", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Dim compressedString As String = Await gameManager.BomberManPuzzleSpecial_ExportStage(spFilePath, stageNumber)
+        ShowCopyableDialogBox(
+        $"Exported Stage {stageNumber}",
+        "Here's your stage code — share it so your friends can play your level!",
+        compressedString
+    )
     End Sub
 
     'MachiChara CMS
@@ -2016,29 +2079,26 @@ Public Class MainForm
                 {cbxFlashSDK, "FLASH"}
             }
 
-            Dim selectedSDKs As New Dictionary(Of String, String)
-
             ' Validate and collect selected SDKs
+            Dim selectedSDKs As New Dictionary(Of String, String)
             For Each kvp In sdkComboBoxes
                 Dim comboBox = kvp.Key
                 Dim sdkName = kvp.Value
-                Dim selectedItem = comboBox.SelectedItem
+                Dim selectedCBXItem = comboBox.SelectedItem
 
                 ' Skip validation for Vodafone
-                If sdkName = "VODAFONE" AndAlso selectedItem Is Nothing Then
+                If sdkName = "VODAFONE" AndAlso selectedCBXItem Is Nothing Then
                     Logger.LogInfo("Vodafone SDK not selected; continuing without it.")
                     Continue For
                 End If
-
                 ' Validate required SDKs
-                If selectedItem Is Nothing Then
+                If selectedCBXItem Is Nothing Then
                     Logger.LogWarning($"Launch failed: No {sdkName} SDK selected.")
                     MessageBox.Show($"Please select a {sdkName} SDK before launching.")
                     Return
                 End If
-
-                selectedSDKs(sdkName) = selectedItem.ToString()
-                Logger.LogInfo($"Selected {sdkName} SDK: {selectedItem}")
+                selectedSDKs(sdkName) = selectedCBXItem.ToString()
+                'Logger.LogInfo($"Selected {sdkName} SDK: {selectedCBXItem}")
             Next
 
             ' Access the selected SDKs (Vodafone may be missing)
@@ -2058,13 +2118,14 @@ Public Class MainForm
 
             ' Get the selected game
             Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-            Logger.LogInfo($"Selected Game: {selectedGameTitle}")
-            Dim selectedGame As Game = games.FirstOrDefault(Function(g) g.ENTitle = selectedGameTitle)
+            Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+            Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
             If selectedGame Is Nothing Then
                 Logger.LogError("Game not found in the games list.")
                 MessageBox.Show("Game not found.")
                 Return
             End If
+            Logger.LogInfo($"Selected Game: {selectedGameTitle}")
 
             ' Determine correct emulator
             Dim CorrectedEmulator As String = ""
@@ -2382,8 +2443,8 @@ Public Class MainForm
         Dim lblInstructions As New Label With {
             .Text = "How to get your Network UID:" & Environment.NewLine &
                     "1. Join the Keitai Wiki Discord." & Environment.NewLine &
-                    "2. Navigate to the #i-mode channel." & Environment.NewLine &
-                    "3. Type '/get-uid' and ButlerSheep will DM you your UID & TID." & Environment.NewLine,
+                    "2. Navigate to the #Butler-sheep channel." & Environment.NewLine &
+                    "3. Select 'Get-UID'" & Environment.NewLine,
             .AutoSize = False,
             .Left = 20,
             .Top = 80,
@@ -2555,6 +2616,7 @@ Public Class MainForm
         Using dlg As New FolderBrowserDialog() With {.Description = $"Locate *{requiredExts(0)} files"}
             If dlg.ShowDialog() <> DialogResult.OK Then Exit Sub
             Dim folder = dlg.SelectedPath
+            Dim downloadsRoot As String = DownloadsFolder
 
             ' grab all primary files (recursive if requested)
             Dim primaries = Directory.GetFiles(folder, "*" & requiredExts(0), searchOpt)
@@ -2565,7 +2627,7 @@ Public Class MainForm
 
             For Each f In primaries
                 Dim name = Path.GetFileNameWithoutExtension(f)
-                Dim dest = Path.Combine("data", "downloads", name)
+                Dim dest = Path.Combine(downloadsRoot, $"{name}_{selectedEmulator}")
 
                 ' find other required files anywhere under the folder
                 Dim otherReq = requiredExts.Skip(1).
@@ -2577,7 +2639,7 @@ Public Class MainForm
 
                 If otherReq.All(Function(p) p IsNot Nothing) Then
                     If Directory.Exists(dest) Then
-                        skipped.Add(name)
+                        skipped.Add($"{name} | {selectedEmulator}")
                     Else
                         ' find optional files the same way
                         Dim opts = optionalExts.
@@ -2611,7 +2673,8 @@ Public Class MainForm
             Dim done = New List(Of String)()
             For Each kvp In toDo
                 Dim name = kvp.Key
-                Dim dest = Path.Combine("data", "downloads", name)
+                Dim dest = Path.Combine(downloadsRoot, $"{name}_{selectedEmulator}")
+
 
                 If selectedEmulator = "doja" OrElse selectedEmulator = "star" Then
                     Dim binDir = Path.Combine(dest, "bin")
