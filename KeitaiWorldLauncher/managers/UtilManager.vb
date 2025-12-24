@@ -2353,47 +2353,88 @@ Namespace My.Managers
                 Await File.WriteAllLinesAsync(GAMEJAM, filteredLines, enc)
             End If
         End Function
-        Public Async Function ProcessDoja3SPtoSCR(inputFilePath As String) As Task
-            ' Check if SP file exists
-            If Not File.Exists(inputFilePath) Then
-                logger.Logger.LogInfo("File not found: " & inputFilePath)
-                Exit Function
+        Public Async Function ProcessDOJA3SPtoSCR(inputSpPath As String, Optional idkdoja2 As Boolean = False) As Task(Of List(Of String))
+
+            Const HEADER_SIZE As Integer = &H40
+
+            If String.IsNullOrWhiteSpace(inputSpPath) Then
+                Throw New ArgumentException("inputSpPath is required.")
             End If
 
-            Dim SCRFile = inputFilePath.Replace(".sp", "0.scr")
-            If File.Exists(SCRFile) Then
-                logger.Logger.LogInfo("SCR already found: " & SCRFile)
-                Exit Function
+            If Not File.Exists(inputSpPath) Then
+                Throw New FileNotFoundException("Input .sp file not found.", inputSpPath)
             End If
 
-            Dim fileBytes() As Byte = Await File.ReadAllBytesAsync(inputFilePath)
+            Dim outputDir As String = Path.GetDirectoryName(inputSpPath)
+            Dim baseName As String = Path.GetFileNameWithoutExtension(inputSpPath)
 
-            ' Check if the file is at least 8 bytes long to inspect bytes 4-7
-            If fileBytes.Length < 8 Then
-                logger.Logger.LogInfo("File is too short to process: " & inputFilePath)
-                Exit Function
+            ' 🔹 Async read
+            Dim spData As Byte() = Await File.ReadAllBytesAsync(inputSpPath)
+
+            If spData.Length < HEADER_SIZE Then
+                Throw New InvalidDataException("File is smaller than the required 0x40 header.")
             End If
 
-            ' Check if bytes 4 to 7 are all 0xFF
-            If fileBytes(4) = &HFF AndAlso fileBytes(5) = &HFF AndAlso fileBytes(6) = &HFF AndAlso fileBytes(7) = &HFF Then
-                ' Remove the first 0x40 bytes (64 bytes)
-                If fileBytes.Length <= &H40 Then
-                    logger.Logger.LogInfo("File is too short to strip 0x40 bytes: " & inputFilePath)
-                    Exit Function
+            ' Parse partition sizes
+            Dim sizes As New List(Of UInteger)
+            For offset As Integer = 0 To HEADER_SIZE - 1 Step 4
+                Dim size As UInteger = BitConverter.ToUInt32(spData, offset)
+                If size = &HFFFFFFFFUI Then Exit For
+                sizes.Add(size)
+            Next
+
+            ' Validate total size
+            Dim totalSize As ULong = 0
+            For Each s In sizes
+                totalSize += s
+            Next
+
+            If totalSize <> CULng(spData.Length - HEADER_SIZE) Then
+                Throw New InvalidDataException("Header sizes do not match file length.")
+            End If
+
+            ' DoJa 2.x restriction
+            If idkdoja2 AndAlso sizes.Count > 1 Then
+                Throw New InvalidDataException(
+                "DoJa 2.x allows only one or zero scratchpad partitions.")
+            End If
+
+            Dim writtenFiles As New List(Of String)
+            Dim dataOffset As Integer = HEADER_SIZE
+
+            For i As Integer = 0 To sizes.Count - 1
+                Dim partSize As Integer = CInt(sizes(i))
+
+                Dim outFileName As String =
+                If(idkdoja2,
+                   $"{baseName}.scr",
+                   $"{baseName}{i}.scr")
+
+                Dim outPath As String = Path.Combine(outputDir, outFileName)
+
+                ' Skip existing files
+                If File.Exists(outPath) Then
+                    dataOffset += partSize
+                    Continue For
                 End If
 
-                Dim trimmedBytes(fileBytes.Length - &H41) As Byte
-                Array.Copy(fileBytes, &H40, trimmedBytes, 0, trimmedBytes.Length)
+                ' 🔹 Async write
+                Using fs As New FileStream(
+                outPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize:=81920,
+                useAsync:=True)
 
-                ' Generate new file name with .scr extension
-                Dim newFilePath As String = Path.Combine(Path.GetDirectoryName(inputFilePath),
-                                                  Path.GetFileNameWithoutExtension(inputFilePath) & "0.scr")
+                    Await fs.WriteAsync(spData, dataOffset, partSize)
+                End Using
 
-                Await File.WriteAllBytesAsync(newFilePath, trimmedBytes)
-                logger.Logger.LogInfo("File processed and saved as: " & newFilePath)
-            Else
-                logger.Logger.LogInfo("Bytes 4-7 are not all 0xFF. No changes made: " & inputFilePath)
-            End If
+                writtenFiles.Add(outPath)
+                dataOffset += partSize
+            Next
+
+            Return writtenFiles
         End Function
         Public Function ExtractAppNamefromJAM(GAMEJAM As String) As String
             ' 1) Make sure the file exists
