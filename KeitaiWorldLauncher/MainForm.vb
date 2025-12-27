@@ -218,6 +218,9 @@ Public Class MainForm
         ' Load Charaden List
         Await LoadCharaDenListFirsTimeASync()
 
+        ' Ensure TID and UID are Patched in EXE
+        utilManager.PatchTerminalAndUidInExe(DOJAEXE, 2291784, TerminalID, NetworkUID)
+
         'Last Step
         Await GetSDKsAsync()
 
@@ -1849,6 +1852,7 @@ Public Class MainForm
             lblSJMELaunchOptionsText.Text = "Uses the system JVM, fastest but disregards any compatibility."
         End If
     End Sub
+
     'Textbox Changes
     Private Async Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged
         Await FilterAndHighlightGamesAsync()
