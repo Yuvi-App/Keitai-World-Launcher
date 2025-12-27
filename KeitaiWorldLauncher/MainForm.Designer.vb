@@ -131,6 +131,8 @@ Partial Class MainForm
         Label1 = New Label()
         cbxAudioType = New ComboBox()
         GroupBox4 = New GroupBox()
+        cbxEZWebEZPlusSDK = New ComboBox()
+        Label15 = New Label()
         cbxSoftbankSDK = New ComboBox()
         Label12 = New Label()
         cbxAirEdgeSDK = New ComboBox()
@@ -544,7 +546,7 @@ Partial Class MainForm
         cbxFilterType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxFilterType.FlatStyle = FlatStyle.Flat
         cbxFilterType.FormattingEnabled = True
-        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star", "JSky", "SoftBank", "AirEdge", "Vodafone", "Flash"})
+        cbxFilterType.Items.AddRange(New Object() {"All", "Favorites", "Installed", "Custom", "Fan-Translations", "Doja", "Star", "JSky", "SoftBank", "AirEdge", "Vodafone", "EZplus", "Flash"})
         cbxFilterType.Location = New Point(340, 20)
         cbxFilterType.Margin = New Padding(2)
         cbxFilterType.Name = "cbxFilterType"
@@ -1199,6 +1201,8 @@ Partial Class MainForm
         ' 
         ' GroupBox4
         ' 
+        GroupBox4.Controls.Add(cbxEZWebEZPlusSDK)
+        GroupBox4.Controls.Add(Label15)
         GroupBox4.Controls.Add(cbxSoftbankSDK)
         GroupBox4.Controls.Add(Label12)
         GroupBox4.Controls.Add(cbxAirEdgeSDK)
@@ -1220,6 +1224,30 @@ Partial Class MainForm
         GroupBox4.TabIndex = 15
         GroupBox4.TabStop = False
         GroupBox4.Text = "SDK Configuration"
+        ' 
+        ' cbxEZWebEZPlusSDK
+        ' 
+        cbxEZWebEZPlusSDK.DropDownStyle = ComboBoxStyle.DropDownList
+        cbxEZWebEZPlusSDK.FlatStyle = FlatStyle.Flat
+        cbxEZWebEZPlusSDK.Font = New Font("Segoe UI", 9F)
+        cbxEZWebEZPlusSDK.FormattingEnabled = True
+        cbxEZWebEZPlusSDK.Location = New Point(117, 228)
+        cbxEZWebEZPlusSDK.Margin = New Padding(2)
+        cbxEZWebEZPlusSDK.Name = "cbxEZWebEZPlusSDK"
+        cbxEZWebEZPlusSDK.Size = New Size(113, 23)
+        cbxEZWebEZPlusSDK.TabIndex = 26
+        ' 
+        ' Label15
+        ' 
+        Label15.FlatStyle = FlatStyle.Flat
+        Label15.Font = New Font("Segoe UI", 9F)
+        Label15.Location = New Point(6, 228)
+        Label15.Margin = New Padding(2, 0, 2, 0)
+        Label15.Name = "Label15"
+        Label15.Size = New Size(106, 23)
+        Label15.TabIndex = 27
+        Label15.Text = "EZWeb EZPlus"
+        Label15.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' cbxSoftbankSDK
         ' 
@@ -1299,7 +1327,7 @@ Partial Class MainForm
         cbxFlashSDK.FlatStyle = FlatStyle.Flat
         cbxFlashSDK.Font = New Font("Segoe UI", 9F)
         cbxFlashSDK.FormattingEnabled = True
-        cbxFlashSDK.Location = New Point(117, 228)
+        cbxFlashSDK.Location = New Point(117, 255)
         cbxFlashSDK.Margin = New Padding(2)
         cbxFlashSDK.Name = "cbxFlashSDK"
         cbxFlashSDK.Size = New Size(113, 23)
@@ -1309,7 +1337,7 @@ Partial Class MainForm
         ' 
         Label7.FlatStyle = FlatStyle.Flat
         Label7.Font = New Font("Segoe UI", 9F)
-        Label7.Location = New Point(6, 228)
+        Label7.Location = New Point(6, 255)
         Label7.Margin = New Padding(2, 0, 2, 0)
         Label7.Name = "Label7"
         Label7.Size = New Size(106, 23)
@@ -1700,4 +1728,6 @@ Partial Class MainForm
     Friend WithEvents lblInvalidTID As Label
     Private WithEvents Label16 As Label
     Friend WithEvents txtCurrentTID As TextBox
+    Friend WithEvents cbxEZWebEZPlusSDK As ComboBox
+    Friend WithEvents Label15 As Label
 End Class

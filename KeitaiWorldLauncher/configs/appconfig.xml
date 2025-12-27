@@ -8,8 +8,8 @@
   <Setting name="MachiCharaURL">machicharalist.xml</Setting>
   <Setting name="AutoUpdateMachiCharaList">true</Setting>
   <Setting name="UseShaderGlass">true</Setting>
-  <Setting name="DOJAPath">c:/doja</Setting><!--This is the defaults DOJA Path-->
-  <Setting name="DOJAEXEPath">doja.exe</Setting><!--This is the defaults DOJA Exe-->
+  <Setting name="DOJAPath">c:/doja</Setting>
+  <Setting name="DOJAEXEPath">doja.exe</Setting>
   <Setting name="DOJAHideUI">true</Setting>
   <Setting name="DOJASoundType">Standard</Setting>
   <Setting name="STARPath">c:/star</Setting>
@@ -22,6 +22,8 @@
   <Setting name="VODAFONEEXEPath">vodafone.exe</Setting>
   <Setting name="AIREDGEPath">c:/AIREDGE</Setting>
   <Setting name="AIREDGEEXEPath">AIREDGE.exe</Setting
+  <Setting name="EZWEBEZPLUSpath">c:/EZWEBEZPLUS</Setting>
+  <Setting name="EZWEBEZPLUSEXEPath">EZWEBEZPLUS.exe</Setting
   <Setting name="MachiCharaPath">c:/machichara</Setting>
   <Setting name="MachiCharaEXEPath">machicharaemu.exe</Setting>
   <Setting name="CharaDenPath">c:/charaden</Setting>

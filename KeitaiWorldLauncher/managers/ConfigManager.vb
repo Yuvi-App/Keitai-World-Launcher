@@ -32,6 +32,8 @@ Namespace My.Managers
         {"VODAFONEEXEPath", "vodafone.exe"},
         {"AIREDGEPath", "c:\AIREDGE"},
         {"AIREDGEEXEPath", "AIREDGE.exe"},
+        {"EZWEBEZPLUSpath", "c:\EZWEBEZPLUS"},
+        {"EZWEBEZPLUSEXEPath", "EZWEBEZPLUS.exe"},
         {"FlashPlayerPath", "c:\flashplayer"},
         {"FlashPlayerEXEPath", "JSKY.exe"},
         {"MachiCharaPath", "c:\machichara"},

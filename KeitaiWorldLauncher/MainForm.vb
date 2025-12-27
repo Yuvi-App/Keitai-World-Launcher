@@ -79,6 +79,8 @@ Public Class MainForm
     Public VODAFONEEXE As String
     Public AIREDGEpath As String
     Public AIREDGEEXE As String
+    Public EZWEBEZPLUSpath As String
+    Public EZWEBEZPLUSEXE As String
     Public FlashPlayerpath As String
     Public FlashPlayerEXE As String
     Public MachiCharapath As String
@@ -280,12 +282,14 @@ Public Class MainForm
         Dim softbankDefault As String = "kemnnx64"
         Dim vodafoneDefault As String = "kemnnx64"
         Dim airedgeDefault As String = "kemnnx64"
+        Dim ezwebezplusDefault As String = "freej2me"
         Dim FlashDefault As String = "FlashPlayer"
         Dim dojaFound As Boolean = False
         Dim starFound As Boolean = False
         Dim softbankFound As Boolean = False
         Dim jskyFound As Boolean = False
         Dim airedgeFound As Boolean = False
+        Dim ezwebezplusFound As Boolean = False
         Dim vodafoneFound As Boolean = False
         Dim flashFound As Boolean = False
 
@@ -299,6 +303,7 @@ Public Class MainForm
         cbxVodafoneSDK.Items.Clear()
         cbxFlashSDK.Items.Clear()
         cbxAirEdgeSDK.Items.Clear()
+        cbxEZWebEZPlusSDK.Items.Clear()
         cbxSoftbankSDK.Items.Clear()
 
         For Each SSDK In sdkFolders
@@ -338,6 +343,24 @@ Public Class MainForm
                 End If
                 If folder.Equals(vodafoneDefault, StringComparison.OrdinalIgnoreCase) Then
                     vodafoneFound = True
+                End If
+            ElseIf folder.StartsWith("freej2me", StringComparison.OrdinalIgnoreCase) Then 'freej2me+ handles more then just 1 type
+                cbxJSKYSDK.Items.Add(folder)
+                cbxAirEdgeSDK.Items.Add(folder)
+                cbxSoftbankSDK.Items.Add(folder)
+                cbxVodafoneSDK.Items.Add(folder)
+                cbxEZWebEZPlusSDK.Items.Add(folder)
+                If folder.Equals(airedgeDefault, StringComparison.OrdinalIgnoreCase) Then
+                    airedgeFound = True
+                End If
+                If folder.Equals(softbankDefault, StringComparison.OrdinalIgnoreCase) Then
+                    softbankFound = True
+                End If
+                If folder.Equals(vodafoneDefault, StringComparison.OrdinalIgnoreCase) Then
+                    vodafoneFound = True
+                End If
+                If folder.Equals(ezwebezplusDefault, StringComparison.OrdinalIgnoreCase) Then
+                    ezwebezplusFound = True
                 End If
             ElseIf folder.StartsWith("Flash", StringComparison.OrdinalIgnoreCase) Then
                 cbxFlashSDK.Items.Add(folder)
@@ -384,6 +407,12 @@ Public Class MainForm
             MessageBox.Show(owner:=SplashScreen, $"The default SDK '{airedgeDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End If
 
+        If ezwebezplusFound Then
+            cbxEZWebEZPlusSDK.SelectedItem = ezwebezplusDefault
+        Else
+            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{ezwebezplusDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End If
+
         If flashFound Then
             cbxFlashSDK.SelectedItem = FlashDefault
         Else
@@ -397,6 +426,7 @@ Public Class MainForm
         Dim SoftBankIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "softbank.gif")
         Dim vodafoneIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "vodafone.gif")
         Dim airedgeIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "airedge.gif")
+        Dim ezwebezplusIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "ezwebezplus.gif")
         Dim FlashIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")
         Dim ezweb
 
@@ -441,6 +471,8 @@ Public Class MainForm
                                                                                                defaultIconPath = vodafoneIconPath
                                                                                            Case "airedge"
                                                                                                defaultIconPath = airedgeIconPath
+                                                                                           Case "ezplus"
+                                                                                               defaultIconPath = ezwebezplusIconPath
                                                                                            Case "flash"
                                                                                                defaultIconPath = FlashIconPath
                                                                                            Case Else
@@ -1815,6 +1847,28 @@ Public Class MainForm
                 )
             End If
             VODAFONEEXE = Path.Combine(VODAFONEpath, "KEmulator.jar")
+        End If
+    End Sub
+    Private Sub cbxEZWEBEZPLUSSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxEZWebEZPlusSDK.SelectedIndexChanged
+        If cbxEZWebEZPlusSDK.SelectedItem Is Nothing Then
+            MessageBox.Show("Please select a EZplus SDK before launching.")
+            Return
+        End If
+
+        Dim selectedSDK As String = cbxEZWebEZPlusSDK.SelectedItem.ToString()
+        Dim sdkLower As String = selectedSDK.ToLowerInvariant()
+        EZWEBEZPLUSpath = Path.Combine(ToolsFolder, selectedSDK)
+
+        If sdkLower.StartsWith("freej2me") Then
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
+                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                "when launching or interacting with the emulator. Use at your own risk."
+                )
+            End If
+            EZWEBEZPLUSEXE = Path.Combine(EZWEBEZPLUSpath, "freej2me.jar")
         End If
     End Sub
     Private Async Sub cbxGameControllers_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxGameControllers.SelectedIndexChanged
