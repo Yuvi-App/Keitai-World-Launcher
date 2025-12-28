@@ -604,6 +604,31 @@ Namespace My.Managers
                 ' Clear any existing controls in the container (Panel)
                 container.Controls.Clear()
 
+                ' If EZplus file, skip
+                If JAMFile.EndsWith(".kjx", StringComparison.OrdinalIgnoreCase) Then
+                    Dim notSupportedLabel As New Label() With {
+                        .Text = "EZplus not supported",
+                        .AutoSize = False,
+                        .Dock = DockStyle.Top,
+                        .Height = 36,
+                        .TextAlign = ContentAlignment.MiddleCenter,
+                        .ForeColor = Color.DarkRed,
+                        .Font = New Font("Segoe UI", 10, FontStyle.Bold)
+                    }
+
+                    ' Add some padding container to keep UI consistent
+                    Dim pad As New Panel() With {
+                        .Dock = DockStyle.Top,
+                        .Height = notSupportedLabel.Height + 8
+                    }
+                    notSupportedLabel.Top = 4
+                    notSupportedLabel.Left = 4
+                    pad.Controls.Add(notSupportedLabel)
+
+                    container.Controls.Add(pad)
+                    Return
+                End If
+
                 ' Create and configure a TableLayoutPanel
                 Dim tableLayout As New TableLayoutPanel() With {
                     .ColumnCount = 2,
@@ -1380,6 +1405,86 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+        Public Async Sub LaunchCustom_FreeJ2MEGameCommand(freej2mePATH As String, freej2meEXELocation As String, GameJAM As String)
+            Try
+                logger.Logger.LogInfo("[Launch] Starting FreeJ2ME game launch sequence...")
+
+                ' Validate inputs
+                If String.IsNullOrWhiteSpace(freej2mePATH) OrElse String.IsNullOrWhiteSpace(freej2meEXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
+                    Throw New ArgumentException("One or more required parameters are missing.")
+                End If
+
+                'Start overlay
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
+
+                ' Prepare all paths
+                Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
+                Dim appPath As String
+                Dim arguments As String
+
+                ' Make Full Paths
+                Dim Java32EXE As String = Path.Combine(MainForm.Java1_8BinFolderPath, "java.exe")
+                Dim exePath As String = freej2meEXELocation.Trim
+                Dim jadjamPath As String = ""
+                Dim jarPath As String = ""
+                Dim kjxpath As String = ""
+                If GameJAM.EndsWith(".kjx") Then
+                    kjxpath = Path.Combine(baseDir, GameJAM).Trim()
+                Else
+                    jadjamPath = Path.Combine(baseDir, GameJAM).Trim()
+                    jarPath = Path.Combine(Path.GetDirectoryName(jadjamPath), Path.GetFileNameWithoutExtension(jadjamPath) & ".jar")
+                End If
+
+                If jadjamPath.Length > 240 Or kjxpath.Length > 240 Then
+                    logger.Logger.LogWarning($"[Launch] KJX/JAD file path exceeds 240 characters: {jadjamPath}")
+                    MessageBox.Show("The file path length exceeds 240 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                ' Form arguments based on launch method
+                appPath = Java32EXE
+                arguments = $"{Path.GetFileName(exePath)} ""{jadjamPath}"""
+                logger.Logger.LogInfo($"[Launch] Launching freej2me directly without Locale Emulator: {arguments}")
+
+                ' Config updates
+
+                ' Launch freej2me JAVA with retry logic, KJX or JAR/JAD
+                If kjxpath <> "" Then
+                    Dim success = Await LaunchFreeJ2MEAppAsync(Java32EXE, freej2meEXELocation, kjxpath)
+                    If Not success Then
+                        HideLaunchOverlay()
+                        MessageBox.Show("Failed to launch FreeJ2ME after retrying.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        Exit Sub
+                    End If
+                Else
+                    Dim success = Await LaunchFreeJ2MEAppAsync(Java32EXE, freej2meEXELocation, jarPath)
+                    If Not success Then
+                        HideLaunchOverlay()
+                        MessageBox.Show("Failed to launch FreeJ2ME after retrying.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                        Exit Sub
+                    End If
+                End If
+
+                ' ShaderGlass launch if enabled
+                If MainForm.chkbxShaderGlass.Checked Then
+                    logger.Logger.LogInfo("[ShaderGlass] Not Supported for FreeJ2ME, Disabling")
+                    MainForm.chkbxShaderGlass.Checked = False
+                    MessageBox.Show("ShaderGlass is not supported with FreeJ2ME. Please manually resize the FreeJ2ME window by dragging it larger.")
+                End If
+                If MainForm.chkbxEnableController.Checked = True Then
+                    Await LaunchControllerProfileAMGP()
+                End If
+                ProcessManager.StartMonitoring(jadjamPath)
+                HideLaunchOverlay()
+            Catch ex As ArgumentException
+                logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
+                MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
+                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
         Public Async Sub LaunchCustomFLASHGameCommand(FLASHPATH As String, FLASHEXELocation As String, GameJAM As String)
             Try
                 logger.Logger.LogInfo("[Launch] Starting FLASH game launch sequence...")
@@ -1634,6 +1739,31 @@ Namespace My.Managers
                 Dim psi As New ProcessStartInfo("cmd.exe", arguments) With {
                     .UseShellExecute = False,
                     .WorkingDirectory = Path.GetDirectoryName(KemulatorExePath)
+                }
+
+                Dim process As Process = Process.Start(psi)
+
+                ' Optional delay to allow Java process to spawn
+                Await Task.Delay(1000)
+
+                ' Check for any java process
+                Dim javaRunning As Boolean = Process.GetProcessesByName("java").Any()
+
+                Return javaRunning
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[JavaLaunch] Failed to start Java app: {ex.Message}")
+                Return False
+            End Try
+        End Function
+        Public Async Function LaunchFreeJ2MEAppAsync(javapath As String, FreeJ2MEExePath As String, kjxjarPath As String) As Task(Of Boolean)
+            Try
+                ' Proper quoting for cmd.exe
+                Dim arguments As String = $"/C """"{javapath}"" -jar ""{Path.GetFileName(FreeJ2MEExePath)}"" ""{kjxjarPath}"""""
+
+                Dim psi As New ProcessStartInfo("cmd.exe", arguments) With {
+                    .UseShellExecute = False,
+                    .WorkingDirectory = Path.GetDirectoryName(FreeJ2MEExePath)
                 }
 
                 Dim process As Process = Process.Start(psi)
@@ -2771,6 +2901,8 @@ Namespace My.Managers
             File.WriteAllLines(propertyFilePath, updatedLines, Encoding.GetEncoding("shift_jis"))
             Return True
         End Function
+
+        'EzPLus Helpers
 
         'ShaderGlass Helpers
         Public Async Function ModifyCaptureWindow(filePath As String, AppName As String) As Task

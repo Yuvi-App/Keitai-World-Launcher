@@ -47,6 +47,7 @@ Public Class MainForm
     'Index Vars Can Change
     Dim CurrentSelectedGameJAM As String
     Dim CurrentSelectedGameJAR As String
+    Dim CurrentSelectedGameKJX As String
     Dim CurrentSelectedGameSP As String
     Dim CurrentSelectedMachiCharaCFD As String
     Dim CurrentSelectedCharaDenAFD As String
@@ -279,9 +280,9 @@ Public Class MainForm
         Dim dojaDefault As String = "iDKDoJa5.1"
         Dim starDefault As String = "iDKStar2.0"
         Dim jskyDefault As String = "JSky_0.1.5B"
-        Dim softbankDefault As String = "kemnnx64"
+        Dim softbankDefault As String = "freej2me"
         Dim vodafoneDefault As String = "kemnnx64"
-        Dim airedgeDefault As String = "kemnnx64"
+        Dim airedgeDefault As String = "freej2me"
         Dim ezwebezplusDefault As String = "freej2me"
         Dim FlashDefault As String = "FlashPlayer"
         Dim dojaFound As Boolean = False
@@ -345,10 +346,10 @@ Public Class MainForm
                     vodafoneFound = True
                 End If
             ElseIf folder.StartsWith("freej2me", StringComparison.OrdinalIgnoreCase) Then 'freej2me+ handles more then just 1 type
-                cbxJSKYSDK.Items.Add(folder)
+                cbxDojaSDK.Items.Add(folder)
+                cbxStarSDK.Items.Add(folder)
                 cbxAirEdgeSDK.Items.Add(folder)
                 cbxSoftbankSDK.Items.Add(folder)
-                cbxVodafoneSDK.Items.Add(folder)
                 cbxEZWebEZPlusSDK.Items.Add(folder)
                 If folder.Equals(airedgeDefault, StringComparison.OrdinalIgnoreCase) Then
                     airedgeFound = True
@@ -426,7 +427,7 @@ Public Class MainForm
         Dim SoftBankIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "softbank.gif")
         Dim vodafoneIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "vodafone.gif")
         Dim airedgeIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "airedge.gif")
-        Dim ezwebezplusIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "ezwebezplus.gif")
+        Dim ezwebezplusIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "ezplus.gif")
         Dim FlashIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")
         Dim ezweb
 
@@ -826,6 +827,20 @@ Public Class MainForm
                 CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.jad")
                 CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.jar")
             End If
+        ElseIf emulator = "ezplus" Then
+            If String.IsNullOrWhiteSpace(variantPath) Then
+                CurrentSelectedGameKJX = Path.Combine(gameBasePath, $"{zipNameNoExt}.kjx")
+                CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.kjx")
+                CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.kjx")
+            Else
+                CurrentSelectedGameKJX = Path.Combine(gameBasePath, $"{zipNameNoExt}.kjx")
+                CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.kjx")
+                CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.kjx")
+            End If
+            'Convert kjx to jad/jar 
+            If File.Exists(CurrentSelectedGameKJX) AndAlso Not File.Exists(CurrentSelectedGameJAR) Then
+            End If
+
         ElseIf emulator = "flash" Then
             If String.IsNullOrWhiteSpace(variantPath) Then
                 CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.swf")
@@ -1731,14 +1746,29 @@ Public Class MainForm
             MessageBox.Show("Please select a Star SDK before launching.")
             Return
         End If
-        ' Store selected SDKs in variables
-        Dim selectedStarSDK = cbxStarSDK.SelectedItem.ToString
-        STARpath = Path.Combine(ToolsFolder, selectedStarSDK)
-        STAREXE = Path.Combine(ToolsFolder, selectedStarSDK, "bin", "star.exe")
+
+        Dim selectedSDK As String = cbxStarSDK.SelectedItem.ToString()
+        Dim sdkLower As String = selectedSDK.ToLowerInvariant()
+
+        If sdkLower.StartsWith("idkstar") Then
+            STARpath = Path.Combine(ToolsFolder, selectedSDK)
+            STAREXE = Path.Combine(STARpath, "bin", "star.exe")
+        ElseIf sdkLower.StartsWith("freej2me") Then
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
+                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                "when launching or interacting with the emulator. Use at your own risk."
+                )
+            End If
+            STARpath = Path.Combine(ToolsFolder, selectedSDK)
+            STAREXE = Path.Combine(STARpath, "freej2me.jar")
+        End If
     End Sub
     Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxDojaSDK.SelectedIndexChanged
         If cbxDojaSDK.SelectedItem Is Nothing Then
-            MessageBox.Show("Please select a Doja SDK before launching.")
+            MessageBox.Show("Please Select a Doja SDK before launching.")
             Return
         End If
 
@@ -1753,7 +1783,7 @@ Public Class MainForm
             DOJAEXE = Path.Combine(DOJApath, "bin", "doja.exe")
 
             If selectedSDK.Contains("3.5") AndAlso chkbxShaderGlass.Checked Then
-                MessageBox.Show("Doja 3.5 does not work with ShaderGlass. Disabling it.")
+                MessageBox.Show("Doja 3.5 does Not work With ShaderGlass. Disabling it.")
                 chkbxShaderGlass.Checked = False
             End If
 
@@ -1778,6 +1808,16 @@ Public Class MainForm
                     )
             End If
             DOJAEXE = Path.Combine(DOJApath, "KEmulator.jar")
+        ElseIf sdkLower.StartsWith("freej2me") Then
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                    "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
+                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                    "when launching or interacting with the emulator. Use at your own risk."
+                    )
+            End If
+            DOJAEXE = Path.Combine(DOJApath, "freej2me.jar")
         End If
     End Sub
     Private Sub cbxSoftbankSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxSoftbankSDK.SelectedIndexChanged
@@ -1800,6 +1840,16 @@ Public Class MainForm
                     )
             End If
             SOFTBANKEXE = Path.Combine(SOFTBANKpath, "KEmulator.jar")
+        ElseIf sdkLower.StartsWith("freej2me") Then
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                    "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
+                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                    "when launching or interacting with the emulator. Use at your own risk."
+                    )
+            End If
+            SOFTBANKEXE = Path.Combine(SOFTBANKpath, "freej2me.jar")
         End If
     End Sub
     Private Sub cbxJSKYSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxJSKYSDK.SelectedIndexChanged
@@ -1829,7 +1879,7 @@ Public Class MainForm
     End Sub
     Private Sub cbxVODAFONESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxVodafoneSDK.SelectedIndexChanged
         If cbxVodafoneSDK.SelectedItem Is Nothing Then
-            MessageBox.Show("Please select a SOFTBANK SDK before launching.")
+            MessageBox.Show("Please select a VODAFONE SDK before launching.")
             Return
         End If
 
@@ -1847,6 +1897,38 @@ Public Class MainForm
                 )
             End If
             VODAFONEEXE = Path.Combine(VODAFONEpath, "KEmulator.jar")
+        End If
+    End Sub
+    Private Sub cbxAIREDGESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxAirEdgeSDK.SelectedIndexChanged
+        If cbxAirEdgeSDK.SelectedItem Is Nothing Then
+            MessageBox.Show("Please select a AIREDGE SDK before launching.")
+            Return
+        End If
+
+        Dim selectedSDK As String = cbxAirEdgeSDK.SelectedItem.ToString()
+        Dim sdkLower As String = selectedSDK.ToLowerInvariant()
+        AIREDGEpath = Path.Combine(ToolsFolder, selectedSDK)
+
+        If sdkLower.StartsWith("kemnnx64") Then
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
+                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                "when launching or interacting with the emulator. Use at your own risk."
+                )
+            End If
+            AIREDGEEXE = Path.Combine(AIREDGEpath, "KEmulator.jar")
+        ElseIf sdkLower.StartsWith("freej2me") Then
+            If CompletedBootSequence = True Then
+                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+                MessageBox.Show(
+                    "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
+                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+                    "when launching or interacting with the emulator. Use at your own risk."
+                    )
+            End If
+            AIREDGEEXE = Path.Combine(AIREDGEpath, "freej2me.jar")
         End If
     End Sub
     Private Sub cbxEZWEBEZPLUSSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxEZWebEZPlusSDK.SelectedIndexChanged
@@ -2133,7 +2215,8 @@ Public Class MainForm
                 {cbxJSKYSDK, "JSKY"},
                 {cbxSoftbankSDK, "SOFTBANK"},
                 {cbxAirEdgeSDK, "AIREDGE"},
-                {cbxVodafoneSDK, "VODAFONE"}, ' This will be treated as optional
+                {cbxVodafoneSDK, "VODAFONE"},
+                {cbxEZWebEZPlusSDK, "EZPLUS"},
                 {cbxFlashSDK, "FLASH"}
             }
 
@@ -2167,6 +2250,7 @@ Public Class MainForm
             Dim selectedSOFTBANKSDK = selectedSDKs("SOFTBANK")
             Dim selectedFlashSDK = selectedSDKs("FLASH")
             Dim selectedVODAFONESDK As String = selectedSDKs.GetValueOrDefault("VODAFONE", "")
+            Dim selectedEZWEBEZPLUSSSDK As String = selectedSDKs("EZPLUS")
 
             ' Verify the game is downloaded
             If Not Await VerifyGameDownloadedAsync() Then
@@ -2195,6 +2279,8 @@ Public Class MainForm
                 CorrectedEmulator = selectedGame.Emulator
             ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".swf") Then
                 CorrectedEmulator = "flash"
+            ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".kjx") Then
+                CorrectedEmulator = "ezplus"
             Else
                 CorrectedEmulator = selectedGame.Emulator
             End If
@@ -2227,21 +2313,32 @@ Public Class MainForm
             End If
             Select Case CorrectedEmulator.ToLower()
                 Case "doja"
-                    Logger.LogInfo("Launching game using DOJA emulator.")
                     Dim lowerDojaPath = DOJApath.ToLowerInvariant()
 
                     If lowerDojaPath.Contains("idkdoja") Then
+                        Logger.LogInfo("Launching game using DOJA emulator.")
                         utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
                     ElseIf lowerDojaPath.Contains("squirreljme") Then
+                        Logger.LogInfo("Launching game using SJME emulator.")
                         utilManager.LaunchCustomDOJA_SJMEGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
                     ElseIf lowerDojaPath.Contains("kemnnx64") Then
+                        Logger.LogInfo("Launching game using KEmulator emulator.")
                         utilManager.LaunchCustom_KEmulatorGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerDojaPath.Contains("freej2me") Then
+                        Logger.LogInfo("Launching game using FreeJ2ME emulator.")
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: DojaPath={DOJApath}, DojaEXE={DOJAEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "star"
-                    Logger.LogInfo("Launching game using STAR emulator.")
-                    utilManager.LaunchCustomSTARGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
+                    Dim lowerStarPath = STARpath.ToLowerInvariant()
+                    If lowerStarPath.Contains("idkstar") Then
+                        Logger.LogInfo("Launching game using STAR emulator.")
+                        utilManager.LaunchCustomSTARGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
+                    ElseIf lowerStarPath.Contains("freej2me") Then
+                        Logger.LogInfo("Launching game using FreeJ2ME emulator.")
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                    End If
                     Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "jsky"
@@ -2261,14 +2358,34 @@ Public Class MainForm
                     Logger.LogInfo($"Launched with: VODAFONEPath={VODAFONEpath}, VODAFONEEXE={VODAFONEEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "airedge"
-                    Logger.LogInfo("Launching game using AIREDGE emulator.")
-                    utilManager.LaunchCustom_KEmulatorGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
+                    Dim lowerAIREDGEPath = AIREDGEpath.ToLowerInvariant()
+                    If lowerAIREDGEPath.Contains("kemnnx64") Then
+                        Logger.LogInfo("Launching game using KEMULATOR emulator.")
+                        utilManager.LaunchCustom_KEmulatorGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerAIREDGEPath.Contains("freej2me") Then
+                        Logger.LogInfo("Launching game using FreeJ2ME emulator.")
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                    End If
                     Logger.LogInfo($"Launched with: AIREDGEPath={AIREDGEpath}, AIREDGEEXE={AIREDGEEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "softbank"
-                    Logger.LogInfo("Launching game using SOFTBANK emulator.")
-                    utilManager.LaunchCustom_KEmulatorGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
+                    Dim lowerSOFTBANKPath = SOFTBANKpath.ToLowerInvariant()
+                    If lowerSOFTBANKPath.Contains("kemnnx64") Then
+                        Logger.LogInfo("Launching game using KEMULATOR emulator.")
+                        utilManager.LaunchCustom_KEmulatorGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerSOFTBANKPath.Contains("freej2me") Then
+                        Logger.LogInfo("Launching game using FreeJ2ME emulator.")
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                    End If
                     Logger.LogInfo($"Launched with: SOFTBANKPath={SOFTBANKpath}, SOFTBANKEXE={SOFTBANKEXE}, GamePath={CurrentSelectedGameJAM}")
+
+                Case "ezplus"
+                    Dim lowerEZPLUSPath = EZWEBEZPLUSpath.ToLowerInvariant()
+                    If lowerEZPLUSPath.Contains("freej2me") Then
+                        Logger.LogInfo("Launching game using FreeJ2ME emulator.")
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                    End If
+                    Logger.LogInfo($"Launched with: EZWEBEZPLUSpath={EZWEBEZPLUSpath}, EZWEBEZPLUSEXE={EZWEBEZPLUSEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "flash"
                     Logger.LogInfo("Launching game using flash Player.")
