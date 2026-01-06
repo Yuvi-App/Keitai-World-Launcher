@@ -127,7 +127,11 @@ Public Class MainForm
         Logger.LogInfo("Application started.")
 
         ' Load Config
-        config = Await configManager.LoadConfigAsync()
+        Try
+            config = Await configManager.LoadConfigAsync()
+        Catch ex As Exception
+            MessageBox.Show(owner:=SplashScreen, $"Failed to Load App Config: Please put a valid appconfig.xml into ""Configs"" Folder Error: {vbCrLf}{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
 
         ' Access and Assign Config settings
         AppLoadManager.LoadConfigValues(config)

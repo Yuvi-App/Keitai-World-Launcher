@@ -105,7 +105,7 @@ Namespace My.Managers
             ' Check for Visual C++ Runtimes
             My.logger.Logger.LogInfo("Checking for C++ Runtimes")
             If Not Await IsVCRuntime2022InstalledAsync() Then
-                MessageBox.Show(owner:=SplashScreen, "Unable to Detect C++ Runtimes... To ensure compatibility, we recommend you install this Runtime AIO Package.")
+                MessageBox.Show(owner:=SplashScreen, "Unable to Detect C++ Runtimes... To ensure compatibility, we recommend you install this Runtime AIO Package. A REBOOT might be required after installing.")
                 My.logger.Logger.LogInfo("Missing C++ Runtimes")
                 Await OpenURLAsync("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
                 MainForm.QuitApplication()
@@ -114,7 +114,7 @@ Namespace My.Managers
             ' Check for .net 8 Runtime
             My.logger.Logger.LogInfo("Checking for .Net 8.0.15+ Runtimes")
             If Not Await IsDotNet8Installed() Then
-                MessageBox.Show(owner:=SplashScreen, "Unable to Detect .Net 8.0.15+ Runtimes... Download is required")
+                MessageBox.Show(owner:=SplashScreen, "Unable to Detect .Net 8.0.15+ Runtimes... Download is required. A REBOOT might be required after installing.")
                 My.logger.Logger.LogInfo("Missing .Net 8.0.15+ Runtimes")
                 Await OpenURLAsync("https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-8.0.15-windows-x86-installer?cid=getdotnetcore")
                 MainForm.QuitApplication()
@@ -2157,7 +2157,9 @@ Namespace My.Managers
             ' value = replacement domain
             Dim domainMap As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase) From {
                 {"mbga.jp", "mobage.gs.keitaiarchive.org"},
-                {"gree.jp", "gree.gs.keitaiarchive.org"}
+                {"gree.jp", "gree.gs.keitaiarchive.org"},
+                {"m-app.jp", "moco.gs.keitaiarchive.org"},
+                {"i-simple100.channel.or.jp", "simple100.gs.keitaiarchive.org"}
             }
 
             Dim enc = Encoding.GetEncoding(932)

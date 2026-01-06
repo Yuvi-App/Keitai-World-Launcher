@@ -914,7 +914,7 @@ Partial Class MainForm
         GroupBox11.Controls.Add(btnUpdateNetworkUID)
         GroupBox11.Location = New Point(566, 3)
         GroupBox11.Name = "GroupBox11"
-        GroupBox11.Size = New Size(314, 196)
+        GroupBox11.Size = New Size(464, 196)
         GroupBox11.TabIndex = 18
         GroupBox11.TabStop = False
         GroupBox11.Text = "Network Config"
@@ -989,17 +989,17 @@ Partial Class MainForm
         ' 
         ' Label13
         ' 
-        Label13.Location = New Point(6, 22)
+        Label13.Location = New Point(6, 21)
         Label13.Name = "Label13"
-        Label13.Size = New Size(278, 36)
+        Label13.Size = New Size(452, 36)
         Label13.TabIndex = 0
         Label13.Text = "To access online features in supported games, please create a Network UID and Terminal ID."
         ' 
         ' btnUpdateNetworkUID
         ' 
-        btnUpdateNetworkUID.Location = New Point(228, 61)
+        btnUpdateNetworkUID.Location = New Point(228, 60)
         btnUpdateNetworkUID.Name = "btnUpdateNetworkUID"
-        btnUpdateNetworkUID.Size = New Size(80, 98)
+        btnUpdateNetworkUID.Size = New Size(80, 102)
         btnUpdateNetworkUID.TabIndex = 3
         btnUpdateNetworkUID.Text = "Update Network Config"
         btnUpdateNetworkUID.UseVisualStyleBackColor = True
@@ -1013,7 +1013,7 @@ Partial Class MainForm
         GroupBox6.Controls.Add(btnLaunchKey2Pad)
         GroupBox6.Location = New Point(3, 3)
         GroupBox6.Name = "GroupBox6"
-        GroupBox6.Size = New Size(557, 121)
+        GroupBox6.Size = New Size(557, 84)
         GroupBox6.TabIndex = 17
         GroupBox6.TabStop = False
         GroupBox6.Text = "General Config"
