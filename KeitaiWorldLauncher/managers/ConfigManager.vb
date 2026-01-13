@@ -10,6 +10,7 @@ Namespace My.Managers
         {"VersionCheckURL", "latest_version.txt"},
         {"AutoUpdate", "true"},
         {"FirstRun", "true"},
+        {"HomepageURL", "https://example.com"},
         {"GamelistURL", "gamelist.xml"},
         {"AutoUpdateGameList", "true"},
         {"MachiCharalistURL", "machicharalist.xml"},

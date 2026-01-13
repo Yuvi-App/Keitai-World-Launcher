@@ -159,6 +159,7 @@ Partial Class MainForm
         lblHelp_AppVer = New Label()
         btnControls = New Button()
         MaterialTabSelector1 = New ReaLTaiizor.Controls.MaterialTabSelector()
+        tpHomepage = New TabPage()
         cmsGameLV.SuspendLayout()
         GroupBox2.SuspendLayout()
         cmsMachiCharaLV.SuspendLayout()
@@ -625,6 +626,7 @@ Partial Class MainForm
         ' 
         ' MaterialTabControl1
         ' 
+        MaterialTabControl1.Controls.Add(tpHomepage)
         MaterialTabControl1.Controls.Add(tpAppli)
         MaterialTabControl1.Controls.Add(tpMachiChara)
         MaterialTabControl1.Controls.Add(tpCharaDen)
@@ -1547,6 +1549,15 @@ Partial Class MainForm
         MaterialTabSelector1.TabIndex = 9
         MaterialTabSelector1.Text = "MaterialTabSelector1"
         ' 
+        ' tpHomepage
+        ' 
+        tpHomepage.Location = New Point(4, 24)
+        tpHomepage.Name = "tpHomepage"
+        tpHomepage.Size = New Size(1033, 581)
+        tpHomepage.TabIndex = 6
+        tpHomepage.Text = "Home"
+        tpHomepage.UseVisualStyleBackColor = True
+        ' 
         ' MainForm
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
@@ -1730,4 +1741,5 @@ Partial Class MainForm
     Friend WithEvents txtCurrentTID As TextBox
     Friend WithEvents cbxEZWebEZPlusSDK As ComboBox
     Friend WithEvents Label15 As Label
+    Friend WithEvents tpHomepage As TabPage
 End Class

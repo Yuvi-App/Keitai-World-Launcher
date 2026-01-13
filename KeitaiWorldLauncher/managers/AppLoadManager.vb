@@ -3,11 +3,11 @@ Imports KeitaiWorldLauncher.My.Models
 
 Namespace My.Managers
     Public Class AppLoadManager
-        Dim utilManager As New UtilManager
         Public Shared Sub LoadConfigValues(cfg As Dictionary(Of String, String))
             MainForm.versionCheckUrl = cfg("VersionCheckURL")
             MainForm.autoUpdate = Boolean.Parse(cfg("AutoUpdate"))
             MainForm.FirstRun = Boolean.Parse(cfg("FirstRun"))
+            MainForm.HomepageUrl = cfg("HomepageURL")
             MainForm.gameListUrl = cfg("GamelistURL")
             MainForm.autoUpdateGameList = Boolean.Parse(cfg("AutoUpdateGameList"))
             MainForm.machicharaListUrl = cfg("MachiCharalistURL")

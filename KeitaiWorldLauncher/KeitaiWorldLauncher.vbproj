@@ -8,8 +8,8 @@
     <MyType>WindowsForms</MyType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ForceDesignerDPIUnaware>true</ForceDesignerDPIUnaware>
-    <AssemblyVersion>0.7.6</AssemblyVersion>
-    <FileVersion>0.7.6</FileVersion>
+    <AssemblyVersion>0.8.0</AssemblyVersion>
+    <FileVersion>0.8.0</FileVersion>
     <ApplicationIcon>kwl.ico</ApplicationIcon>
     <Title>$(AssemblyName)</Title>
     <Copyright>KWL</Copyright>
@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3650.58" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="ReaLTaiizor" Version="3.8.1.4" />
     <PackageReference Include="SharpDX.XInput" Version="4.2.0" />

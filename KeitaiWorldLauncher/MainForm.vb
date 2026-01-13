@@ -14,6 +14,8 @@ Public Class MainForm
     Private splash As SplashScreen
     Dim isDebug As Boolean = False
     Dim isOnline As Boolean = False
+
+    'Managers
     Dim ApploadManager As New AppLoadManager()
     Dim applitrackerManager As New AppliTrackerManager
     Dim configManager As New ConfigManager()
@@ -25,6 +27,9 @@ Public Class MainForm
     Dim SaveDataManager As New SaveDataManager()
     Dim zipManager As New ZipManager()
     Dim UIDialogManager As New UIDialogManager()
+    Dim HomepageManager As HomepageManager
+
+    'Configs
     Dim config As Dictionary(Of String, String)
     Dim games As List(Of Game)
     Dim machicharas As List(Of MachiChara)
@@ -56,6 +61,7 @@ Public Class MainForm
     Public versionCheckUrl As String
     Public autoUpdate As Boolean
     Public FirstRun As Boolean
+    Public HomepageURL As String
     Public gameListUrl As String
     Public autoUpdateGameList As Boolean
     Public machicharaListUrl As String
@@ -226,7 +232,13 @@ Public Class MainForm
         Await LoadCharaDenListFirsTimeASync()
 
         ' Ensure TID and UID are Patched in EXE
-        utilManager.PatchTerminalAndUidInExe(DOJAEXE, 2291784, TerminalID, NetworkUID)
+        UtilManager.PatchTerminalAndUidInExe(DOJAEXE, 2291784, TerminalID, NetworkUID)
+
+        ' Setup Homepage
+        HomepageManager = New HomepageManager(HomepageUrl)
+        Await HomepageManager.InitializeAsync(tpHomepage)
+        Await HomepageManager.LoadAsync()
+
 
         'Last Step
         Await GetSDKsAsync()
