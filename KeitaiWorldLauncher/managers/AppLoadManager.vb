@@ -1,5 +1,8 @@
 ﻿Imports System.IO
 Imports KeitaiWorldLauncher.My.Models
+Imports ReaLTaiizor.Controls
+Imports ReaLTaiizor.Forms
+Imports ReaLTaiizor.Manager
 
 Namespace My.Managers
     Public Class AppLoadManager
@@ -7,6 +10,7 @@ Namespace My.Managers
             MainForm.versionCheckUrl = cfg("VersionCheckURL")
             MainForm.autoUpdate = Boolean.Parse(cfg("AutoUpdate"))
             MainForm.FirstRun = Boolean.Parse(cfg("FirstRun"))
+            MainForm.PolicyAgreement = Boolean.Parse(cfg("PolicyAgreement"))
             MainForm.HomepageUrl = cfg("HomepageURL")
             MainForm.gameListUrl = cfg("GamelistURL")
             MainForm.autoUpdateGameList = Boolean.Parse(cfg("AutoUpdateGameList"))
@@ -203,5 +207,120 @@ Namespace My.Managers
                 CopyDirectoryRecursive(Dir, Path.Combine(targetDir, Path.GetFileName(d)))
             Next
         End Sub
+
+        'Policy Acknowledgement Load
+        Public Function ShowKeitaiWorldLaunchergreement(owner As IWin32Window) As Boolean
+
+            ' --- RealTaiizor Material manager ---
+            Dim materialManager As MaterialSkinManager = MaterialSkinManager.Instance
+            materialManager.Theme = MaterialSkinManager.Themes.LIGHT
+
+            ' --- Form ---
+            Dim frm As New MaterialForm With {
+                .Text = "Keitai World Launcher – User Agreement",
+                .StartPosition = FormStartPosition.CenterScreen,
+                .Sizable = False,
+                .TopMost = True,
+                .ShowInTaskbar = False,
+                .ClientSize = New Size(740, 460) ' wider
+            }
+            materialManager.AddFormToManage(frm)
+
+            ' Ensure it comes to front even if something else steals focus
+            AddHandler frm.Shown,
+                Sub()
+                    frm.TopMost = True
+                    frm.Activate()
+                    frm.BringToFront()
+                End Sub
+
+            ' --- Background "card" area to help it blend ---
+            Dim card As New MaterialCard With {
+                .Location = New Point(16, 76),
+                .Size = New Size(frm.ClientSize.Width - 32, 320),
+                .Padding = New Padding(12)
+            }
+
+            ' Use a RichTextBox so it looks like content, not an input box
+            Dim rtb As New RichTextBox With {
+                .BorderStyle = BorderStyle.None,
+                .ReadOnly = True,
+                .ScrollBars = RichTextBoxScrollBars.Vertical,
+                .DetectUrls = False,
+                .BackColor = card.BackColor, ' key: matches the card
+                .ForeColor = Color.Black,
+                .Font = New Font("Segoe UI", 10.0F),
+                .Dock = DockStyle.Fill,
+                .Text =
+    "By using this software, you acknowledge and agree to the following:
+
+• This software is provided free of use and is offered as-is.
+• KeitaiArchive makes no warranties, expressed or implied.
+• No personal or identifying information is collected.
+
+For functionality and compatibility purposes, Keitai World Launcher may collect
+the following non-personal technical information:
+
+• Java runtime version
+• C++ runtime version
+• The Appli (application) you load or launch
+
+When connecting to online services, you understand that your IP address
+will be transmitted as part of normal network communication. This is
+required for server connectivity and is not used for tracking or
+identification beyond standard network operation.
+
+Bundled software included with this application (such as emulators,
+helpers, or supporting components) may also connect to online services
+or transmit your IP address when used, and may collect the same
+non-personal technical information described above as part of their
+normal operation.
+
+This information is used solely to improve compatibility, debugging,
+and preservation efforts.
+
+If you do not agree with these terms, please close the application."
+            }
+
+            card.Controls.Add(rtb)
+
+            ' --- Buttons ---
+            Dim btnAgree As New MaterialButton With {
+                .Text = "I AGREE",
+                .Type = MaterialButton.MaterialButtonType.Contained,
+                .Size = New Size(120, 36),
+                .Location = New Point(frm.ClientSize.Width - 270, frm.ClientSize.Height - 52)
+            }
+
+            Dim btnDecline As New MaterialButton With {
+                .Text = "DECLINE",
+                .Type = MaterialButton.MaterialButtonType.Text,
+                .Size = New Size(120, 36),
+                .Location = New Point(frm.ClientSize.Width - 140, frm.ClientSize.Height - 52)
+            }
+
+            Dim agreed As Boolean = False
+
+            AddHandler btnAgree.Click,
+                Sub()
+                    agreed = True
+                    frm.Close()
+                End Sub
+
+            AddHandler btnDecline.Click,
+                Sub()
+                    agreed = False
+                    frm.Close()
+                End Sub
+
+            frm.Controls.Add(card)
+            frm.Controls.Add(btnAgree)
+            frm.Controls.Add(btnDecline)
+
+            frm.ShowDialog(owner)
+            frm.Dispose()
+
+            Return agreed
+        End Function
     End Class
 End Namespace

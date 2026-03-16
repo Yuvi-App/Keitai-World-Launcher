@@ -1,6 +1,7 @@
 ﻿Imports System.ComponentModel
 Imports System.IO
 Imports System.Text
+Imports System.Xml
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Managers
 Imports KeitaiWorldLauncher.My.Models
@@ -28,6 +29,8 @@ Public Class MainForm
     Dim zipManager As New ZipManager()
     Dim UIDialogManager As New UIDialogManager()
     Dim HomepageManager As HomepageManager
+    Dim pathResolver As New GamePathResolver()
+    Dim currentGamePaths As GamePaths = Nothing
 
     'Configs
     Dim config As Dictionary(Of String, String)
@@ -61,6 +64,7 @@ Public Class MainForm
     Public versionCheckUrl As String
     Public autoUpdate As Boolean
     Public FirstRun As Boolean
+    Public PolicyAgreement As Boolean
     Public HomepageURL As String
     Public gameListUrl As String
     Public autoUpdateGameList As Boolean
@@ -137,6 +141,7 @@ Public Class MainForm
             config = Await configManager.LoadConfigAsync()
         Catch ex As Exception
             MessageBox.Show(owner:=SplashScreen, $"Failed to Load App Config: Please put a valid appconfig.xml into ""Configs"" Folder Error: {vbCrLf}{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Application.Exit()
         End Try
 
         ' Access and Assign Config settings
@@ -144,6 +149,20 @@ Public Class MainForm
 
         ' Get NetworkUID & TerminalID Config
         AppLoadManager.LoadNetworkUIDTerminaID()
+
+        ' Check Policy Agreement
+        If PolicyAgreement = False Then
+            Logger.LogInfo("Policy Agreement not accepted - Showing Policy Agreement Dialog")
+            Dim policyAccepted As Boolean = ApploadManager.ShowKeitaiWorldLaunchergreement(SplashScreen)
+            If policyAccepted = True Then
+                Logger.LogInfo("Policy Agreement Accepted")
+                Await configManager.UpdatePolicyAgreementSettingAsync("true")
+            Else
+                Logger.LogInfo("Policy Agreement Not Accepted - Quitting App")
+                MainForm.QuitApplication()
+                Return
+            End If
+        End If
 
         ' Check PreREQs if First Run
         Await UtilManager.CheckForSpacesInPathAsync()
@@ -165,12 +184,12 @@ Public Class MainForm
 
         'Needs Internet If none we skip and use local file
         Logger.LogInfo("Checking internet connectivity...")
-        Dim DomainCheck = "https://google.com"
+        Dim DomainCheck As String() = {"https://example.com", "http://www.msftconnecttest.com/connecttest.txt", "https://www.apple.com/library/test/success.html"}
         If Await UtilManager.IsInternetAvailableAsync(DomainCheck) Then
             'Check if we can get the VersionCheck File from Server
             If Await UtilManager.CanReachFileAsync(versionCheckUrl) Then
                 isOnline = True
-                Logger.LogInfo("Server reachable and responding.")
+                Logger.LogInfo("Keitai Server reachable and responding.")
             Else
                 isOnline = False
                 Me.Text = "Keitai World Launcher - Offline"
@@ -235,10 +254,11 @@ Public Class MainForm
         UtilManager.PatchTerminalAndUidInExe(DOJAEXE, 2291784, TerminalID, NetworkUID)
 
         ' Setup Homepage
-        HomepageManager = New HomepageManager(HomepageUrl)
-        Await HomepageManager.InitializeAsync(tpHomepage)
-        Await HomepageManager.LoadAsync()
-
+        HomepageManager = New HomepageManager(HomepageURL)
+        If Await HomepageManager.EnsureRuntimeAsync(tpHomepage) Then
+            Await HomepageManager.InitializeAsync(tpHomepage)
+            Await HomepageManager.LoadAsync()
+        End If
 
         'Last Step
         Await GetSDKsAsync()
@@ -261,6 +281,86 @@ Public Class MainForm
         Await SplashScreen.CloseSplashAsync()
         Me.Opacity = 1
     End Sub
+
+    ' SDK Functions
+    Private Sub ClearSdkCombos()
+        cbxDojaSDK.Items.Clear()
+        cbxStarSDK.Items.Clear()
+        cbxJSKYSDK.Items.Clear()
+        cbxVodafoneSDK.Items.Clear()
+        cbxFlashSDK.Items.Clear()
+        cbxAirEdgeSDK.Items.Clear()
+        cbxEZWebEZPlusSDK.Items.Clear()
+        cbxSoftbankSDK.Items.Clear()
+    End Sub
+    Private Async Function GetSDKsAsync() As Task
+        Logger.LogInfo("Starting SDK discovery...")
+
+        ' Verify tools folder exists
+        If Not Directory.Exists(ToolsFolder) Then
+            Logger.LogInfo($"Tools folder not found: {ToolsFolder}")
+            MessageBox.Show(owner:=SplashScreen, $"Tools folder not found: {ToolsFolder}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Return
+        End If
+
+        ' SDK configuration: (ComboBox, DefaultValue, Prefixes)
+        Dim sdkMappings As New List(Of (Combo As ComboBox, DefaultSdk As String, Prefixes As String())) From {
+        (cbxDojaSDK, "iDKDoJa5.1", {"idkdoja", "squirreljme", "kemnnx64", "freej2me"}),
+        (cbxStarSDK, "iDKStar2.0", {"idkstar", "freej2me"}),
+        (cbxJSKYSDK, "kemnnx64", {"jsky_", "kemnnx64"}),
+        (cbxSoftbankSDK, "kemnnx64", {"kemnnx64", "freej2me"}),
+        (cbxVodafoneSDK, "kemnnx64", {"kemnnx64"}),
+        (cbxAirEdgeSDK, "freej2me", {"kemnnx64", "freej2me"}),
+        (cbxEZWebEZPlusSDK, "freej2me", {"freej2me"}),
+        (cbxFlashSDK, "FlashPlayer", {"flash"})
+    }
+
+        ' Get SDK folders on background thread
+        Dim sdkFolders As String()
+        Try
+            sdkFolders = Await Task.Run(Function() Directory.GetDirectories(ToolsFolder))
+            'Logger.LogInfo($"Found {sdkFolders.Length} folders in tools directory")
+        Catch ex As Exception
+            Logger.LogInfo($"Error reading tools folder: {ex.Message}")
+            MessageBox.Show(owner:=SplashScreen, $"Error reading tools folder: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Return
+        End Try
+
+        ' Clear existing items
+        ClearSdkCombos()
+
+        ' Process each folder and populate combo boxes
+        For Each sdkPath In sdkFolders
+            Dim folderName As String = Path.GetFileName(sdkPath)
+
+            For Each mapping In sdkMappings
+                If mapping.Prefixes.Any(Function(p) folderName.StartsWith(p, StringComparison.OrdinalIgnoreCase)) Then
+                    mapping.Combo.Items.Add(folderName)
+                    'Logger.LogInfo($"Added '{folderName}' to {mapping.Combo.Name}")
+                End If
+            Next
+        Next
+
+        ' Set defaults and report missing SDKs
+        Dim missingDefaults As New List(Of String)
+
+        For Each mapping In sdkMappings
+            If mapping.Combo.Items.Contains(mapping.DefaultSdk) Then
+                mapping.Combo.SelectedItem = mapping.DefaultSdk
+                Logger.LogInfo($"Set default SDK '{mapping.DefaultSdk}' for {mapping.Combo.Name}")
+            Else
+                missingDefaults.Add(mapping.DefaultSdk)
+                Logger.LogInfo($"Default SDK '{mapping.DefaultSdk}' not found for {mapping.Combo.Name}")
+                MessageBox.Show(owner:=SplashScreen, $"The default SDK '{mapping.DefaultSdk}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End If
+        Next
+
+        If missingDefaults.Count = 0 Then
+            Logger.LogInfo("SDK discovery completed successfully - all defaults found")
+        Else
+            Logger.LogInfo($"SDK discovery completed with {missingDefaults.Count} missing default(s): {String.Join(", ", missingDefaults.Distinct())}")
+        End If
+    End Function
 
     ' General Other Function
     Private Sub EnableButtons(SelectedGame As Game)
@@ -292,150 +392,6 @@ Public Class MainForm
         End Select
 
     End Sub
-    Private Async Function GetSDKsAsync() As Task
-        Dim dojaDefault As String = "iDKDoJa5.1"
-        Dim starDefault As String = "iDKStar2.0"
-        Dim jskyDefault As String = "JSky_0.1.5B"
-        Dim softbankDefault As String = "freej2me"
-        Dim vodafoneDefault As String = "kemnnx64"
-        Dim airedgeDefault As String = "freej2me"
-        Dim ezwebezplusDefault As String = "freej2me"
-        Dim FlashDefault As String = "FlashPlayer"
-        Dim dojaFound As Boolean = False
-        Dim starFound As Boolean = False
-        Dim softbankFound As Boolean = False
-        Dim jskyFound As Boolean = False
-        Dim airedgeFound As Boolean = False
-        Dim ezwebezplusFound As Boolean = False
-        Dim vodafoneFound As Boolean = False
-        Dim flashFound As Boolean = False
-
-        ' Run the directory check on a background thread
-        Dim sdkFolders As String() = Await Task.Run(Function() Directory.GetDirectories(ToolsFolder))
-
-        ' Clear existing items on the UI thread
-        cbxDojaSDK.Items.Clear()
-        cbxStarSDK.Items.Clear()
-        cbxJSKYSDK.Items.Clear()
-        cbxVodafoneSDK.Items.Clear()
-        cbxFlashSDK.Items.Clear()
-        cbxAirEdgeSDK.Items.Clear()
-        cbxEZWebEZPlusSDK.Items.Clear()
-        cbxSoftbankSDK.Items.Clear()
-
-        For Each SSDK In sdkFolders
-            Dim folder As String = Path.GetFileName(SSDK)
-
-            If folder.StartsWith("idkstar", StringComparison.OrdinalIgnoreCase) Then
-                cbxStarSDK.Items.Add(folder)
-                If folder.Equals(starDefault, StringComparison.OrdinalIgnoreCase) Then
-                    starFound = True
-                End If
-            ElseIf folder.StartsWith("idkdoja", StringComparison.OrdinalIgnoreCase) Then
-                cbxDojaSDK.Items.Add(folder)
-                If folder.Equals(dojaDefault, StringComparison.OrdinalIgnoreCase) Then
-                    dojaFound = True
-                End If
-            ElseIf folder.StartsWith("squirreljme", StringComparison.OrdinalIgnoreCase) Then
-                cbxDojaSDK.Items.Add(folder)
-                If folder.Equals(dojaDefault, StringComparison.OrdinalIgnoreCase) Then
-                    dojaFound = True
-                End If
-            ElseIf folder.StartsWith("JSky_", StringComparison.OrdinalIgnoreCase) Then
-                cbxJSKYSDK.Items.Add(folder)
-                If folder.Equals(jskyDefault, StringComparison.OrdinalIgnoreCase) Then
-                    jskyFound = True
-                End If
-            ElseIf folder.StartsWith("kemnnx64", StringComparison.OrdinalIgnoreCase) Then 'Kemulator handles more then just 1 type
-                cbxJSKYSDK.Items.Add(folder)
-                cbxDojaSDK.Items.Add(folder)
-                cbxAirEdgeSDK.Items.Add(folder)
-                cbxSoftbankSDK.Items.Add(folder)
-                cbxVodafoneSDK.Items.Add(folder)
-                If folder.Equals(airedgeDefault, StringComparison.OrdinalIgnoreCase) Then
-                    airedgeFound = True
-                End If
-                If folder.Equals(softbankDefault, StringComparison.OrdinalIgnoreCase) Then
-                    softbankFound = True
-                End If
-                If folder.Equals(vodafoneDefault, StringComparison.OrdinalIgnoreCase) Then
-                    vodafoneFound = True
-                End If
-            ElseIf folder.StartsWith("freej2me", StringComparison.OrdinalIgnoreCase) Then 'freej2me+ handles more then just 1 type
-                cbxDojaSDK.Items.Add(folder)
-                cbxStarSDK.Items.Add(folder)
-                cbxAirEdgeSDK.Items.Add(folder)
-                cbxSoftbankSDK.Items.Add(folder)
-                cbxEZWebEZPlusSDK.Items.Add(folder)
-                If folder.Equals(airedgeDefault, StringComparison.OrdinalIgnoreCase) Then
-                    airedgeFound = True
-                End If
-                If folder.Equals(softbankDefault, StringComparison.OrdinalIgnoreCase) Then
-                    softbankFound = True
-                End If
-                If folder.Equals(vodafoneDefault, StringComparison.OrdinalIgnoreCase) Then
-                    vodafoneFound = True
-                End If
-                If folder.Equals(ezwebezplusDefault, StringComparison.OrdinalIgnoreCase) Then
-                    ezwebezplusFound = True
-                End If
-            ElseIf folder.StartsWith("Flash", StringComparison.OrdinalIgnoreCase) Then
-                cbxFlashSDK.Items.Add(folder)
-                If folder.Equals(FlashDefault, StringComparison.OrdinalIgnoreCase) Then
-                    flashFound = True
-                End If
-            End If
-        Next
-
-        ' Set defaults or show warnings
-        If starFound Then
-            cbxStarSDK.SelectedItem = starDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{starDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-
-        If dojaFound Then
-            cbxDojaSDK.SelectedItem = dojaDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{dojaDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-
-        If jskyFound Then
-            cbxJSKYSDK.SelectedItem = jskyDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{jskyDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-
-        If softbankFound Then
-            cbxSoftbankSDK.SelectedItem = softbankDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{softbankDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-
-        If vodafoneFound Then
-            cbxVodafoneSDK.SelectedItem = vodafoneDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{vodafoneDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-
-        If airedgeFound Then
-            cbxAirEdgeSDK.SelectedItem = airedgeDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{airedgeDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-
-        If ezwebezplusFound Then
-            cbxEZWebEZPlusSDK.SelectedItem = ezwebezplusDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{ezwebezplusDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-
-        If flashFound Then
-            cbxFlashSDK.SelectedItem = FlashDefault
-        Else
-            MessageBox.Show(owner:=SplashScreen, $"The default SDK '{FlashDefault}' was not found. Please download and set it up.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-        End If
-    End Function
     Private Async Function LoadGameIconsAsync() As Task
         Dim DojaIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "doja.gif")
         Dim StarIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "star.gif")
@@ -762,7 +718,6 @@ Public Class MainForm
             Return
         End If
 
-        ' If you still want this async signature, keep a tiny await
         Await Task.Yield()
 
         ' Split the variants string safely
@@ -789,7 +744,7 @@ Public Class MainForm
             Return
         End If
 
-        ' Get the selected game
+        ' Get the selected game & variant
         Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
@@ -797,8 +752,6 @@ Public Class MainForm
             MessageBox.Show("Selected game could not be found (missing Tag).", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Return
         End If
-
-        ' Get the selected variant (if any)
         Dim selectedGameVariant As String = String.Empty
         If ListViewGamesVariants.SelectedItems.Count > 0 Then
             selectedGameVariant = ListViewGamesVariants.SelectedItems(0).Text.Trim()
@@ -830,42 +783,11 @@ Public Class MainForm
         End If
 
         ' Set paths based on emulator
-        If emulator = "doja" OrElse emulator = "star" Then
-            CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, "bin", $"{zipNameNoExt}.jam")
-            CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, "bin", $"{zipNameNoExt}.jar")
-            CurrentSelectedGameSP = Path.Combine(gameBasePath, variantPath, "sp", $"{zipNameNoExt}.sp")
-
-        ElseIf emulator = "jsky" Or emulator = "vodafone" Or emulator = "airedge" Or emulator = "softbank" Then
-            If String.IsNullOrWhiteSpace(variantPath) Then
-                CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.jad")
-                CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.jar")
-            Else
-                CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.jad")
-                CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.jar")
-            End If
-        ElseIf emulator = "ezplus" Then
-            If String.IsNullOrWhiteSpace(variantPath) Then
-                CurrentSelectedGameKJX = Path.Combine(gameBasePath, $"{zipNameNoExt}.kjx")
-                CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.kjx")
-                CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.kjx")
-            Else
-                CurrentSelectedGameKJX = Path.Combine(gameBasePath, $"{zipNameNoExt}.kjx")
-                CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.kjx")
-                CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.kjx")
-            End If
-            'Convert kjx to jad/jar 
-            If File.Exists(CurrentSelectedGameKJX) AndAlso Not File.Exists(CurrentSelectedGameJAR) Then
-            End If
-
-        ElseIf emulator = "flash" Then
-            If String.IsNullOrWhiteSpace(variantPath) Then
-                CurrentSelectedGameJAM = Path.Combine(gameBasePath, $"{zipNameNoExt}.swf")
-                CurrentSelectedGameJAR = Path.Combine(gameBasePath, $"{zipNameNoExt}.swf")
-            Else
-                CurrentSelectedGameJAM = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.swf")
-                CurrentSelectedGameJAR = Path.Combine(gameBasePath, variantPath, $"{zipNameNoExt}.swf")
-            End If
-        End If
+        currentGamePaths = pathResolver.Resolve(selectedGame, selectedGameVariant, DownloadsFolder)
+        CurrentSelectedGameJAM = currentGamePaths.JAM
+        CurrentSelectedGameJAR = currentGamePaths.JAR
+        CurrentSelectedGameSP = currentGamePaths.SP
+        CurrentSelectedGameKJX = currentGamePaths.KJX
 
         'Check if download is happening already.
         If isGameDownloadInProgress Then
@@ -1617,6 +1539,43 @@ Public Class MainForm
         ' Show dialog
         aboutForm.ShowDialog()
     End Sub
+    Private Sub StartAHKScript()
+        Dim AHKFolder As String = Path.Combine(ToolsFolder, "autohotkey")
+        Dim AHKExe As String = Path.Combine(AHKFolder, "AutoHotkey32.exe")
+        Dim AHKNormScript As String = Path.Combine(AHKFolder, "AutoHotkey32.ahk")
+        Dim AHKRRScript As String = Path.Combine(AHKFolder, "AutoHotkey32-RR.ahk")
+
+        ' Determine which script to run based on rotation setting
+        Dim scriptToRun As String = If(chkbxDialpadRotated.Checked, AHKRRScript, AHKNormScript)
+        Dim scriptName As String = Path.GetFileName(scriptToRun)
+
+        ' Verify files exist
+        If Not File.Exists(AHKExe) Then
+            Logger.LogInfo($"AutoHotkey executable not found: {AHKExe}")
+            MessageBox.Show($"AutoHotkey executable not found: {AHKExe}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Return
+        End If
+
+        If Not File.Exists(scriptToRun) Then
+            Logger.LogInfo($"AHK script not found: {scriptToRun}")
+            MessageBox.Show($"AHK script not found: {scriptToRun}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Return
+        End If
+
+        ' Start the AHK script
+        Try
+            Dim ahkProc As New Process()
+            ahkProc.StartInfo.FileName = AHKExe
+            ahkProc.StartInfo.Arguments = $"""{scriptToRun}"""
+            ahkProc.StartInfo.UseShellExecute = False
+            ahkProc.StartInfo.CreateNoWindow = True
+            ahkProc.Start()
+            Logger.LogInfo($"Started AutoHotkey with script: {scriptName}")
+        Catch ex As Exception
+            Logger.LogInfo($"Failed to start AutoHotkey: {ex.Message}")
+            MessageBox.Show($"Failed to start AutoHotkey: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
 
     ' LISTBOX/LISTVIEW CHANGES
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
@@ -1702,44 +1661,29 @@ Public Class MainForm
         chkboxControllerVibration.Enabled = True
     End Sub
     Private Sub chkbxDialpadNumpad_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxDialpadNumpad.CheckedChanged
-        Dim AHKFolder = Path.Combine(ToolsFolder, "autohotkey")
-        Dim AHKScript = Path.Combine(AHKFolder, "AutoHotkey32.ahk")
-        Dim AHKExe = Path.Combine(AHKFolder, "AutoHotkey32.exe")
-
-        If chkbxDialpadNumpad.Checked = True Then
-            ' Create the AHK script if it doesn't exist
-            If Not File.Exists(AHKScript) Then
-                Dim scriptContent As String =
-                "Numpad7::Send 1" & vbCrLf &
-                "Numpad8::Send 2" & vbCrLf &
-                "Numpad9::Send 3" & vbCrLf &
-                "Numpad4::Send 4" & vbCrLf &
-                "Numpad5::Send 5" & vbCrLf &
-                "Numpad6::Send 6" & vbCrLf &
-                "Numpad1::Send 7" & vbCrLf &
-                "Numpad2::Send 8" & vbCrLf &
-                "Numpad3::Send 9" & vbCrLf &
-                "Numpad0::Send 0"
-                Directory.CreateDirectory(AHKFolder) ' Ensure the folder exists
-                File.WriteAllText(AHKScript, scriptContent)
-            End If
-
-            ' Start the AHK script
-            Try
-                Dim ahkProc As New Process()
-                ahkProc.StartInfo.FileName = AHKExe
-                ahkProc.StartInfo.Arguments = """" & AHKScript & """"
-                ahkProc.StartInfo.UseShellExecute = False
-                ahkProc.StartInfo.CreateNoWindow = True
-                ahkProc.Start()
-            Catch ex As Exception
-                MessageBox.Show("Failed to start AutoHotkey: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
+        If chkbxDialpadNumpad.Checked Then
+            ' Enable the rotated checkbox option
+            chkbxDialpadRotated.Enabled = True
+            ' Start the appropriate AHK script
+            StartAHKScript()
         Else
-            ' Kill any running AHK related processes
+            ' Kill any running AHK processes
             UtilManager.CheckAndCloseAHK()
+            ' Disable and uncheck the rotated checkbox
+            chkbxDialpadRotated.Checked = False
+            chkbxDialpadRotated.Enabled = False
         End If
         configManager.UpdateUseDialPadSetting(chkbxDialpadNumpad.Checked)
+    End Sub
+    Private Sub chkbxDialpadRotated_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxDialpadRotated.CheckedChanged
+        ' Only act if the main dialpad checkbox is enabled
+        If Not chkbxDialpadNumpad.Checked Then
+            Return
+        End If
+
+        ' Kill current AHK process and start the appropriate one
+        UtilManager.CheckAndCloseAHK()
+        StartAHKScript()
     End Sub
 
     ' ComboBox Changes
@@ -2086,9 +2030,8 @@ Public Class MainForm
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
         If selectedGame Is Nothing Then Return
-        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
-        Dim gameKey As String = $"{baseName}_{selectedGame.Emulator}"
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, gameKey)
+        Dim paths = pathResolver.Resolve(selectedGame, String.Empty, DownloadsFolder)
+        Dim gameFolder As String = paths.GameBaseFolder
         If Directory.Exists(gameFolder) Then
             Process.Start("explorer.exe", gameFolder)
         Else
@@ -2100,8 +2043,8 @@ Public Class MainForm
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
         If selectedGame Is Nothing Then Return
-        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
+        Dim paths = pathResolver.Resolve(selectedGame, String.Empty, DownloadsFolder)
+        Dim gameFolder As String = paths.GameBaseFolder
         If Directory.Exists(gameFolder) Then
             Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
         Else
@@ -2126,16 +2069,16 @@ Public Class MainForm
         ' Variant Selection
         If ListViewGamesVariants.SelectedItems.Count = 0 Then Return
         Dim selectedGameVariant As String = ListViewGamesVariants.SelectedItems(0).Text.Trim()
-
+        Dim paths = pathResolver.Resolve(selectedGame, selectedGameVariant, DownloadsFolder)
         Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
+        Dim gameFolder As String = paths.GameBaseFolder
 
         If Not Directory.Exists(gameFolder) Then
             MessageBox.Show("Game folder not found. Is the game downloaded?", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Return
         End If
 
-        Dim spFilePath As String = Path.Combine(gameFolder, selectedGameVariant, "sp", baseName & ".sp")
+        Dim spFilePath As String = paths.SP
         If Not File.Exists(spFilePath) Then
             MessageBox.Show($"SP file not found:{vbCrLf}{spFilePath}", "Missing File", MessageBoxButtons.OK, MessageBoxIcon.Warning)
             Return
@@ -2163,16 +2106,16 @@ Public Class MainForm
         ' Variant Selection
         If ListViewGamesVariants.SelectedItems.Count = 0 Then Return
         Dim selectedGameVariant As String = ListViewGamesVariants.SelectedItems(0).Text.Trim()
-
+        Dim paths = pathResolver.Resolve(selectedGame, selectedGameVariant, DownloadsFolder)
         Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
+        Dim gameFolder As String = paths.GameBaseFolder
 
         If Not Directory.Exists(gameFolder) Then
             MessageBox.Show("Game folder not found. Is the game downloaded?", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Return
         End If
 
-        Dim spFilePath As String = Path.Combine(gameFolder, selectedGameVariant, "sp", baseName & ".sp")
+        Dim spFilePath As String = paths.SP
         If Not File.Exists(spFilePath) Then
             MessageBox.Show($"SP file not found:{vbCrLf}{spFilePath}", "Missing File", MessageBoxButtons.OK, MessageBoxIcon.Warning)
             Return
@@ -2947,14 +2890,14 @@ Public Class MainForm
         lblHelp_AppVer.Text = aboutText
 
     End Sub
-    Private Sub btnVisitKeitaiArchive_Click(sender As Object, e As EventArgs) Handles btnVisitKeitaiArchive.Click
-        Dim url As String = "https://keitaiarchive.org"
+    Private Sub btnVisitKeitaiArchive_Click(sender As Object, e As EventArgs)
+        Dim url = "https://keitaiarchive.org"
         Dim psi As New ProcessStartInfo(url) With {.UseShellExecute = True}
         Process.Start(psi)
     End Sub
-    Private Sub btnControls_Click(sender As Object, e As EventArgs) Handles btnControls.Click
+    Private Sub btnControls_Click(sender As Object, e As EventArgs)
         ' Create a new MaterialForm
-        Dim keybindForm As New ReaLTaiizor.Forms.MaterialForm With {
+        Dim keybindForm As New MaterialForm With {
         .Text = "Keybinds",
         .Size = New Size(900, 500),
         .StartPosition = FormStartPosition.CenterScreen,
@@ -2965,7 +2908,7 @@ Public Class MainForm
     }
 
         ' Keybinds content
-        Dim keybindText As String =
+        Dim keybindText =
         "Doja & Star Keybinds:" & Environment.NewLine &
         "--------------------------" & Environment.NewLine &
         "Phone Button        Keyboard" & Environment.NewLine &
@@ -2993,7 +2936,7 @@ Public Class MainForm
     }
 
         ' Load the image if it exists
-        Dim imagePath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", "doja", "doja_controls.png")
+        Dim imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", "doja", "doja_controls.png")
         Dim picControls As New PictureBox With {
         .Left = 400,
         .Top = 80,
@@ -3009,14 +2952,14 @@ Public Class MainForm
         End If
 
         ' Add a close button
-        Dim btnClose As New ReaLTaiizor.Controls.MaterialButton With {
+        Dim btnClose As New MaterialButton With {
         .Text = "Close",
         .Width = 100,
         .Height = 36,
         .Left = keybindForm.ClientSize.Width - 120,
         .Top = keybindForm.ClientSize.Height - 60,
         .HighEmphasis = True,
-        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+        .Type = MaterialButton.MaterialButtonType.Contained
     }
         AddHandler btnClose.Click, Sub() keybindForm.Close()
 

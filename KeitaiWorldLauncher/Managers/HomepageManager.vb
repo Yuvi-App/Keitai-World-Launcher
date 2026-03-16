@@ -20,24 +20,15 @@ Public Class HomepageManager
         Public Property url As String
     End Class
 
-
     Private ReadOnly _homepageUrl As String
     Private _tp As TabPage
     Private _web As WebView2
-
-    ' Cache layout:
-    '   <AppData>\YourApp\homepage-cache\
-    '       index.html               (rewritten offline-safe)
-    '       raw.html                 (optional raw snapshot)
-    '       assets\<hash>.<ext>      (downloaded same-origin assets)
+    Private _runtimeAvailable As Boolean = False
     Private ReadOnly _cacheRoot As String
     Private ReadOnly _cacheIndexPath As String
     Private ReadOnly _cacheRawPath As String
     Private ReadOnly _cacheAssetsDir As String
-
-    ' WebView2 user data folder (separate from our offline cache)
     Private ReadOnly _wvUserDataDir As String
-
     Private ReadOnly _http As HttpClient
     Private _initDone As Boolean
 
@@ -157,7 +148,61 @@ Public Class HomepageManager
             "</div></body></html>"
         _web.CoreWebView2.NavigateToString(html)
     End Sub
+    Public Async Function EnsureRuntimeAsync(tpHomepage As TabPage) As Task(Of Boolean)
+        If IsWebView2RuntimeInstalled() Then
+            _runtimeAvailable = True
+            Return True
+        End If
 
+        Dim result = MessageBox.Show(
+            "The WebView2 Runtime is required to display the KWL Homepage." & vbCrLf & vbCrLf &
+            "Would you like to visit the download page to install it?",
+            "WebView2 Runtime Not Found",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question)
+
+        If result = DialogResult.Yes Then
+            Try
+                Process.Start(New ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") With {
+                    .UseShellExecute = True
+                })
+            Catch
+            End Try
+
+            MessageBox.Show(
+                "After installing the WebView2 Runtime, please restart KWL for the Homepage to load.",
+                "Restart Required",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information)
+        End If
+
+        ' Either way, runtime isn't available right now
+        _runtimeAvailable = False
+        ShowHomepageDisabled(tpHomepage)
+        Return False
+    End Function
+
+    Private Shared Function IsWebView2RuntimeInstalled() As Boolean
+        Try
+            Dim version = CoreWebView2Environment.GetAvailableBrowserVersionString()
+            Return Not String.IsNullOrEmpty(version)
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private Sub ShowHomepageDisabled(tp As TabPage)
+        tp.Controls.Clear()
+        Dim lbl As New Label() With {
+            .Text = "Homepage is unavailable — WebView2 Runtime is not installed.",
+            .AutoSize = False,
+            .Dock = DockStyle.Fill,
+            .TextAlign = ContentAlignment.MiddleCenter,
+            .Font = New Font("Segoe UI", 10.0F),
+            .ForeColor = Color.Gray
+        }
+        tp.Controls.Add(lbl)
+    End Sub
 
     ' --- Online checks -------------------------------------------------------
 

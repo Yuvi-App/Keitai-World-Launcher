@@ -80,8 +80,10 @@ Partial Class MainForm
         pbGameDL = New ProgressBar()
         btnLaunchGame = New Button()
         MaterialTabControl1 = New ReaLTaiizor.Controls.MaterialTabControl()
+        tpHomepage = New TabPage()
         tpAppli = New TabPage()
         GroupBox3 = New GroupBox()
+        chkbxDialpadRotated = New CheckBox()
         chkbxDialpadNumpad = New CheckBox()
         chkboxControllerVibration = New CheckBox()
         cbxControllerProfile = New ComboBox()
@@ -102,6 +104,12 @@ Partial Class MainForm
         DeleteCMS_CharaDen = New ToolStripMenuItem()
         lblCharadenTotalCount = New Label()
         tpConfig = New TabPage()
+        GroupBox8 = New GroupBox()
+        lblHelp_troubleshooting = New Label()
+        GroupBox7 = New GroupBox()
+        lblHelp_AppVer = New Label()
+        btnVisitKeitaiArchive = New Button()
+        btnControls = New Button()
         GroupBox11 = New GroupBox()
         lblInvalidTID = New Label()
         Label16 = New Label()
@@ -119,6 +127,7 @@ Partial Class MainForm
         btnLaunchAppConfig = New Button()
         btnLaunchKey2Pad = New Button()
         GroupBox5 = New GroupBox()
+        chkbxModifyJamFiles = New CheckBox()
         gbxSJMELaunchOptions = New GroupBox()
         Label10 = New Label()
         cbxSJMEScaling = New ComboBox()
@@ -151,15 +160,7 @@ Partial Class MainForm
         tpStats = New TabPage()
         GroupBox9 = New GroupBox()
         lvwPlaytimes = New ListView()
-        tpHelp = New TabPage()
-        btnVisitKeitaiArchive = New Button()
-        GroupBox8 = New GroupBox()
-        lblHelp_troubleshooting = New Label()
-        GroupBox7 = New GroupBox()
-        lblHelp_AppVer = New Label()
-        btnControls = New Button()
         MaterialTabSelector1 = New ReaLTaiizor.Controls.MaterialTabSelector()
-        tpHomepage = New TabPage()
         cmsGameLV.SuspendLayout()
         GroupBox2.SuspendLayout()
         cmsMachiCharaLV.SuspendLayout()
@@ -175,6 +176,8 @@ Partial Class MainForm
         GroupBox10.SuspendLayout()
         cmsCharadenLV.SuspendLayout()
         tpConfig.SuspendLayout()
+        GroupBox8.SuspendLayout()
+        GroupBox7.SuspendLayout()
         GroupBox11.SuspendLayout()
         GroupBox6.SuspendLayout()
         GroupBox5.SuspendLayout()
@@ -182,9 +185,6 @@ Partial Class MainForm
         GroupBox4.SuspendLayout()
         tpStats.SuspendLayout()
         GroupBox9.SuspendLayout()
-        tpHelp.SuspendLayout()
-        GroupBox8.SuspendLayout()
-        GroupBox7.SuspendLayout()
         SuspendLayout()
         ' 
         ' ImageListGames
@@ -460,7 +460,7 @@ Partial Class MainForm
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.FlatStyle = FlatStyle.Flat
         chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
-        chkbxShaderGlass.Location = New Point(84, 21)
+        chkbxShaderGlass.Location = New Point(85, 45)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
         chkbxShaderGlass.Size = New Size(86, 19)
@@ -632,7 +632,6 @@ Partial Class MainForm
         MaterialTabControl1.Controls.Add(tpCharaDen)
         MaterialTabControl1.Controls.Add(tpConfig)
         MaterialTabControl1.Controls.Add(tpStats)
-        MaterialTabControl1.Controls.Add(tpHelp)
         MaterialTabControl1.Depth = 0
         MaterialTabControl1.Font = New Font("Segoe UI", 9F)
         MaterialTabControl1.Location = New Point(0, 95)
@@ -643,6 +642,15 @@ Partial Class MainForm
         MaterialTabControl1.SelectedIndex = 0
         MaterialTabControl1.Size = New Size(1041, 609)
         MaterialTabControl1.TabIndex = 6
+        ' 
+        ' tpHomepage
+        ' 
+        tpHomepage.Location = New Point(4, 24)
+        tpHomepage.Name = "tpHomepage"
+        tpHomepage.Size = New Size(1033, 581)
+        tpHomepage.TabIndex = 6
+        tpHomepage.Text = "Home"
+        tpHomepage.UseVisualStyleBackColor = True
         ' 
         ' tpAppli
         ' 
@@ -659,6 +667,7 @@ Partial Class MainForm
         ' 
         ' GroupBox3
         ' 
+        GroupBox3.Controls.Add(chkbxDialpadRotated)
         GroupBox3.Controls.Add(chkbxDialpadNumpad)
         GroupBox3.Controls.Add(chkboxControllerVibration)
         GroupBox3.Controls.Add(cbxControllerProfile)
@@ -676,12 +685,24 @@ Partial Class MainForm
         GroupBox3.TabStop = False
         GroupBox3.Text = "Launch Settings"
         ' 
+        ' chkbxDialpadRotated
+        ' 
+        chkbxDialpadRotated.AutoSize = True
+        chkbxDialpadRotated.Enabled = False
+        chkbxDialpadRotated.FlatStyle = FlatStyle.Flat
+        chkbxDialpadRotated.Location = New Point(204, 69)
+        chkbxDialpadRotated.Name = "chkbxDialpadRotated"
+        chkbxDialpadRotated.Size = New Size(64, 19)
+        chkbxDialpadRotated.TabIndex = 17
+        chkbxDialpadRotated.Text = "Rotated"
+        chkbxDialpadRotated.UseVisualStyleBackColor = True
+        ' 
         ' chkbxDialpadNumpad
         ' 
         chkbxDialpadNumpad.AutoSize = True
         chkbxDialpadNumpad.Enabled = False
         chkbxDialpadNumpad.FlatStyle = FlatStyle.Flat
-        chkbxDialpadNumpad.Location = New Point(84, 45)
+        chkbxDialpadNumpad.Location = New Point(85, 69)
         chkbxDialpadNumpad.Name = "chkbxDialpadNumpad"
         chkbxDialpadNumpad.Size = New Size(113, 19)
         chkbxDialpadNumpad.TabIndex = 16
@@ -768,7 +789,7 @@ Partial Class MainForm
         chkbxLocalEmulator.CheckState = CheckState.Checked
         chkbxLocalEmulator.Enabled = False
         chkbxLocalEmulator.FlatStyle = FlatStyle.Flat
-        chkbxLocalEmulator.Location = New Point(84, 70)
+        chkbxLocalEmulator.Location = New Point(85, 21)
         chkbxLocalEmulator.Name = "chkbxLocalEmulator"
         chkbxLocalEmulator.Size = New Size(108, 19)
         chkbxLocalEmulator.TabIndex = 4
@@ -892,6 +913,10 @@ Partial Class MainForm
         ' 
         ' tpConfig
         ' 
+        tpConfig.Controls.Add(GroupBox8)
+        tpConfig.Controls.Add(GroupBox7)
+        tpConfig.Controls.Add(btnVisitKeitaiArchive)
+        tpConfig.Controls.Add(btnControls)
         tpConfig.Controls.Add(GroupBox11)
         tpConfig.Controls.Add(GroupBox6)
         tpConfig.Controls.Add(GroupBox5)
@@ -902,6 +927,63 @@ Partial Class MainForm
         tpConfig.TabIndex = 2
         tpConfig.Text = "Config"
         tpConfig.UseVisualStyleBackColor = True
+        ' 
+        ' GroupBox8
+        ' 
+        GroupBox8.Controls.Add(lblHelp_troubleshooting)
+        GroupBox8.Location = New Point(566, 205)
+        GroupBox8.Name = "GroupBox8"
+        GroupBox8.Size = New Size(458, 373)
+        GroupBox8.TabIndex = 22
+        GroupBox8.TabStop = False
+        GroupBox8.Text = "Troubleshooting"
+        ' 
+        ' lblHelp_troubleshooting
+        ' 
+        lblHelp_troubleshooting.Dock = DockStyle.Fill
+        lblHelp_troubleshooting.Location = New Point(3, 19)
+        lblHelp_troubleshooting.Name = "lblHelp_troubleshooting"
+        lblHelp_troubleshooting.Size = New Size(452, 351)
+        lblHelp_troubleshooting.TabIndex = 0
+        lblHelp_troubleshooting.Text = "Label8"
+        ' 
+        ' GroupBox7
+        ' 
+        GroupBox7.Controls.Add(lblHelp_AppVer)
+        GroupBox7.Location = New Point(245, 361)
+        GroupBox7.Name = "GroupBox7"
+        GroupBox7.Size = New Size(315, 122)
+        GroupBox7.TabIndex = 21
+        GroupBox7.TabStop = False
+        GroupBox7.Text = "About App"
+        ' 
+        ' lblHelp_AppVer
+        ' 
+        lblHelp_AppVer.Dock = DockStyle.Fill
+        lblHelp_AppVer.Location = New Point(3, 19)
+        lblHelp_AppVer.Name = "lblHelp_AppVer"
+        lblHelp_AppVer.Size = New Size(309, 100)
+        lblHelp_AppVer.TabIndex = 0
+        lblHelp_AppVer.Text = "App Version"
+        lblHelp_AppVer.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' btnVisitKeitaiArchive
+        ' 
+        btnVisitKeitaiArchive.Location = New Point(245, 489)
+        btnVisitKeitaiArchive.Name = "btnVisitKeitaiArchive"
+        btnVisitKeitaiArchive.Size = New Size(143, 37)
+        btnVisitKeitaiArchive.TabIndex = 20
+        btnVisitKeitaiArchive.Text = "Visit Keitai Archive"
+        btnVisitKeitaiArchive.UseVisualStyleBackColor = True
+        ' 
+        ' btnControls
+        ' 
+        btnControls.Location = New Point(417, 489)
+        btnControls.Name = "btnControls"
+        btnControls.Size = New Size(143, 46)
+        btnControls.TabIndex = 19
+        btnControls.Text = "Keybinds Controls"
+        btnControls.UseVisualStyleBackColor = True
         ' 
         ' GroupBox11
         ' 
@@ -1067,17 +1149,33 @@ Partial Class MainForm
         ' 
         ' GroupBox5
         ' 
+        GroupBox5.Controls.Add(chkbxModifyJamFiles)
         GroupBox5.Controls.Add(gbxSJMELaunchOptions)
         GroupBox5.Controls.Add(chkbxHidePhoneUI)
         GroupBox5.Controls.Add(lblAudioWarning)
         GroupBox5.Controls.Add(Label1)
         GroupBox5.Controls.Add(cbxAudioType)
-        GroupBox5.Location = New Point(245, 131)
+        GroupBox5.Location = New Point(245, 93)
         GroupBox5.Name = "GroupBox5"
         GroupBox5.Size = New Size(315, 262)
         GroupBox5.TabIndex = 16
         GroupBox5.TabStop = False
         GroupBox5.Text = "Doja/Star SDK Options"
+        ' 
+        ' chkbxModifyJamFiles
+        ' 
+        chkbxModifyJamFiles.AutoSize = True
+        chkbxModifyJamFiles.Checked = True
+        chkbxModifyJamFiles.CheckState = CheckState.Checked
+        chkbxModifyJamFiles.FlatStyle = FlatStyle.Flat
+        chkbxModifyJamFiles.Font = New Font("Segoe UI", 9F)
+        chkbxModifyJamFiles.Location = New Point(5, 71)
+        chkbxModifyJamFiles.Margin = New Padding(2)
+        chkbxModifyJamFiles.Name = "chkbxModifyJamFiles"
+        chkbxModifyJamFiles.Size = New Size(232, 19)
+        chkbxModifyJamFiles.TabIndex = 17
+        chkbxModifyJamFiles.Text = "Add TrustedAPID/MessageCode to JAM"
+        chkbxModifyJamFiles.UseVisualStyleBackColor = True
         ' 
         ' gbxSJMELaunchOptions
         ' 
@@ -1220,9 +1318,9 @@ Partial Class MainForm
         GroupBox4.Controls.Add(cbxStarSDK)
         GroupBox4.Controls.Add(cbxDojaSDK)
         GroupBox4.Controls.Add(Label4)
-        GroupBox4.Location = New Point(3, 131)
+        GroupBox4.Location = New Point(3, 93)
         GroupBox4.Name = "GroupBox4"
-        GroupBox4.Size = New Size(236, 447)
+        GroupBox4.Size = New Size(236, 485)
         GroupBox4.TabIndex = 15
         GroupBox4.TabStop = False
         GroupBox4.Text = "SDK Configuration"
@@ -1462,76 +1560,6 @@ Partial Class MainForm
         lvwPlaytimes.UseCompatibleStateImageBehavior = False
         lvwPlaytimes.View = View.Details
         ' 
-        ' tpHelp
-        ' 
-        tpHelp.Controls.Add(btnVisitKeitaiArchive)
-        tpHelp.Controls.Add(GroupBox8)
-        tpHelp.Controls.Add(GroupBox7)
-        tpHelp.Controls.Add(btnControls)
-        tpHelp.Location = New Point(4, 24)
-        tpHelp.Name = "tpHelp"
-        tpHelp.Size = New Size(1033, 581)
-        tpHelp.TabIndex = 3
-        tpHelp.Text = "Help"
-        tpHelp.UseVisualStyleBackColor = True
-        ' 
-        ' btnVisitKeitaiArchive
-        ' 
-        btnVisitKeitaiArchive.Location = New Point(3, 131)
-        btnVisitKeitaiArchive.Name = "btnVisitKeitaiArchive"
-        btnVisitKeitaiArchive.Size = New Size(231, 37)
-        btnVisitKeitaiArchive.TabIndex = 5
-        btnVisitKeitaiArchive.Text = "Visit Keitai Archive"
-        btnVisitKeitaiArchive.UseVisualStyleBackColor = True
-        ' 
-        ' GroupBox8
-        ' 
-        GroupBox8.Controls.Add(lblHelp_troubleshooting)
-        GroupBox8.Location = New Point(240, 3)
-        GroupBox8.Name = "GroupBox8"
-        GroupBox8.Size = New Size(478, 575)
-        GroupBox8.TabIndex = 4
-        GroupBox8.TabStop = False
-        GroupBox8.Text = "Troubleshooting"
-        ' 
-        ' lblHelp_troubleshooting
-        ' 
-        lblHelp_troubleshooting.Dock = DockStyle.Fill
-        lblHelp_troubleshooting.Location = New Point(3, 19)
-        lblHelp_troubleshooting.Name = "lblHelp_troubleshooting"
-        lblHelp_troubleshooting.Size = New Size(472, 553)
-        lblHelp_troubleshooting.TabIndex = 0
-        lblHelp_troubleshooting.Text = "Label8"
-        ' 
-        ' GroupBox7
-        ' 
-        GroupBox7.Controls.Add(lblHelp_AppVer)
-        GroupBox7.Location = New Point(3, 3)
-        GroupBox7.Name = "GroupBox7"
-        GroupBox7.Size = New Size(231, 122)
-        GroupBox7.TabIndex = 3
-        GroupBox7.TabStop = False
-        GroupBox7.Text = "About App"
-        ' 
-        ' lblHelp_AppVer
-        ' 
-        lblHelp_AppVer.Dock = DockStyle.Fill
-        lblHelp_AppVer.Location = New Point(3, 19)
-        lblHelp_AppVer.Name = "lblHelp_AppVer"
-        lblHelp_AppVer.Size = New Size(225, 100)
-        lblHelp_AppVer.TabIndex = 0
-        lblHelp_AppVer.Text = "App Version"
-        lblHelp_AppVer.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' btnControls
-        ' 
-        btnControls.Location = New Point(3, 174)
-        btnControls.Name = "btnControls"
-        btnControls.Size = New Size(231, 72)
-        btnControls.TabIndex = 2
-        btnControls.Text = "Keybinds Controls"
-        btnControls.UseVisualStyleBackColor = True
-        ' 
         ' MaterialTabSelector1
         ' 
         MaterialTabSelector1.BaseTabControl = MaterialTabControl1
@@ -1548,15 +1576,6 @@ Partial Class MainForm
         MaterialTabSelector1.Size = New Size(1040, 27)
         MaterialTabSelector1.TabIndex = 9
         MaterialTabSelector1.Text = "MaterialTabSelector1"
-        ' 
-        ' tpHomepage
-        ' 
-        tpHomepage.Location = New Point(4, 24)
-        tpHomepage.Name = "tpHomepage"
-        tpHomepage.Size = New Size(1033, 581)
-        tpHomepage.TabIndex = 6
-        tpHomepage.Text = "Home"
-        tpHomepage.UseVisualStyleBackColor = True
         ' 
         ' MainForm
         ' 
@@ -1592,6 +1611,8 @@ Partial Class MainForm
         GroupBox10.ResumeLayout(False)
         cmsCharadenLV.ResumeLayout(False)
         tpConfig.ResumeLayout(False)
+        GroupBox8.ResumeLayout(False)
+        GroupBox7.ResumeLayout(False)
         GroupBox11.ResumeLayout(False)
         GroupBox11.PerformLayout()
         GroupBox6.ResumeLayout(False)
@@ -1601,9 +1622,6 @@ Partial Class MainForm
         GroupBox4.ResumeLayout(False)
         tpStats.ResumeLayout(False)
         GroupBox9.ResumeLayout(False)
-        tpHelp.ResumeLayout(False)
-        GroupBox8.ResumeLayout(False)
-        GroupBox7.ResumeLayout(False)
         ResumeLayout(False)
     End Sub
     Friend WithEvents OpenFileDialog1 As OpenFileDialog
@@ -1669,15 +1687,9 @@ Partial Class MainForm
     Friend WithEvents btnLaunchAppConfig As Button
     Friend WithEvents btnUpdateNetworkUID As Button
     Friend WithEvents MaterialTabSelector1 As ReaLTaiizor.Controls.MaterialTabSelector
-    Friend WithEvents tpHelp As TabPage
-    Friend WithEvents btnControls As Button
     Friend WithEvents btnAddCustomApps As Button
     Friend WithEvents cbxFlashSDK As ComboBox
     Friend WithEvents Label7 As Label
-    Friend WithEvents GroupBox7 As GroupBox
-    Friend WithEvents GroupBox8 As GroupBox
-    Friend WithEvents lblHelp_AppVer As Label
-    Friend WithEvents lblHelp_troubleshooting As Label
     Friend WithEvents BackupSaveToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents btnSaveDataManagement As Button
     Friend WithEvents chkbxDialpadNumpad As CheckBox
@@ -1727,7 +1739,6 @@ Partial Class MainForm
     Friend WithEvents cbxSJMEScaling As ComboBox
     Friend WithEvents cbxAirEdgeSDK As ComboBox
     Friend WithEvents Label11 As Label
-    Friend WithEvents btnVisitKeitaiArchive As Button
     Friend WithEvents cbxSoftbankSDK As ComboBox
     Friend WithEvents Label12 As Label
     Friend WithEvents GroupBox11 As GroupBox
@@ -1742,4 +1753,12 @@ Partial Class MainForm
     Friend WithEvents cbxEZWebEZPlusSDK As ComboBox
     Friend WithEvents Label15 As Label
     Friend WithEvents tpHomepage As TabPage
+    Friend WithEvents GroupBox7 As GroupBox
+    Friend WithEvents lblHelp_AppVer As Label
+    Friend WithEvents btnVisitKeitaiArchive As Button
+    Friend WithEvents btnControls As Button
+    Friend WithEvents GroupBox8 As GroupBox
+    Friend WithEvents lblHelp_troubleshooting As Label
+    Friend WithEvents chkbxDialpadRotated As CheckBox
+    Friend WithEvents chkbxModifyJamFiles As CheckBox
 End Class

@@ -10,6 +10,7 @@ Namespace My.Managers
         {"VersionCheckURL", "latest_version.txt"},
         {"AutoUpdate", "true"},
         {"FirstRun", "true"},
+        {"PolicyAgreement", "false"},
         {"HomepageURL", "https://example.com"},
         {"GamelistURL", "gamelist.xml"},
         {"AutoUpdateGameList", "true"},
@@ -196,6 +197,23 @@ Namespace My.Managers
                                Catch ex As Exception
                                    MessageBox.Show($"Failed to update the FirstRun setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                                    logger.Logger.LogError($"Failed to update the FirstRun setting: {ex.Message}")
+                               End Try
+                           End Sub)
+        End Function
+        Public Async Function UpdatePolicyAgreementSettingAsync(PolicyAgreement As String) As Task
+            Await Task.Run(Sub()
+                               Try
+                                   ' Load the XML document
+                                   Dim doc As New XmlDocument()
+                                   doc.Load(ConfigFilePath)
+                                   Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='PolicyAgreement']")
+                                   If settingNode IsNot Nothing Then
+                                       settingNode.InnerText = PolicyAgreement
+                                       doc.Save(ConfigFilePath)
+                                   End If
+                               Catch ex As Exception
+                                   MessageBox.Show($"Failed to update the PolicyAgreement setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                   logger.Logger.LogError($"Failed to update the PolicyAgreement setting: {ex.Message}")
                                End Try
                            End Sub)
         End Function

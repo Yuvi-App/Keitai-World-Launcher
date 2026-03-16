@@ -7,6 +7,7 @@ Imports System.Security.Principal
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Models
 Imports Microsoft.Win32
 Imports SharpDX.XInput
@@ -15,6 +16,7 @@ Namespace My.Managers
     Public Class UtilManager
         Private Shared LaunchOverlay As Panel = Nothing
         Dim gameManager As New GameManager()
+        Private Shared ReadOnly _httpClient As New Net.Http.HttpClient() With {.Timeout = TimeSpan.FromSeconds(60)}
 
         'PreReq Check
         Public Shared Async Function CheckforPreReqAsync() As Task(Of Boolean)
@@ -28,10 +30,12 @@ Namespace My.Managers
             End If
 
             ' === Begin pre-req checks ===
+            Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
             Dim DOJAEmulator = MainForm.DOJAEXE
             Dim StarEmulator = MainForm.STAREXE
-            Dim localeEmuLoc = "data\tools\locale_emulator\LEProc.exe"
-            Dim ShaderGlassLoc = "data\tools\shaderglass\ShaderGlass.exe"
+            Dim localeEmuLoc As String = Path.Combine(baseDir, "data", "tools", "locale_emulator", "LEProc.exe")
+            Dim shaderGlassLoc As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "ShaderGlass.exe")
+
 
             ' Setup DOJA and STAR Reg
             Dim toolDojaDirs = Directory.GetDirectories(MainForm.ToolsFolder, "idkDoja*")
@@ -58,24 +62,6 @@ Namespace My.Managers
                 End If
             Next
 
-            ' Check for DOJA Emulator
-            My.logger.Logger.LogInfo("Checking for DOJA Emu")
-            If Not File.Exists(DOJAEmulator) Then
-                MessageBox.Show(owner:=SplashScreen, $"Missing DOJA 5.1 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {DOJAEmulator}")
-                My.logger.Logger.LogInfo("Missing DOJA 5.1 Emulator")
-                Await OpenURLAsync("https://archive.org/details/iappli-tool-dev-tools")
-                MainForm.QuitApplication()
-            End If
-
-            ' Check for STAR Emulator
-            My.logger.Logger.LogInfo("Checking for STAR Emu")
-            If Not File.Exists(StarEmulator) Then
-                MessageBox.Show(owner:=SplashScreen, $"Missing STAR 2.0 Emulator... Download is required{vbCrLf}Emulator Files need to be located at {StarEmulator}")
-                My.logger.Logger.LogInfo("Missing STAR 2.0 Emulator")
-                Await OpenURLAsync("https://archive.org/details/iappli-tool-dev-tools")
-                MainForm.QuitApplication()
-            End If
-
             ' Check for Locale Emulator
             My.logger.Logger.LogInfo("Checking for LEPROC")
             If Not File.Exists(localeEmuLoc) Then
@@ -87,8 +73,8 @@ Namespace My.Managers
 
             ' Check for ShaderGlass
             My.logger.Logger.LogInfo("Checking for ShaderGlass")
-            If Not File.Exists(ShaderGlassLoc) Then
-                MessageBox.Show(owner:=SplashScreen, $"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files need to be located at {ShaderGlassLoc}")
+            If Not File.Exists(shaderGlassLoc) Then
+                MessageBox.Show(owner:=SplashScreen, $"Missing ShaderGlass... Download is required{vbCrLf}ShaderGlass Files need to be located at {shaderGlassLoc}")
                 My.logger.Logger.LogInfo("Missing ShaderGlass")
                 Await OpenURLAsync("https://github.com/mausimus/ShaderGlass/releases")
                 MainForm.QuitApplication()
@@ -554,23 +540,37 @@ Namespace My.Managers
                                End Try
                            End Sub)
         End Function
-        Public Shared Async Function IsInternetAvailableAsync(InputUrl As String, Optional timeout As Integer = 90000) As Task(Of Boolean)
-            Try
-                Using client As New Net.Http.HttpClient()
-                    client.Timeout = TimeSpan.FromMilliseconds(timeout)
+        Public Shared Async Function IsInternetAvailableAsync(urls As String()) As Task(Of Boolean)
+            Dim tasks As New List(Of Task(Of Boolean))(
+        urls.Select(Function(url) Task.Run(Async Function() As Task(Of Boolean)
+                                               Try
+                                                   Using request As New Net.Http.HttpRequestMessage(Net.Http.HttpMethod.Head, url)
+                                                       Using response = Await _httpClient.SendAsync(
+                        request,
+                        Net.Http.HttpCompletionOption.ResponseHeadersRead)
+                                                           Return True
+                                                       End Using
+                                                   End Using
+                                               Catch ex As Net.Http.HttpRequestException
+                                                   My.logger.Logger.LogWarning($"Internet check failed for {url}: {ex.Message}")
+                                                   Return False
+                                               Catch ex As TaskCanceledException
+                                                   My.logger.Logger.LogWarning($"Internet check timed out for {url}")
+                                                   Return False
+                                               Catch ex As Exception
+                                                   My.logger.Logger.LogError($"Internet check exception for {url}: {ex.Message}")
+                                                   Return False
+                                               End Try
+                                           End Function))
+    )
 
-                    Dim response As Net.Http.HttpResponseMessage = Await client.GetAsync(InputUrl)
-                    If response.IsSuccessStatusCode Then
-                        Return True
-                    Else
-                        My.logger.Logger.LogWarning($"Internet check failed: Status code {(CInt(response.StatusCode))} from {InputUrl}")
-                        Return False
-                    End If
-                End Using
-            Catch ex As Exception
-                My.logger.Logger.LogError($"Internet check exception for {InputUrl}: {ex.Message}")
-                Return False
-            End Try
+            While tasks.Count > 0
+                Dim completed = Await Task.WhenAny(tasks)
+                If completed.Result Then Return True
+                tasks.Remove(completed)
+            End While
+
+            Return False
         End Function
         Public Shared Async Function CanReachFileAsync(url As String) As Task(Of Boolean)
             Try
@@ -913,7 +913,7 @@ Namespace My.Managers
                         Dim rootFolder As String = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(GameJAM), ".."))
                         Dim gameName As String = Path.GetFileNameWithoutExtension(GameJAM)
                         Dim SPFile As String = Path.Combine(rootFolder, "sp", gameName & ".sp")
-                        Await ProcessDoja3SPtoSCR(SPFile)
+                        Await ProcessDOJA3SPtoSCR(SPFile)
                     Else
                         Await EnsureDOJAJamFileEntries(jamPath)
                         logger.Logger.LogInfo("[Launch] Ensured DOJA jam entries")
@@ -2159,7 +2159,11 @@ Namespace My.Managers
                 {"mbga.jp", "mobage.gs.keitaiarchive.org"},
                 {"gree.jp", "gree.gs.keitaiarchive.org"},
                 {"m-app.jp", "moco.gs.keitaiarchive.org"},
-                {"i-simple100.channel.or.jp", "simple100.gs.keitaiarchive.org"}
+                {"i-simple100.channel.or.jp", "simple100.gs.keitaiarchive.org"},
+                {"*.shiftup.net", "shiftup.gs.keitaiarchive.org"},
+                {"*.gp.commseed.jp", "upss.gs.keitaiarchive.org"},
+                {"igc.cave.co.jp", "cave.gs.keitaiarchive.org"},
+                {"icd.i.konami.net", "konami.gs.keitaiarchive.org"}
             }
 
             Dim enc = Encoding.GetEncoding(932)
@@ -2395,6 +2399,11 @@ Namespace My.Managers
                 Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
             End If
 
+            If MainForm.chkbxModifyJamFiles.Checked = False Then
+                logger.Logger.LogInfo("Skipping .jam file modifications due to user settings.")
+                Return
+            End If
+
             Dim enc = Encoding.GetEncoding("shift-jis")
             Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(GAMEJAM, enc)).ToList()
             lines.Add(vbCrLf)
@@ -2415,11 +2424,26 @@ Namespace My.Managers
                 End If
             Next
 
-            ' Required entries
-            Dim requiredEntries As New Dictionary(Of String, String) From {
-                {"TrustedAPID", "00000000000"},
-                {"MessageCode", "0000000000"}
-            }
+            ' Check if AppType = MiniApp exists
+            Dim isMiniApp As Boolean = lines.Any(Function(line) Regex.IsMatch(line, "^AppType\s*=\s*MiniApp$", RegexOptions.IgnoreCase))
+
+            ' If it's a MiniApp, remove any existing MessageCode entries
+            If isMiniApp Then
+                Dim originalCount As Integer = lines.Count
+                lines = lines.Where(Function(line) Not Regex.IsMatch(line, "^MessageCode\s*=", RegexOptions.IgnoreCase)).ToList()
+                If lines.Count < originalCount Then
+                    modified = True
+                End If
+            End If
+
+            ' Required entries - conditionally include MessageCode
+            Dim requiredEntries As New Dictionary(Of String, String) From {}
+
+            ' Only add MessageCode if NOT a MiniApp
+            If Not isMiniApp Then
+                requiredEntries.Add("TrustedAPID", "00000000000")
+                requiredEntries.Add("MessageCode", "0000000000")
+            End If
 
             ' Add missing entries
             For Each entry In requiredEntries
@@ -2435,9 +2459,7 @@ Namespace My.Managers
                 Dim match As Match = packageUrlPattern.Match(lines(i))
                 If match.Success Then
                     Dim value As String = match.Groups(1).Value.Trim()
-                    If Not value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) AndAlso
-               Not value.StartsWith("https://", StringComparison.OrdinalIgnoreCase) Then
-
+                    If Not value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) AndAlso Not value.StartsWith("https://", StringComparison.OrdinalIgnoreCase) Then
                         Dim fileName As String = Path.GetFileName(value)
                         Dim folderName As String = Path.GetFileNameWithoutExtension(fileName)
                         lines(i) = $"PackageURL = http://localhost/{folderName}/{fileName}"
@@ -2472,9 +2494,9 @@ Namespace My.Managers
             Dim originalLines As List(Of String) = (Await File.ReadAllLinesAsync(GAMEJAM, enc)).ToList()
 
             Dim entriesToRemove As List(Of String) = New List(Of String) From {
-        "TrustedAPID =",
-        "MessageCode ="
-    }
+                "TrustedAPID =",
+                "MessageCode ="
+            }
 
             ' Perform filtering on background thread
             Dim filteredLines As List(Of String) = Await Task.Run(Function()
@@ -2721,6 +2743,11 @@ Namespace My.Managers
                 Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
             End If
 
+            If MainForm.chkbxModifyJamFiles.Checked = False Then
+                logger.Logger.LogInfo("Skipping .jam file modifications due to user settings.")
+                Return
+            End If
+
             Dim enc = Encoding.GetEncoding(932)
             Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(GAMEJAM, enc)).ToList()
             Dim modified As Boolean = False
@@ -2740,12 +2767,28 @@ Namespace My.Managers
                 End If
             Next
 
-            ' Required entries
+            ' Check if AppType = MiniApp exists
+            Dim isMiniApp As Boolean = lines.Any(Function(line) Regex.IsMatch(line, "^AppType\s*=\s*MiniApp$", RegexOptions.IgnoreCase))
+
+            ' If it's a MiniApp, remove any existing MessageCode entries
+            If isMiniApp Then
+                Dim originalCount As Integer = lines.Count
+                lines = lines.Where(Function(line) Not Regex.IsMatch(line, "^MessageCode\s*=", RegexOptions.IgnoreCase)).ToList()
+                If lines.Count < originalCount Then
+                    modified = True
+                End If
+            End If
+
+            ' Required entries - conditionally include MessageCode
             Dim requiredEntries As New Dictionary(Of String, String) From {
-                {"UseNetwork", "yes"},
-                {"TrustedAPID", "00000000000"},
-                {"MessageCode", "0000000000"}
+                {"UseNetwork", "yes"}
             }
+
+            ' Only add MessageCode if NOT a MiniApp
+            If Not isMiniApp Then
+                requiredEntries.Add("TrustedAPID", "00000000000")
+                requiredEntries.Add("MessageCode", "0000000000")
+            End If
 
             For Each entry In requiredEntries
                 If Not lines.Any(Function(line) Regex.IsMatch(line, $"^{Regex.Escape(entry.Key)}\s*=")) Then
@@ -2761,7 +2804,7 @@ Namespace My.Managers
                 If match.Success Then
                     Dim value As String = match.Groups(1).Value.Trim()
                     If Not value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) AndAlso
-               Not value.StartsWith("https://", StringComparison.OrdinalIgnoreCase) Then
+       Not value.StartsWith("https://", StringComparison.OrdinalIgnoreCase) Then
                         Dim fileName As String = Path.GetFileName(value)
                         Dim folderName As String = Path.GetFileNameWithoutExtension(fileName)
                         lines(i) = $"PackageURL = http://localhost/{folderName}/{fileName}"
@@ -2886,7 +2929,7 @@ Namespace My.Managers
 
             For Each line In lines
                 If line.StartsWith("DefaultFont=", StringComparison.OrdinalIgnoreCase) Then
-                    updatedLines.Add("DefaultFont=Meiryo UI")
+                    updatedLines.Add("DefaultFont=\uFF2D\uFF33 \u30B4\u30B7\u30C3\u30AF")
                     defaultFontSet = True
                 ElseIf line.StartsWith("FileEncoding=", StringComparison.OrdinalIgnoreCase) Then
                     updatedLines.Add("FileEncoding=Shift_JIS")
