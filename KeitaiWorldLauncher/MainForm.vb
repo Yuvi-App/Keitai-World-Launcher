@@ -102,9 +102,9 @@ Public Class MainForm
 
     ' FORM Close/Load
     Private Sub MainForm_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
-        UtilManager.CheckAndCloseAllEmulators()
-        UtilManager.CheckAndCloseAMX()
-        UtilManager.CheckAndCloseAHK()
+        ProcessManager.CheckAndCloseAllEmulators()
+        ProcessManager.CheckAndCloseAMX()
+        ProcessManager.CheckAndCloseAHK()
     End Sub
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Opacity = 0
@@ -121,6 +121,12 @@ Public Class MainForm
 
         ' Adjust Form
         AdjustFormPadding()
+
+        ' Enable double-buffering on ListView to prevent flicker
+        EnableDoubleBuffering(ListViewGames)
+        EnableDoubleBuffering(ListViewGamesVariants)
+        EnableDoubleBuffering(ListViewMachiChara)
+        EnableDoubleBuffering(ListViewCharaDen)
 
         ' Check if Debug
 #If DEBUG Then
@@ -141,7 +147,7 @@ Public Class MainForm
             config = Await configManager.LoadConfigAsync()
         Catch ex As Exception
             MessageBox.Show(owner:=SplashScreen, $"Failed to Load App Config: Please put a valid appconfig.xml into ""Configs"" Folder Error: {vbCrLf}{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            Application.Exit()
+            MainForm.QuitApplication()
         End Try
 
         ' Access and Assign Config settings
@@ -165,7 +171,7 @@ Public Class MainForm
         End If
 
         ' Check PreREQs if First Run
-        Await UtilManager.CheckForSpacesInPathAsync()
+        UtilManager.CheckForSpacesInPath()
         If FirstRun = True Then
             Logger.LogInfo("Detected First Run - Checking for Admin")
             Logger.LogInfo("Starting PreReq Check")
@@ -181,6 +187,14 @@ Public Class MainForm
             MessageBox.Show("Invalid FirstStart parameter in AppConfig.xml, Please set to true and relaunch app.")
             MainForm.QuitApplication()
         End If
+
+        'We need to check for java every run, since these get used for all emu's
+        Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
+        If Not javaReady Then
+            MainForm.QuitApplication()
+            Return
+        End If
+        Logger.LogInfo($"Using JDK: {UsingJDK1_8}")
 
         'Needs Internet If none we skip and use local file
         Logger.LogInfo("Checking internet connectivity...")
@@ -203,22 +217,23 @@ Public Class MainForm
                     Await UpdateManager.CheckAndLaunchUpdaterAsync(versionCheckUrl, SplashScreen)
                 End If
 
-                ' Get Updated Game List  
-                Logger.LogInfo("Getting gamelist.xml")
-                If autoUpdateGameList = True Then
-                    Await GameListManager.DownloadGameListAsync(gameListUrl)
+                ' Download all List Files in Parallel if Online and AutoUpdate Enabled
+                Dim downloadTasks As New List(Of Task)
+                If autoUpdateGameList Then
+                    downloadTasks.Add(GameListManager.DownloadGameListAsync(gameListUrl))
+                    Logger.LogInfo("Started downloading game list...")
                 End If
-
-                ' Get Updated MachiChara List  
-                Logger.LogInfo("Getting machicharalist.xml")
-                If autoUpdatemachicharaList = True Then
-                    Await MachiCharaListManager.DownloadMachiCharaListAsync(machicharaListUrl)
+                If autoUpdatemachicharaList Then
+                    downloadTasks.Add(MachiCharaListManager.DownloadMachiCharaListAsync(machicharaListUrl))
+                    Logger.LogInfo("Started downloading machichara list...")
                 End If
-
-                ' Get Updated Charaden List  
-                Logger.LogInfo("Getting charadenlist.xml")
-                If autoUpdatemachicharaList = True Then
-                    Await CharaDenListManager.DownloadCharaDenListAsync(charadenListUrl)
+                If autoUpdatecharadenList Then
+                    downloadTasks.Add(CharaDenListManager.DownloadCharaDenListAsync(charadenListUrl))
+                    Logger.LogInfo("Started downloading charaden list...")
+                End If
+                If downloadTasks.Count > 0 Then
+                    Await Task.WhenAll(downloadTasks)
+                    Logger.LogInfo("Finished downloading lists.")
                 End If
 
                 ' Send Launch Stats
@@ -230,25 +245,14 @@ Public Class MainForm
             Logger.LogInfo($"No internet connection to Domain {DomainCheck}. Skipping online checks.")
         End If
 
-        'We need to check for java every run, since these get used for all emu's
-        Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
-        If Not javaReady Then
-            MainForm.QuitApplication()
-            Return
-        End If
-        Logger.LogInfo($"Using JDK: {UsingJDK1_8}")
-
+        ' Starting Loading Downloaded List into ListViews
         ' Load Custom Games
-        Await LoadCustomGamesAsync()
-
-        ' Load Game List
-        Await LoadGameListFirstTimeAsync()
-
-        ' Load MachiChara List
-        Await LoadMachiCharaListFirsTimeASync()
-
-        ' Load Charaden List
-        Await LoadCharaDenListFirsTimeASync()
+        Await gameListManager.LoadCustomGamesAsync(CustomGamesTxtFile, DownloadsFolder)
+        Await Task.WhenAll(
+            LoadGameListFirstTimeAsync(),
+            LoadMachiCharaListFirsTimeASync(),
+            LoadCharaDenListFirsTimeASync()
+        )
 
         ' Ensure TID and UID are Patched in EXE
         UtilManager.PatchTerminalAndUidInExe(DOJAEXE, 2291784, TerminalID, NetworkUID)
@@ -256,8 +260,7 @@ Public Class MainForm
         ' Setup Homepage
         HomepageManager = New HomepageManager(HomepageURL)
         If Await HomepageManager.EnsureRuntimeAsync(tpHomepage) Then
-            Await HomepageManager.InitializeAsync(tpHomepage)
-            Await HomepageManager.LoadAsync()
+            InitializeHomepageInBackground()
         End If
 
         'Last Step
@@ -363,6 +366,27 @@ Public Class MainForm
     End Function
 
     ' General Other Function
+    Private Shared Sub EnableDoubleBuffering(lv As ListView)
+        Dim prop = GetType(ListView).GetProperty("DoubleBuffered",
+        Reflection.BindingFlags.Instance Or Reflection.BindingFlags.NonPublic)
+        prop.SetValue(lv, True)
+    End Sub
+    Private Sub ShowEmulatorDisclaimer(emulatorName As String)
+        If Not CompletedBootSequence Then Return
+        Logger.LogWarning($"[{emulatorName}] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+        MessageBox.Show(
+        $"DISCLAIMER: {emulatorName} support is still in active development." & vbCrLf &
+        "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
+        "when launching or interacting with the emulator. Use at your own risk.")
+    End Sub
+    Private Async Sub InitializeHomepageInBackground()
+        Try
+            Await HomepageManager.InitializeAsync(tpHomepage)
+            Await HomepageManager.LoadAsync()
+        Catch ex As Exception
+            Logger.LogError("Homepage failed to load in background", ex)
+        End Try
+    End Sub
     Private Sub EnableButtons(SelectedGame As Game)
         ' Enable game launch button and checkbox
         btnLaunchGame.Enabled = True
@@ -518,6 +542,12 @@ Public Class MainForm
             ListViewGames.Columns.Clear()
             ListViewGames.Columns.Add("Title", ListViewGames.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
 
+            ' Setup Variants Columns:
+            ListViewGamesVariants.View = View.Details
+            ListViewGamesVariants.Columns.Add("Appli Variants",
+            ListViewGamesVariants.ClientSize.Width - SystemInformation.VerticalScrollBarWidth,
+            HorizontalAlignment.Left)
+
             ' Load Game Icons
             Await LoadGameIconsAsync()
             ListViewGames.SmallImageList = ImageListGames
@@ -608,7 +638,7 @@ Public Class MainForm
                 Return True
             End If
         Catch ex As Exception
-            Logger.LogError("Failed to Load MachiChara List", ex)
+            Logger.LogError("Failed to Load CharaDen List", ex)
             Return False
         End Try
     End Function
@@ -696,46 +726,44 @@ Public Class MainForm
         ListViewGames.EndUpdate()
     End Function
     Private Async Function LoadGameVariantsAsync() As Task
-        ' Ensure the ListView view mode is set to Details
-        ListViewGamesVariants.View = View.Details
-        ListViewGamesVariants.Items.Clear()
-        ListViewGamesVariants.Columns.Clear()
-        ListViewGamesVariants.Columns.Add("Appli Variants", ListViewGamesVariants.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
-        ListViewGamesVariants.BackColor = SystemColors.Window
+        ListViewGamesVariants.BeginUpdate()
+        Try
+            ListViewGamesVariants.View = View.Details
+            ListViewGamesVariants.Items.Clear()
+            ListViewGamesVariants.BackColor = SystemColors.Window
 
-        ' Ensure a game is selected
-        If ListViewGames.SelectedItems.Count = 0 Then
-            lblTotalVariantCount.Text = "Variants: 0"
-            Return
-        End If
-
-        ' Get selected game directly from Tag
-        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
-        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
-
-        If selectedGame Is Nothing OrElse String.IsNullOrWhiteSpace(selectedGame.Variants) Then
-            lblTotalVariantCount.Text = "Variants: 0"
-            Return
-        End If
-
-        Await Task.Yield()
-
-        ' Split the variants string safely
-        Dim variants As String() = selectedGame.Variants.Split(","c)
-
-        ' Add to ListView on the UI thread
-        For Each v As String In variants
-            Dim trimmed = v.Trim()
-            If trimmed.Length > 0 Then
-                ListViewGamesVariants.Items.Add(New ListViewItem(trimmed))
+            If ListViewGames.SelectedItems.Count = 0 Then
+                lblTotalVariantCount.Text = "Variants: 0"
+                Return
             End If
-        Next
 
-        If ListViewGamesVariants.Items.Count = 1 Then
-            ListViewGamesVariants.Items(0).Selected = True
-        End If
+            Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+            Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
 
-        lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count}"
+            If selectedGame Is Nothing OrElse String.IsNullOrWhiteSpace(selectedGame.Variants) Then
+                lblTotalVariantCount.Text = "Variants: 0"
+                Return
+            End If
+
+            Await Task.Yield()
+
+            Dim variants As String() = selectedGame.Variants.Split(","c)
+
+            For Each v As String In variants
+                Dim trimmed = v.Trim()
+                If trimmed.Length > 0 Then
+                    ListViewGamesVariants.Items.Add(New ListViewItem(trimmed))
+                End If
+            Next
+
+            If ListViewGamesVariants.Items.Count = 1 Then
+                ListViewGamesVariants.Items(0).Selected = True
+            End If
+
+            lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count}"
+        Finally
+            ListViewGamesVariants.EndUpdate()
+        End Try
     End Function
     Private Async Function DownloadGames(ContextDownload As Boolean) As Task
         ' Ensure a game is selected
@@ -798,7 +826,7 @@ Public Class MainForm
         ' Check if the game is already downloaded
         If isOnline = False Then
             If File.Exists(CurrentSelectedGameJAM) Then
-                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
                 ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
             Else
                 panelDynamic.Controls.Clear()
@@ -823,7 +851,7 @@ Public Class MainForm
                         MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
                     End If
                     If File.Exists(CurrentSelectedGameJAM) Then
-                        UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+                        UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
                         ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
                     Else
                         Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
@@ -835,7 +863,7 @@ Public Class MainForm
                     isGameDownloadInProgress = False
                 End Try
             End If
-            UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+            UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
         Else
             If selectedGame.ZIPName = String.Empty OrElse selectedGame.ZIPName Is Nothing Then
                 Logger.LogError($"{selectedGame.ENTitle} has invalid gamelist values, unable to download.")
@@ -853,7 +881,7 @@ Public Class MainForm
                     Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
                     Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
                     If File.Exists(CurrentSelectedGameJAM) Then
-                        UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic)
+                        UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
                         ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
                     Else
                         Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
@@ -900,8 +928,8 @@ Public Class MainForm
                 Dim result = MessageBox.Show($"The Machi Chara '{selectedMachiChara.ENTitle} ({selectedMachiChara.CFDName})' is not downloaded. Would you like to download it?", "Download Machi Chara", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
                     Logger.LogInfo($"Starting Download for {selectedMachiChara.DownloadURL}")
-                    Dim MachiCharaDownloader As New MachiCharaDownloader(pbGameDL)
-                    Await MachiCharaDownloader.DownloadMachiCharaAsync(selectedMachiChara.DownloadURL, downloadFilePath, False)
+                    Dim downloader As New FileDownloader(pbGameDL)
+                    Await downloader.DownloadFileAsync(selectedMachiChara.DownloadURL, downloadFilePath, "Machi Chara")
                     HighlightMachiChara()
                 End If
             End If
@@ -923,8 +951,8 @@ Public Class MainForm
                 Dim result = MessageBox.Show($"The Chara-den '{selectedCharaDen.ENTitle} ({selectedCharaDen.AFDName})' is not downloaded. Would you like to download it?", "Download Chara-den", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
                 If result = DialogResult.Yes Then
                     Logger.LogInfo($"Starting Download for {selectedCharaDen.DownloadURL}")
-                    Dim CharaDenDownloader As New CharaDenDownloader(pbGameDL)
-                    Await CharaDenDownloader.DownloadCharaDenAsync(selectedCharaDen.DownloadURL, downloadFilePath, False)
+                    Dim downloader As New FileDownloader(pbGameDL)
+                    Await downloader.DownloadFileAsync(selectedCharaDen.DownloadURL, downloadFilePath, "Chara-den")
                     HighlightCharaDen()
                 End If
             End If
@@ -1131,7 +1159,7 @@ Public Class MainForm
     End Function
     Public Sub RefreshGameHighlighting()
         Dim favoritesManager As New FavoritesManager()
-
+        ListViewGames.BeginUpdate()
         For Each item As ListViewItem In ListViewGames.Items
 
             Dim game As Game = TryCast(item.Tag, Game)
@@ -1161,6 +1189,7 @@ Public Class MainForm
                 item.BackColor = Color.White
             End If
         Next
+        ListViewGames.EndUpdate()
     End Sub
     Public Async Function VerifyGameDownloadedAsync() As Task(Of Boolean)
         If ListViewGames.SelectedItems.Count = 0 Then
@@ -1197,117 +1226,6 @@ Public Class MainForm
                                   Dim variantFolder As String = Path.Combine(gameFolder, selectedVariant)
                                   Return Directory.Exists(variantFolder)
                               End Function)
-    End Function
-    Public Function VerifyEmulatorType_JAM(GameJAM As String) As String
-        Try
-            If String.IsNullOrWhiteSpace(GameJAM) OrElse Not File.Exists(GameJAM) Then
-                Return "unknown"
-            End If
-
-            Dim jamLines As String() = File.ReadAllLines(GameJAM, Encoding.GetEncoding("shift-jis"))
-            Dim appTypeLine As String = jamLines.FirstOrDefault(Function(line) line.TrimStart().StartsWith("AppType =", StringComparison.OrdinalIgnoreCase))
-
-            If Not String.IsNullOrEmpty(appTypeLine) Then
-                Return "star"
-            Else
-                Return "doja"
-            End If
-        Catch ex As Exception
-            ' Log the error if needed
-            Console.WriteLine($"Error reading JAM file: {ex.Message}")
-            Return "unknown"
-        End Try
-    End Function
-    Public Function VerifyEmulatorType_JAD(GameJAD As String) As String
-        Try
-            If String.IsNullOrWhiteSpace(GameJAD) OrElse Not File.Exists(GameJAD) Then
-                Return "unknown"
-            End If
-
-            Dim OCLType = GetMIDletOCL(GameJAD)
-            If OCLType.StartsWith("JSCL") Then
-                Return "vodafone"
-            Else
-                Return "jsky"
-            End If
-
-        Catch ex As Exception
-            ' Log the error if needed
-            Console.WriteLine($"Error reading JAD file: {ex.Message}")
-            Return "unknown"
-        End Try
-    End Function
-    Public Function GetMIDletOCL(filePath As String) As String
-        Const key As String = "MIDlet-OCL"
-        Dim enc As Encoding = Encoding.GetEncoding(932)
-
-        For Each line As String In File.ReadAllLines(filePath, enc)
-            If line.StartsWith(key & ":", StringComparison.OrdinalIgnoreCase) Then
-                Return line.Substring(key.Length + 1).Trim()
-            End If
-        Next
-        Return String.Empty
-    End Function
-    Public Async Function LoadCustomGamesAsync() As Task
-        Dim customGamesFile As String = CustomGamesTxtFile
-
-        ' 1) Ensure the file exists
-        If Not File.Exists(customGamesFile) Then
-            Using stream = File.Create(customGamesFile)
-            End Using
-        End If
-
-        ' 2) Read + dedupe
-        Dim allLines As String() = Await File.ReadAllLinesAsync(customGamesFile)
-        Dim customGameLines As List(Of String) = allLines _
-        .Select(Function(line) line.Trim()) _
-        .Where(Function(line) Not String.IsNullOrWhiteSpace(line)) _
-        .Distinct(StringComparer.OrdinalIgnoreCase) _
-        .ToList()
-
-        If customGameLines.Count <> allLines.Length Then
-            Await File.WriteAllLinesAsync(customGamesFile, customGameLines)
-        End If
-
-        ' 3) Supported emulator set
-        Dim supportedEmus = New HashSet(Of String)(StringComparer.OrdinalIgnoreCase) From {
-            "doja", "star", "jsky", "airedge", "vodafone", "softbank", "flash"
-        }
-
-        ' 4) Process each line
-        For Each entry In customGameLines
-            Dim parts = entry.Split("|"c)
-
-            Dim appName As String = parts(0).Trim()
-            If String.IsNullOrWhiteSpace(appName) Then Continue For
-
-            Dim emulatorValue As String = "doja" ' default
-            If parts.Length > 1 AndAlso Not String.IsNullOrWhiteSpace(parts(1)) Then
-                Dim candidate = parts(1).Trim().ToLowerInvariant()
-                If supportedEmus.Contains(candidate) Then
-                    emulatorValue = candidate
-                End If
-            End If
-
-            ' NEW format folder name: appName_emulator
-            Dim gameKey As String = $"{appName}_{emulatorValue}"
-            Dim gameFolderPath As String = Path.Combine(DownloadsFolder, gameKey)
-
-            ' Only add if the folder actually exists
-            If Directory.Exists(gameFolderPath) Then
-                Dim game As New Game With {
-                .ENTitle = appName,
-                .ZIPName = appName & ".zip",
-                .DownloadURL = "",
-                .CustomAppIconURL = "",
-                .SDCardDataURL = "",
-                .Emulator = emulatorValue,
-                .Variants = ""
-            }
-
-                Await gameListManager.AddGameAsync(game)
-            End If
-        Next
     End Function
     Public Sub AdjustFormPadding()
         Try
@@ -1424,56 +1342,42 @@ Public Class MainForm
     Private Sub LoadPlaytimesToListView()
         lvwPlaytimes.Items.Clear()
         lvwPlaytimes.Columns.Clear()
-        lvwPlaytimes.Columns.Add("Appli Name", 750, HorizontalAlignment.Left)
-        lvwPlaytimes.Columns.Add("Play Time", 200, HorizontalAlignment.Left)
-        lvwPlaytimes.Columns.Add("Sessions", 100, HorizontalAlignment.Center)
-        lvwPlaytimes.Columns(0).Width = CInt(lvwPlaytimes.Width * 0.7)  ' App Name: 70%
-        lvwPlaytimes.Columns(1).Width = CInt(lvwPlaytimes.Width * 0.2)  ' Play Time: 20%
-        lvwPlaytimes.Columns(2).Width = CInt(lvwPlaytimes.Width * 0.1)  ' Sessions: 10%
+        lvwPlaytimes.Columns.Add("Appli Name", CInt(lvwPlaytimes.Width * 0.68), HorizontalAlignment.Left)
+        lvwPlaytimes.Columns.Add("Play Time", CInt(lvwPlaytimes.Width * 0.2), HorizontalAlignment.Left)
+        lvwPlaytimes.Columns.Add("Sessions", CInt(lvwPlaytimes.Width * 0.1), HorizontalAlignment.Center)
         lvwPlaytimes.Scrollable = True
         lvwPlaytimes.FullRowSelect = True
         lvwPlaytimes.View = View.Details
-        Dim filePath As String = PlaytimesTxtFile
-        If Not File.Exists(filePath) Then Exit Sub
+
+        Dim entries = AppliTrackerManager.LoadPlaytimes(PlaytimesTxtFile)
+        If entries.Count = 0 Then Exit Sub
 
         Dim totalTime As TimeSpan = TimeSpan.Zero
         Dim totalSessions As Integer = 0
 
-        For Each line In File.ReadLines(filePath)
-            Dim parts = line.Split("|"c)
-            If parts.Length >= 2 Then
-                Dim appName As String = parts(0)
-                Dim playTime As TimeSpan = TimeSpan.Zero
-                Dim sessionCount As Integer = If(parts.Length >= 3, Integer.Parse(parts(2)), 1)
+        For Each entry In entries
+            totalTime = totalTime.Add(entry.PlayTime)
+            totalSessions += entry.Sessions
 
-                If TimeSpan.TryParse(parts(1), playTime) Then
-                    totalTime = totalTime.Add(playTime)
-                    totalSessions += sessionCount
-
-                    Dim formattedTime As String = $"{Math.Floor(playTime.TotalHours)}h {playTime.Minutes}m {playTime.Seconds}s"
-
-                    Dim item As New ListViewItem(appName)
-                    item.SubItems.Add(formattedTime)
-                    item.SubItems.Add(sessionCount.ToString())
-                    lvwPlaytimes.Items.Add(item)
-                End If
-            End If
+            Dim formattedTime = $"{Math.Floor(entry.PlayTime.TotalHours)}h {entry.PlayTime.Minutes}m {entry.PlayTime.Seconds}s"
+            Dim item As New ListViewItem(entry.AppName)
+            item.SubItems.Add(formattedTime)
+            item.SubItems.Add(entry.Sessions.ToString())
+            lvwPlaytimes.Items.Add(item)
         Next
+
+        ' Divider + total row
         Dim dividerItem As New ListViewItem(New String() {"", "", ""})
         dividerItem.BackColor = Color.LightGray
         lvwPlaytimes.Items.Add(dividerItem)
-        ' Add total row
-        Dim totalFormatted As String = $"{Math.Floor(totalTime.TotalHours)}h {totalTime.Minutes}m {totalTime.Seconds}s"
+
+        Dim totalFormatted = $"{Math.Floor(totalTime.TotalHours)}h {totalTime.Minutes}m {totalTime.Seconds}s"
         Dim totalItem As New ListViewItem("TOTAL")
         totalItem.SubItems.Add(totalFormatted)
         totalItem.SubItems.Add(totalSessions.ToString())
-
-        ' ✅ Standout styling
         totalItem.ForeColor = Color.White
-        Dim totalBackColor As Color = ColorTranslator.FromHtml("#3f51b5")
-        totalItem.BackColor = totalBackColor
+        totalItem.BackColor = ColorTranslator.FromHtml("#3f51b5")
         totalItem.Font = New Font(lvwPlaytimes.Font.FontFamily, lvwPlaytimes.Font.Size, FontStyle.Bold)
-
         lvwPlaytimes.Items.Add(totalItem)
     End Sub
     Private Sub ShowCopyableDialogBox(Title As String, Text As String, CopyableText As String)
@@ -1668,7 +1572,7 @@ Public Class MainForm
             StartAHKScript()
         Else
             ' Kill any running AHK processes
-            UtilManager.CheckAndCloseAHK()
+            ProcessManager.CheckAndCloseAHK()
             ' Disable and uncheck the rotated checkbox
             chkbxDialpadRotated.Checked = False
             chkbxDialpadRotated.Enabled = False
@@ -1682,7 +1586,7 @@ Public Class MainForm
         End If
 
         ' Kill current AHK process and start the appropriate one
-        UtilManager.CheckAndCloseAHK()
+        ProcessManager.CheckAndCloseAHK()
         StartAHKScript()
     End Sub
 
@@ -1715,12 +1619,7 @@ Public Class MainForm
             STAREXE = Path.Combine(STARpath, "bin", "star.exe")
         ElseIf sdkLower.StartsWith("freej2me") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
-                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                "when launching or interacting with the emulator. Use at your own risk."
-                )
+                ShowEmulatorDisclaimer("freej2me")
             End If
             STARpath = Path.Combine(ToolsFolder, selectedSDK)
             STAREXE = Path.Combine(STARpath, "freej2me.jar")
@@ -1749,33 +1648,19 @@ Public Class MainForm
 
         ElseIf sdkLower.StartsWith("squirreljme") Then
             If CompletedBootSequence = True Then
-                MessageBox.Show(
-                "DISCLAIMER: SquirrelJME support is still in active development." & vbCrLf &
-                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                "when launching or interacting with the emulator. Use at your own risk."
-                )
+                ShowEmulatorDisclaimer("squirreljme")
             End If
             DOJAEXE = Path.Combine(DOJApath, "squirreljme.exe")
             gbxSJMELaunchOptions.Enabled = True
 
         ElseIf sdkLower.StartsWith("kemnnx64") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                    "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
-                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                    "when launching or interacting with the emulator. Use at your own risk."
-                    )
+                ShowEmulatorDisclaimer("kemnnx64")
             End If
             DOJAEXE = Path.Combine(DOJApath, "KEmulator.jar")
         ElseIf sdkLower.StartsWith("freej2me") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                    "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
-                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                    "when launching or interacting with the emulator. Use at your own risk."
-                    )
+                ShowEmulatorDisclaimer("freej2me")
             End If
             DOJAEXE = Path.Combine(DOJApath, "freej2me.jar")
         End If
@@ -1792,22 +1677,12 @@ Public Class MainForm
 
         If sdkLower.StartsWith("kemnnx64") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                    "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
-                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                    "when launching or interacting with the emulator. Use at your own risk."
-                    )
+                ShowEmulatorDisclaimer("kemnnx64")
             End If
             SOFTBANKEXE = Path.Combine(SOFTBANKpath, "KEmulator.jar")
         ElseIf sdkLower.StartsWith("freej2me") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                    "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
-                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                    "when launching or interacting with the emulator. Use at your own risk."
-                    )
+                ShowEmulatorDisclaimer("freej2me")
             End If
             SOFTBANKEXE = Path.Combine(SOFTBANKpath, "freej2me.jar")
         End If
@@ -1827,12 +1702,7 @@ Public Class MainForm
 
         ElseIf sdkLower.StartsWith("kemnnx64") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                    "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
-                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                    "when launching or interacting with the emulator. Use at your own risk."
-                    )
+                ShowEmulatorDisclaimer("kemnnx64")
             End If
             JSKYEXE = Path.Combine(JSKYpath, "KEmulator.jar")
         End If
@@ -1849,12 +1719,7 @@ Public Class MainForm
 
         If sdkLower.StartsWith("kemnnx64") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
-                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                "when launching or interacting with the emulator. Use at your own risk."
-                )
+                ShowEmulatorDisclaimer("kemnnx64")
             End If
             VODAFONEEXE = Path.Combine(VODAFONEpath, "KEmulator.jar")
         End If
@@ -1871,22 +1736,12 @@ Public Class MainForm
 
         If sdkLower.StartsWith("kemnnx64") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[kemulator] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                "DISCLAIMER: Kemulator support is still in active development." & vbCrLf &
-                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                "when launching or interacting with the emulator. Use at your own risk."
-                )
+                ShowEmulatorDisclaimer("kemnnx64")
             End If
             AIREDGEEXE = Path.Combine(AIREDGEpath, "KEmulator.jar")
         ElseIf sdkLower.StartsWith("freej2me") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                    "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
-                    "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                    "when launching or interacting with the emulator. Use at your own risk."
-                    )
+                ShowEmulatorDisclaimer("freej2me")
             End If
             AIREDGEEXE = Path.Combine(AIREDGEpath, "freej2me.jar")
         End If
@@ -1903,12 +1758,7 @@ Public Class MainForm
 
         If sdkLower.StartsWith("freej2me") Then
             If CompletedBootSequence = True Then
-                Logger.LogWarning("[freej2me] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-                MessageBox.Show(
-                "DISCLAIMER: freej2me support is still in active development." & vbCrLf &
-                "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-                "when launching or interacting with the emulator. Use at your own risk."
-                )
+                ShowEmulatorDisclaimer("freej2me")
             End If
             EZWEBEZPLUSEXE = Path.Combine(EZWEBEZPLUSpath, "freej2me.jar")
         End If
@@ -2231,10 +2081,8 @@ Public Class MainForm
             ' Determine correct emulator
             Dim CorrectedEmulator As String = ""
             If CurrentSelectedGameJAM.ToLower.EndsWith(".jam") Then
-                CorrectedEmulator = VerifyEmulatorType_JAM(CurrentSelectedGameJAM)
+                CorrectedEmulator = pathResolver.DetectEmulatorFromJAM(CurrentSelectedGameJAM)
             ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".jad") Then
-                'Need to find a better way to verify JAD files and the emulator they need to use
-                'CorrectedEmulator = VerifyEmulatorType_JAD(CurrentSelectedGameJAM)
                 CorrectedEmulator = selectedGame.Emulator
             ElseIf CurrentSelectedGameJAM.ToLower.EndsWith(".swf") Then
                 CorrectedEmulator = "flash"
@@ -2266,7 +2114,7 @@ Public Class MainForm
             ' Start Launching Game
             UtilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
-            Dim isEmulatorsRunning As Boolean = UtilManager.CheckAndCloseAllEmulators()
+            Dim isEmulatorsRunning As Boolean = ProcessManager.CheckAndCloseAllEmulators()
             If isEmulatorsRunning Then
                 Logger.LogWarning("An emulator is still running. User is attempting to Launch another App.")
             End If
@@ -2396,126 +2244,8 @@ Public Class MainForm
     End Sub
 
     'Menu Strip Items
-    Private Async Sub GamesToolStripMenuItem_Click(sender As Object, e As EventArgs)
-        'Batch Download all games in game List
-        Dim result = MessageBox.Show($"This will download all games... This might take awhile are you sure?", "Download All Games", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
-        If result = DialogResult.Yes Then
-            Await DownloadGamesAsync(games)
-        End If
-    End Sub
-    Public Async Function DownloadGamesAsync(games As List(Of Game)) As Task
-        'Batch Download all games in game List
-        Dim GameDownloader As New GameDownloader(pbGameDL)
-        Dim SuccessDLCount = 0
-        Dim SkippedCount = 0
-        For Each GURL In games
-            Dim DownloadFileZipPath As String = $"{DownloadsFolder}\{GURL.ZIPName}"
-
-            ' Check if already downloaded
-            If File.Exists($"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}\bin\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}.jar") Then
-                SkippedCount += 1
-            Else
-                ' Download and wait for it to finish
-                Await GameDownloader.DownloadGameAsync(GURL.DownloadURL, DownloadFileZipPath, $"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}", GURL, CurrentSelectedGameJAM, CurrentSelectedGameJAR, True)
-
-                ' Check if downloaded and set up correctly
-                If File.Exists($"{DownloadsFolder}\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}\bin\{Path.GetFileNameWithoutExtension(GURL.ZIPName)}.jar") Then
-                    SuccessDLCount += 1
-                End If
-            End If
-        Next
-        MessageBox.Show($"Total Games Available {games.Count}{vbCrLf}Downloaded Successfully: {SuccessDLCount}{vbCrLf}Skipped: {SkippedCount}")
-    End Function
-    Private Async Sub MachiCharaToolStripMenuItem_Click(sender As Object, e As EventArgs)
-        'Batch Download all MachiCharas in MC List
-        Dim result = MessageBox.Show($"This will download all MachiChara's... This might take awhile are you sure?", "Download All MachiChara's", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
-        If result = DialogResult.Yes Then
-            Await DownloadMachiCharaAsync(machicharas)
-        End If
-    End Sub
-    Public Async Function DownloadMachiCharaAsync(machicharas As List(Of MachiChara)) As Task
-        Dim MachiCharaDownloader As New MachiCharaDownloader(pbGameDL)
-        Dim SuccessDLCount = 0
-        Dim SkippedCount = 0
-        For Each MCURL In machicharas
-            Dim DownloadFilePath As String = $"{DownloadsFolder}\{MCURL.CFDName}"
-
-            ' Check if already downloaded
-            If File.Exists($"{DownloadsFolder}\{MCURL.CFDName}") Then
-                SkippedCount += 1
-            Else
-                ' Download and wait for it to finish
-                Await MachiCharaDownloader.DownloadMachiCharaAsync(MCURL.DownloadURL, DownloadFilePath, True)
-
-                ' Check if downloaded and set up correctly
-                If File.Exists($"{DownloadsFolder}\{MCURL.CFDName}") Then
-                    SuccessDLCount += 1
-                End If
-            End If
-        Next
-        MessageBox.Show($"Total MachiChara Available {machicharas.Count}{vbCrLf}Downloaded Successfully: {SuccessDLCount}{vbCrLf}Skipped: {SkippedCount}")
-    End Function
-    Private Sub ExitToolStripMenuItem_Click(sender As Object, e As EventArgs)
-        Application.Exit()
-    End Sub
     Public Shared Sub QuitApplication()
         Application.Exit()
-    End Sub
-    Private Sub RefreshToolStripMenuItem_Click(sender As Object, e As EventArgs)
-        Application.Restart()
-    End Sub
-    Private Async Sub AddGameToolStripMenuItem_Click(sender As Object, e As EventArgs)
-        Dim ENTitle = InputBox("Enter the English name of the game:", "English Game Name").Trim
-
-        If String.IsNullOrWhiteSpace(ENTitle) Then
-            MsgBox("The English game name cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
-            Exit Sub
-        End If
-
-        Dim JPTitle = InputBox("Enter the Japanese name of the game (leave blank if same as English):", "Japanese Game Name").Trim
-        If String.IsNullOrWhiteSpace(JPTitle) Then JPTitle = ENTitle
-
-        Dim ZIPName = InputBox("Enter the name of the zip file (include .zip at the end):", "Zip File Name").Trim
-        If String.IsNullOrWhiteSpace(ZIPName) Then
-            MsgBox("The ZIP file name cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
-            Exit Sub
-        End If
-        If Not ZIPName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) Then
-            ZIPName += ".zip"
-        End If
-
-        Dim DownloadURL = InputBox("Enter the download URL for the zip file:", "Download URL").Trim
-        If String.IsNullOrWhiteSpace(DownloadURL) Then
-            MsgBox("The download URL cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
-            Exit Sub
-        End If
-
-        Dim AppIconURL = InputBox("Enter the URL of a custom app icon (24x24) or leave blank to use the default icon:", "App Icon URL").Trim
-        Dim SDCardData = InputBox("Enter the SD Card data zip URL or leave blank if not applicable:", "SD Card Data URL").Trim
-        Dim Emulator = InputBox("Enter the emulator type (doja or star):", "Emulator").Trim.ToLower
-
-        While Emulator <> "doja" AndAlso Emulator <> "star"
-            Emulator = InputBox("Invalid input. Please enter only 'doja' or 'star':", "Emulator").Trim.ToLower
-            If String.IsNullOrWhiteSpace(Emulator) Then
-                MsgBox("The emulator type cannot be empty. Exiting the operation.", MsgBoxStyle.Exclamation, "Input Error")
-                Exit Sub
-            End If
-        End While
-
-        Dim newGame As New Game With {
-        .ENTitle = ENTitle,
-        .JPTitle = JPTitle,
-        .ZIPName = ZIPName,
-        .DownloadURL = DownloadURL,
-        .CustomAppIconURL = AppIconURL,
-        .SDCardDataURL = SDCardData,
-        .Emulator = Emulator
-    }
-
-        ' ✅ Await the actual async save operation
-        Await gameListManager.AddGameAsync(newGame)
-
-        MessageBox.Show("Added. Make sure you download this AppConfig and upload.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
     End Sub
 
     'Config Option in TabPage
@@ -2860,27 +2590,17 @@ Public Class MainForm
     'Help Options in TabPage
     Private Sub SetupLabelsinOptions()
         Dim troubleshootingMessage As String =
-            "   TROUBLESHOOTING DOJA/STAR ISSUES" & vbCrLf & vbCrLf &
-        "Grey Screen After Launching App:" & vbCrLf &
-        "If the app launches and DOJA/STAR appears but the screen stays grey," & vbCrLf &
-        "it usually means the required registry entries are missing." & vbCrLf &
-        "To fix this:" & vbCrLf &
-        "  • Navigate to: data/tools/idkDOJA5.1" & vbCrLf &
-        "    → Run: doja.reg" & vbCrLf &
-        "  • Navigate to: data/tools/idkSTAR2.0" & vbCrLf &
-        "    → Run: star.reg" & vbCrLf & vbCrLf &
-        """Failed to Detect Doja/Star Running"" Error:" & vbCrLf &
-        "This error typically means one of the following:" & vbCrLf &
-        "  1. The download is corrupted" & vbCrLf &
-        "  2. Java is not correctly installed" & vbCrLf &
-        "  3. Your file path contains spaces" & vbCrLf & vbCrLf &
-        "Steps to fix:" & vbCrLf &
-        "  • Try redownloading the game:" & vbCrLf &
-        "    → Right-click the game title, choose 'Redownload'" & vbCrLf &
-        "  • Make sure Java 8 (32-bit) is installed or try reinstalling" & vbCrLf &
-        "  • Ensure the folder path has NO spaces" & vbCrLf & vbCrLf &
-        "If you're still having trouble," & vbCrLf &
-        "ask for help in the #troubleshooting channel."
+    "   TROUBLESHOOTING ISSUES" & vbCrLf & vbCrLf &
+    "——————————————————————————" & vbCrLf & vbCrLf &
+    "If you are having trouble loading an App," & vbCrLf &
+    "try the following steps first:" & vbCrLf & vbCrLf &
+    "  1. Verify JDK8 is installed" & vbCrLf &
+    "  2. C++ Runtimes are installed" & vbCrLf &
+    "  3. Redownload the appli and try again" & vbCrLf & vbCrLf &
+    "Still having issues?" & vbCrLf & vbCrLf &
+    "Please visit the Keitai World Discord" & vbCrLf &
+    "and ask for help in the #troubleshooting channel." & vbCrLf &
+    "Our community is happy to assist!"
         lblHelp_troubleshooting.Text = troubleshootingMessage
 
         Dim aboutText As String =
@@ -2888,14 +2608,13 @@ Public Class MainForm
         $"Version: B{KeitaiWorldLauncher.My.Application.Info.Version.ToString}" & Environment.NewLine & Environment.NewLine &
         $"Website: KeitaiArchive.org"
         lblHelp_AppVer.Text = aboutText
-
     End Sub
-    Private Sub btnVisitKeitaiArchive_Click(sender As Object, e As EventArgs)
+    Private Sub btnVisitKeitaiArchive_Click(sender As Object, e As EventArgs) Handles btnVisitKeitaiArchive.Click
         Dim url = "https://keitaiarchive.org"
         Dim psi As New ProcessStartInfo(url) With {.UseShellExecute = True}
         Process.Start(psi)
     End Sub
-    Private Sub btnControls_Click(sender As Object, e As EventArgs)
+    Private Sub btnControls_Click(sender As Object, e As EventArgs) Handles btnControls.Click
         ' Create a new MaterialForm
         Dim keybindForm As New MaterialForm With {
         .Text = "Keybinds",

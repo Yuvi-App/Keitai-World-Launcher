@@ -1,4 +1,5 @@
 Imports System.IO
+Imports System.Text
 Imports KeitaiWorldLauncher.My.Models
 
 Namespace My.Managers
@@ -43,7 +44,6 @@ Namespace My.Managers
 
             Return result
         End Function
-
         Private Function ResolveVariant(variantsRaw As String, selectedVariant As String) As String
 
             ' No variants defined on this game
@@ -64,7 +64,6 @@ Namespace My.Managers
 
             Return String.Empty
         End Function
-
         ''' <summary>
         ''' DoJa and Star use: {GameBase}/{Variant}/bin/{Name}.jam and .jar, plus /sp/{Name}.sp
         ''' </summary>
@@ -76,7 +75,6 @@ Namespace My.Managers
             paths.JAR = Path.Combine(binFolder, $"{paths.BaseFileName}.jar")
             paths.SP = Path.Combine(spFolder, $"{paths.BaseFileName}.sp")
         End Sub
-
         ''' <summary>
         ''' J-SKY, Vodafone, AirEdge, and SoftBank use: {GameBase}/[Variant/]{Name}.jad and .jar
         ''' </summary>
@@ -86,7 +84,6 @@ Namespace My.Managers
             paths.JAM = Path.Combine(folder, $"{paths.BaseFileName}.jad")
             paths.JAR = Path.Combine(folder, $"{paths.BaseFileName}.jar")
         End Sub
-
         ''' <summary>
         ''' EZplus uses .kjx files. KJX is always at the game base; JAM/JAR point into variant if present.
         ''' </summary>
@@ -100,7 +97,6 @@ Namespace My.Managers
             paths.JAM = Path.Combine(folder, $"{paths.BaseFileName}.kjx")
             paths.JAR = Path.Combine(folder, $"{paths.BaseFileName}.kjx")
         End Sub
-
         ''' <summary>
         ''' Flash uses .swf files: {GameBase}/[Variant/]{Name}.swf
         ''' </summary>
@@ -110,7 +106,6 @@ Namespace My.Managers
             paths.JAM = Path.Combine(folder, $"{paths.BaseFileName}.swf")
             paths.JAR = Path.Combine(folder, $"{paths.BaseFileName}.swf")
         End Sub
-
         ''' <summary>
         ''' Returns the variant subfolder if a variant is set, otherwise the game base folder.
         ''' Used by emulator types that don't have a /bin/ subdirectory structure.
@@ -123,5 +118,55 @@ Namespace My.Managers
             End If
         End Function
 
+
+
+        Public Function DetectEmulatorFromJAM(jamPath As String) As String
+            Try
+                If String.IsNullOrWhiteSpace(jamPath) OrElse Not File.Exists(jamPath) Then
+                    Return "unknown"
+                End If
+
+                Dim jamLines As String() = File.ReadAllLines(jamPath, Encoding.GetEncoding("shift-jis"))
+                Dim appTypeLine As String = jamLines.FirstOrDefault(
+            Function(line) line.TrimStart().StartsWith("AppType =", StringComparison.OrdinalIgnoreCase))
+
+                If Not String.IsNullOrEmpty(appTypeLine) Then
+                    Return "star"
+                Else
+                    Return "doja"
+                End If
+            Catch ex As Exception
+                logger.Logger.LogError($"Error reading JAM file: {ex.Message}")
+                Return "unknown"
+            End Try
+        End Function
+        Public Function DetectEmulatorFromJAD(jadPath As String) As String
+            Try
+                If String.IsNullOrWhiteSpace(jadPath) OrElse Not File.Exists(jadPath) Then
+                    Return "unknown"
+                End If
+
+                Dim oclType = GetMIDletOCL(jadPath)
+                If oclType.StartsWith("JSCL") Then
+                    Return "vodafone"
+                Else
+                    Return "jsky"
+                End If
+            Catch ex As Exception
+                logger.Logger.LogError($"Error reading JAD file: {ex.Message}")
+                Return "unknown"
+            End Try
+        End Function
+        Public Function GetMIDletOCL(filePath As String) As String
+            Const key As String = "MIDlet-OCL"
+            Dim enc As Encoding = Encoding.GetEncoding(932)
+
+            For Each line As String In File.ReadAllLines(filePath, enc)
+                If line.StartsWith(key & ":", StringComparison.OrdinalIgnoreCase) Then
+                    Return line.Substring(key.Length + 1).Trim()
+                End If
+            Next
+            Return String.Empty
+        End Function
     End Class
 End Namespace

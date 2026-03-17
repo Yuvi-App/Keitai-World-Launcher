@@ -1,5 +1,6 @@
 ﻿Imports System.IO
 Imports System.Text
+Imports KeitaiWorldLauncher.My.Models
 
 Namespace My.Managers
 
@@ -8,6 +9,26 @@ Namespace My.Managers
         Shared trackedAppliName As String
         Shared trackedAppliPath As String
         Shared filePath As String = "configs/playtimes.txt"
+
+        Public Shared Function LoadPlaytimes(filePath As String) As List(Of PlaytimeEntry)
+            Dim entries As New List(Of PlaytimeEntry)
+            If Not File.Exists(filePath) Then Return entries
+
+            For Each line In File.ReadLines(filePath)
+                Dim parts = line.Split("|"c)
+                If parts.Length >= 2 Then
+                    Dim playTime As TimeSpan = TimeSpan.Zero
+                    If TimeSpan.TryParse(parts(1), playTime) Then
+                        entries.Add(New PlaytimeEntry With {
+                    .AppName = parts(0),
+                    .PlayTime = playTime,
+                    .Sessions = If(parts.Length >= 3, Integer.Parse(parts(2)), 1)
+                })
+                    End If
+                End If
+            Next
+            Return entries
+        End Function
 
         Public Sub StartTrackingAppli(AppliPath As String)
             trackedAppliPath = AppliPath

@@ -412,7 +412,6 @@ Partial Class MainForm
         ' 
         ' ListViewMachiChara
         ' 
-        ListViewMachiChara.Activation = ItemActivation.OneClick
         ListViewMachiChara.ContextMenuStrip = cmsMachiCharaLV
         ListViewMachiChara.Dock = DockStyle.Fill
         ListViewMachiChara.FullRowSelect = True
@@ -566,7 +565,6 @@ Partial Class MainForm
         ' 
         ' ListViewGames
         ' 
-        ListViewGames.Activation = ItemActivation.OneClick
         ListViewGames.ContextMenuStrip = cmsGameLV
         ListViewGames.FullRowSelect = True
         ListViewGames.HeaderStyle = ColumnHeaderStyle.Nonclickable
@@ -869,7 +867,6 @@ Partial Class MainForm
         ' 
         ' ListViewCharaDen
         ' 
-        ListViewCharaDen.Activation = ItemActivation.OneClick
         ListViewCharaDen.ContextMenuStrip = cmsCharadenLV
         ListViewCharaDen.Dock = DockStyle.Fill
         ListViewCharaDen.FullRowSelect = True
@@ -980,7 +977,7 @@ Partial Class MainForm
         ' 
         btnControls.Location = New Point(417, 489)
         btnControls.Name = "btnControls"
-        btnControls.Size = New Size(143, 46)
+        btnControls.Size = New Size(143, 37)
         btnControls.TabIndex = 19
         btnControls.Text = "Keybinds Controls"
         btnControls.UseVisualStyleBackColor = True

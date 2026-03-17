@@ -36,7 +36,7 @@ Namespace My.logger
                 End SyncLock
             Catch ioEx As IOException
                 ' Handle file IO exceptions if needed
-                Console.WriteLine($"Failed to write to log: {ioEx.Message}")
+                Logger.LogError($"Failed to write to log: {ioEx.Message}")
             End Try
         End Sub
     End Class

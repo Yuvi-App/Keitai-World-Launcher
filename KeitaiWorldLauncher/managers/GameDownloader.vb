@@ -105,7 +105,7 @@ Namespace My.Managers
                 'Finish Up Processing App DL
                 If Not BatchDownload Then
                     logger.Logger.LogInfo($"[Download] Generating dynamic controls from: {JAMLocation}")
-                    UtilManager.GenerateDynamicControlsFromLines(JAMLocation, MainForm.panelDynamic)
+                    UtilManager.GenerateDynamicControlsFromLines(JAMLocation, MainForm.panelDynamic, Inputgame.ENTitle)
                 End If
                 logger.Logger.LogInfo("[Download] Refreshing game highlighting.")
                 MainForm.RefreshGameHighlighting()
@@ -117,11 +117,14 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to start download: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Finally
                 If overlay IsNot Nothing Then
-                    overlay.Visible = False
-                End If
+                    If progressBar IsNot Nothing Then
+                        overlay.Controls.Remove(progressBar)
+                        progressBar.Visible = False
+                    End If
 
-                If progressBar IsNot Nothing Then
-                    progressBar.Visible = False
+                    MainForm.Controls.Remove(overlay)
+                    overlay.Dispose()
+                    overlay = Nothing
                 End If
             End Try
         End Function
@@ -185,7 +188,7 @@ Namespace My.Managers
                     File.Delete(downloadFilePath)
 
                     If Isthisbatchdownload = False Then
-                        UtilManager.GenerateDynamicControlsFromLines(ReadJam, MainForm.panelDynamic)
+                        UtilManager.GenerateDynamicControlsFromLines(ReadJam, MainForm.panelDynamic, SelectedGame.ENTitle)
                     End If
 
                     MainForm.RefreshGameHighlighting()

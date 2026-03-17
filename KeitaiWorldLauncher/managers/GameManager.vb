@@ -123,7 +123,7 @@ Namespace My.Managers
                     End Try
                 Next
             Else
-                Console.WriteLine("Directory does not exist.")
+                logger.Logger.LogError("Directory does not exist.")
             End If
         End Sub
         Function CompressAndEncode(bytes() As Byte) As String

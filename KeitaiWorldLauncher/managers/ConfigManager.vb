@@ -3,6 +3,7 @@ Imports System.Xml
 
 Namespace My.Managers
     Public Class ConfigManager
+        Private _doc As XmlDocument = Nothing
         Private Const ConfigFilePath As String = "configs/appconfig.xml"
 
         ' Default configuration values
@@ -52,7 +53,7 @@ Namespace My.Managers
                                       If IO.File.Exists(ConfigFilePath) Then
                                           Dim doc As New XmlDocument()
                                           doc.Load(ConfigFilePath)
-
+                                          _doc = doc
                                           Dim settings As XmlNodeList = doc.SelectNodes("//Setting")
                                           For Each setting As XmlNode In settings
                                               Dim name As String = setting.Attributes("name").Value
@@ -64,12 +65,14 @@ Namespace My.Managers
                                       Else
                                           ' Config file doesn't exist, save the default config
                                           SaveConfig(DefaultConfig)
+                                          Dim freshDoc As New XmlDocument()
+                                          freshDoc.Load(ConfigFilePath)
+                                          _doc = freshDoc
                                       End If
 
                                       Return config
                                   End Function)
         End Function
-
 
         ' Save configuration to XML
         Public Sub SaveConfig(config As Dictionary(Of String, String))
@@ -86,60 +89,48 @@ Namespace My.Managers
             doc.AppendChild(root)
             doc.Save(ConfigFilePath)
         End Sub
-        Public Sub UpdateDOJAHideUISetting(isChecked As Boolean)
+
+        ' Update App Configuration settings
+        Public Sub UpdateSetting(settingName As String, value As String)
             Try
-                ' Load the XML document
-                Dim doc As New XmlDocument()
-                doc.Load(ConfigFilePath)
+                ' If _doc wasn't loaded yet
+                If _doc Is Nothing Then
+                    _doc = New XmlDocument()
+                    _doc.Load(ConfigFilePath)
+                End If
 
-                ' Find the DOJAHideUI setting
-                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='DOJAHideUI']")
+                Dim settingNode As XmlNode = _doc.SelectSingleNode($"//Setting[@name='{settingName}']")
                 If settingNode IsNot Nothing Then
-                    ' Update the value based on the checkbox state
-                    settingNode.InnerText = isChecked.ToString().ToLower()
-
-                    ' Save the updated XML file
-                    doc.Save(ConfigFilePath)
+                    settingNode.InnerText = value
+                    _doc.Save(ConfigFilePath)
                 Else
-                    'MessageBox.Show("DOJAHideUI setting not found in the configuration file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    logger.Logger.LogWarning($"Setting '{settingName}' not found in config file.")
                 End If
             Catch ex As Exception
-                MessageBox.Show($"Failed to update the DOJAHideUI setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                logger.Logger.LogError($"Failed to update the DOJAHideUI setting: {ex.Message}")
+                MessageBox.Show($"Failed to update {settingName}: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"Failed to update {settingName}: {ex.Message}")
             End Try
+        End Sub
+        Public Sub UpdateDOJAHideUISetting(isChecked As Boolean)
+            UpdateSetting("DOJAHideUI", isChecked.ToString().ToLower())
         End Sub
         Public Sub UpdateUseShaderGlassSetting(isChecked As Boolean)
-            Try
-                ' Load the XML document
-                Dim doc As New XmlDocument()
-                doc.Load(ConfigFilePath)
-                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='UseShadeGlass']")
-                If settingNode IsNot Nothing Then
-                    settingNode.InnerText = isChecked.ToString().ToLower()
-                    doc.Save(ConfigFilePath)
-                Else
-                End If
-            Catch ex As Exception
-                MessageBox.Show($"Failed to update the UseShadeGlass setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                logger.Logger.LogError($"Failed to update the UseShadeGlass setting: {ex.Message}")
-            End Try
+            UpdateSetting("UseShaderGlass", isChecked.ToString().ToLower())
         End Sub
         Public Sub UpdateUseDialPadSetting(isChecked As Boolean)
-            Try
-                ' Load the XML document
-                Dim doc As New XmlDocument()
-                doc.Load(ConfigFilePath)
-                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='UseDialPad']")
-                If settingNode IsNot Nothing Then
-                    settingNode.InnerText = isChecked.ToString().ToLower()
-                    doc.Save(ConfigFilePath)
-                Else
-                End If
-            Catch ex As Exception
-                MessageBox.Show($"Failed to update the UseDialPad setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                logger.Logger.LogError($"Failed to update the UseDialPad setting: {ex.Message}")
-            End Try
+            UpdateSetting("UseDialPad", isChecked.ToString().ToLower())
         End Sub
+        Public Async Function UpdateFirstRunSettingAsync(value As String) As Task
+            UpdateSetting("FirstRun", value)
+        End Function
+        Public Async Function UpdatePolicyAgreementSettingAsync(value As String) As Task
+            UpdateSetting("PolicyAgreement", value)
+        End Function
+        Public Sub UpdateDOJASoundSetting(SoundType As String)
+            UpdateSetting("DOJASoundType", SoundType)
+        End Sub
+
+        ' Update Network UID and Terminal ID settings
         Public Sub UpdateNetworkAndTerminalIDSetting(NewNetworkUID As String, NewTerminalID As String)
             Try
                 Dim currentNetworkUID As String = MainForm.NetworkUID
@@ -181,61 +172,6 @@ Namespace My.Managers
                 logger.Logger.LogError(
                     $"Failed to update Network/Terminal ID settings: {ex.Message}"
                 )
-            End Try
-        End Sub
-        Public Async Function UpdateFirstRunSettingAsync(FirstRun As String) As Task
-            Await Task.Run(Sub()
-                               Try
-                                   ' Load the XML document
-                                   Dim doc As New XmlDocument()
-                                   doc.Load(ConfigFilePath)
-                                   Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='FirstRun']")
-                                   If settingNode IsNot Nothing Then
-                                       settingNode.InnerText = FirstRun
-                                       doc.Save(ConfigFilePath)
-                                   End If
-                               Catch ex As Exception
-                                   MessageBox.Show($"Failed to update the FirstRun setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                                   logger.Logger.LogError($"Failed to update the FirstRun setting: {ex.Message}")
-                               End Try
-                           End Sub)
-        End Function
-        Public Async Function UpdatePolicyAgreementSettingAsync(PolicyAgreement As String) As Task
-            Await Task.Run(Sub()
-                               Try
-                                   ' Load the XML document
-                                   Dim doc As New XmlDocument()
-                                   doc.Load(ConfigFilePath)
-                                   Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='PolicyAgreement']")
-                                   If settingNode IsNot Nothing Then
-                                       settingNode.InnerText = PolicyAgreement
-                                       doc.Save(ConfigFilePath)
-                                   End If
-                               Catch ex As Exception
-                                   MessageBox.Show($"Failed to update the PolicyAgreement setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                                   logger.Logger.LogError($"Failed to update the PolicyAgreement setting: {ex.Message}")
-                               End Try
-                           End Sub)
-        End Function
-        Public Sub UpdateDOJASoundSetting(SoundType As String)
-            Try
-                ' Load the XML document
-                Dim doc As New XmlDocument()
-                doc.Load(ConfigFilePath)
-
-                ' Find the DOJAHideUI setting
-                Dim settingNode As XmlNode = doc.SelectSingleNode("//Setting[@name='DOJASoundType']")
-                If settingNode IsNot Nothing Then
-                    ' Update the value based on the checkbox state
-                    settingNode.InnerText = SoundType
-
-                    ' Save the updated XML file
-                    doc.Save(ConfigFilePath)
-                Else
-                End If
-            Catch ex As Exception
-                MessageBox.Show($"Failed to update the DOJASoundType setting: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                logger.Logger.LogError($"Failed to update the DOJASoundType setting: {ex.Message}")
             End Try
         End Sub
     End Class

@@ -330,35 +330,20 @@ Namespace My.Managers
                                End Try
                            End Sub)
         End Function
-        Public Shared Async Function CheckForSpacesInPathAsync() As Task
-            Await Task.Run(Sub()
-                               Dim exePath As String = Assembly.GetExecutingAssembly().Location
-                               Dim invalidChars As Char() = {" "c, "("c, ")"c, "{"c, "}"c}
+        Public Shared Sub CheckForSpacesInPath()
+            Dim exePath As String = Assembly.GetExecutingAssembly().Location
+            Dim invalidChars As Char() = {" "c, "("c, ")"c, "{"c, "}"c}
 
-                               If exePath.IndexOfAny(invalidChars) <> -1 Then
-                                   ' Show the MessageBox on the UI thread
-                                   If SplashScreen.InvokeRequired Then
-                                       SplashScreen.Invoke(Sub()
-                                                               MessageBox.Show(owner:=SplashScreen,
-                                                                       "The path to the KeitaiWikiLauncher contains invalid characters:" & Environment.NewLine &
-                                                                       """" & exePath & """" & Environment.NewLine &
-                                                                       "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
-                                                                       "Warning - Invalid Path Characters",
-                                                                       MessageBoxButtons.OK,
-                                                                       MessageBoxIcon.Warning)
-                                                           End Sub)
-                                   Else
-                                       MessageBox.Show(owner:=SplashScreen,
-                                               "The path to the KeitaiWikiLauncher contains invalid characters:" & Environment.NewLine &
-                                               """" & exePath & """" & Environment.NewLine &
-                                               "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
-                                               "Warning - Invalid Path Characters",
-                                               MessageBoxButtons.OK,
-                                               MessageBoxIcon.Warning)
-                                   End If
-                               End If
-                           End Sub)
-        End Function
+            If exePath.IndexOfAny(invalidChars) <> -1 Then
+                MessageBox.Show(owner:=SplashScreen,
+            "The path to the KeitaiWorldLauncher contains invalid characters:" & Environment.NewLine &
+            """" & exePath & """" & Environment.NewLine &
+            "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
+            "Warning - Invalid Path Characters",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning)
+            End If
+        End Sub
         Public Shared Async Function SetupDIRSAsync() As Task
             Await Task.Run(Sub()
                                Dim directories As String() = {
@@ -599,109 +584,238 @@ Namespace My.Managers
         End Sub
 
         'Generate Controls
-        Public Shared Sub GenerateDynamicControlsFromLines(JAMFile As String, container As Panel)
+        Public Shared Sub GenerateDynamicControlsFromLines(JAMFile As String, container As Panel, Optional gameTitle As String = "")
             Try
-                ' Clear any existing controls in the container (Panel)
+                container.SuspendLayout()
                 container.Controls.Clear()
 
-                ' If EZplus file, skip
-                If JAMFile.EndsWith(".kjx", StringComparison.OrdinalIgnoreCase) Then
-                    Dim notSupportedLabel As New Label() With {
-                        .Text = "EZplus not supported",
-                        .AutoSize = False,
-                        .Dock = DockStyle.Top,
-                        .Height = 36,
-                        .TextAlign = ContentAlignment.MiddleCenter,
-                        .ForeColor = Color.DarkRed,
-                        .Font = New Font("Segoe UI", 10, FontStyle.Bold)
-                    }
+                ' Update the GroupBox title if we have a game name
+                If TypeOf container.Parent Is GroupBox Then
+                    Dim gbx = DirectCast(container.Parent, GroupBox)
+                    gbx.Text = If(String.IsNullOrWhiteSpace(gameTitle), "Appli Info", $"Appli Info - {gameTitle}")
+                End If
 
-                    ' Add some padding container to keep UI consistent
-                    Dim pad As New Panel() With {
-                        .Dock = DockStyle.Top,
-                        .Height = notSupportedLabel.Height + 8
-                    }
-                    notSupportedLabel.Top = 4
-                    notSupportedLabel.Left = 4
-                    pad.Controls.Add(notSupportedLabel)
-
-                    container.Controls.Add(pad)
+                ' SWF files have no metadata to show
+                If JAMFile.EndsWith(".swf", StringComparison.OrdinalIgnoreCase) Then
                     Return
                 End If
 
-                ' Create and configure a TableLayoutPanel
-                Dim tableLayout As New TableLayoutPanel() With {
-                    .ColumnCount = 2,
-                    .AutoSize = True,
-                    .Dock = DockStyle.Top
-                }
-
-                ' Define the column widths: first fixed, second fills remaining space
-                tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 150))
-                tableLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100))
-
-                ' Read the file lines and choose the right delimiter
+                ' Determine file encoding and delimiter
                 Dim lines As String()
                 Dim delimiter As Char
+                Dim encoding As Encoding
+
                 If JAMFile.EndsWith(".jam", StringComparison.OrdinalIgnoreCase) Then
-                    lines = File.ReadAllLines(JAMFile, Encoding.GetEncoding(932))
+                    encoding = Encoding.GetEncoding(932)
+                    lines = File.ReadAllLines(JAMFile, encoding)
                     delimiter = "="c
                 ElseIf JAMFile.EndsWith(".jad", StringComparison.OrdinalIgnoreCase) Then
-                    lines = File.ReadAllLines(JAMFile, Encoding.UTF8)
+                    encoding = Encoding.UTF8
+                    lines = File.ReadAllLines(JAMFile, encoding)
                     delimiter = ":"c
-                ElseIf JAMFile.EndsWith(".swf", StringComparison.OrdinalIgnoreCase) Then
-                    'logger.Logger.LogInfo("SWF File unable to generate controls.")
-                    Return
+                ElseIf JAMFile.EndsWith(".kjx", StringComparison.OrdinalIgnoreCase) Then
+                    lines = ExtractKjxMetadata(JAMFile)
+                    delimiter = ":"c
+                    If lines Is Nothing OrElse lines.Length = 0 Then
+                        Dim noDataLabel As New Label() With {
+                            .Text = "No metadata found in KJX file",
+                            .AutoSize = False,
+                            .Dock = DockStyle.Fill,
+                            .TextAlign = ContentAlignment.MiddleCenter,
+                            .ForeColor = Color.DarkRed,
+                            .Font = New Font("Segoe UI", 10, FontStyle.Bold)
+                        }
+                        container.Controls.Add(noDataLabel)
+                        Return
+                    End If
                 Else
-                    logger.Logger.LogInfo($"Uknown File Type ({JAMFile}) unable to generate controls.")
-                    MessageBox.Show("Unsupported file type.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    logger.Logger.LogInfo($"Unknown File Type ({JAMFile}) unable to generate controls.")
                     Return
                 End If
 
-                Dim rowIndex As Integer = 0
+                ' Build a ListView to display the key-value pairs
+                Dim lv As New ListView() With {
+                    .View = View.Details,
+                    .Dock = DockStyle.Fill,
+                    .FullRowSelect = True,
+                    .GridLines = True,
+                    .HeaderStyle = ColumnHeaderStyle.Nonclickable,
+                    .Font = New Font("Segoe UI", 9)
+                }
+
+                ' Enable double-buffering
+                Dim prop = GetType(ListView).GetProperty("DoubleBuffered",
+            Reflection.BindingFlags.Instance Or Reflection.BindingFlags.NonPublic)
+                prop.SetValue(lv, True)
+
+                ' Two columns
+                lv.Columns.Add("Property", 140, HorizontalAlignment.Left)
+                lv.Columns.Add("Value", container.ClientSize.Width - 160, HorizontalAlignment.Left)
+
+                ' Build the context menu
+                Dim cms As New ContextMenuStrip()
+                Dim editItem As New ToolStripMenuItem("Edit Value")
+                cms.Items.Add(editItem)
+                lv.ContextMenuStrip = cms
+
+                ' Store file info in the ListView's Tag so the handler can access it
+                lv.Tag = New Dictionary(Of String, Object) From {
+                    {"FilePath", JAMFile},
+                    {"Delimiter", delimiter},
+                    {"Encoding", encoding}
+                }
+
+                ' Only show menu when right-clicking on a row, and not for KJX files
+                AddHandler cms.Opening, Sub(sender, e)
+                                            If lv.SelectedItems.Count = 0 Then
+                                                e.Cancel = True
+                                                Return
+                                            End If
+
+                                            Dim fileInfo = DirectCast(lv.Tag, Dictionary(Of String, Object))
+                                            Dim filePath = fileInfo("FilePath").ToString()
+                                            If filePath.EndsWith(".kjx", StringComparison.OrdinalIgnoreCase) Then
+                                                e.Cancel = True
+                                            End If
+                                        End Sub
+
+                ' Handle the edit click
+                AddHandler editItem.Click, Sub(sender, e)
+                                               If lv.SelectedItems.Count = 0 Then Return
+
+                                               Dim selectedRow = lv.SelectedItems(0)
+                                               Dim propertyName = selectedRow.Text
+                                               Dim currentValue = selectedRow.SubItems(1).Text
+                                               Dim fileInfo = DirectCast(lv.Tag, Dictionary(Of String, Object))
+                                               Dim filePath = fileInfo("FilePath").ToString()
+                                               Dim fileDelimiter = CChar(fileInfo("Delimiter"))
+                                               Dim fileEncoding = DirectCast(fileInfo("Encoding"), Encoding)
+
+                                               ' Show edit dialog
+                                               Dim newValue = ShowEditDialog(propertyName, currentValue)
+                                               If newValue Is Nothing Then Return  ' User cancelled
+
+                                               ' Update the file
+                                               Try
+                                                   Dim fileLines = File.ReadAllLines(filePath, fileEncoding).ToList()
+                                                   Dim prefix = propertyName & " " & fileDelimiter & " "
+                                                   Dim prefixNoSpace = propertyName & fileDelimiter
+
+                                                   For i = 0 To fileLines.Count - 1
+                                                       Dim trimmed = fileLines(i).TrimStart()
+                                                       If trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) OrElse
+                                                  trimmed.StartsWith(prefixNoSpace, StringComparison.OrdinalIgnoreCase) Then
+                                                           fileLines(i) = $"{propertyName} {fileDelimiter} {newValue}"
+                                                           Exit For
+                                                       End If
+                                                   Next
+
+                                                   File.WriteAllLines(filePath, fileLines, fileEncoding)
+
+                                                   ' Update the ListView row
+                                                   selectedRow.SubItems(1).Text = newValue
+                                                   logger.Logger.LogInfo($"Updated '{propertyName}' to '{newValue}' in {filePath}")
+
+                                               Catch ex As Exception
+                                                   logger.Logger.LogError($"Failed to update {propertyName}: {ex.Message}")
+                                                   MessageBox.Show($"Failed to save change: {ex.Message}",
+                                                           "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                                               End Try
+                                           End Sub
+
+                ' Populate rows
+                lv.BeginUpdate()
+
                 For Each line As String In lines
-                    ' Skip empty lines
                     If String.IsNullOrWhiteSpace(line) Then Continue For
 
-                    ' Split by appropriate delimiter
                     Dim parts As String() = line.Split(New Char() {delimiter}, 2)
-                    If parts.Length <> 2 Then Continue For ' Skip invalid lines
+                    If parts.Length <> 2 Then Continue For
 
                     Dim key As String = parts(0).Trim()
                     Dim value As String = parts(1).Trim()
 
-                    ' Create a label for the key
-                    Dim lbl As New Label() With {
-                        .Text = key,
-                        .Width = 150,
-                        .AutoSize = False,
-                        .AutoEllipsis = True,
-                        .Anchor = AnchorStyles.Left
-                    }
-
-                    ' Create a textbox for the value
-                    Dim txt As New TextBox() With {
-                        .Text = value,
-                        .Dock = DockStyle.Fill,
-                        .ReadOnly = True
-                    }
-
-                    ' Increase row count and add a new row style
-                    tableLayout.RowCount = rowIndex + 1
-                    tableLayout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
-
-                    ' Add the label and textbox to the layout
-                    tableLayout.Controls.Add(lbl, 0, rowIndex)
-                    tableLayout.Controls.Add(txt, 1, rowIndex)
-                    rowIndex += 1
+                    Dim item As New ListViewItem(key)
+                    item.SubItems.Add(value)
+                    lv.Items.Add(item)
                 Next
 
-                ' Add the layout to the container
-                container.Controls.Add(tableLayout)
+                lv.EndUpdate()
+                container.Controls.Add(lv)
+
             Catch ex As Exception
-                MessageBox.Show($"Error generating controls for JAM/JAD: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogError($"Error generating controls for JAM/JAD: {ex.Message}")
+            Finally
+                container.ResumeLayout(True)
             End Try
         End Sub
+        Private Shared Function ShowEditDialog(propertyName As String, currentValue As String) As String
+            Dim frm As New ReaLTaiizor.Forms.MaterialForm() With {
+        .Text = $"Edit Property",
+        .Size = New Size(520, 250),
+        .StartPosition = FormStartPosition.CenterParent,
+        .FormBorderStyle = FormBorderStyle.FixedDialog,
+        .Sizable = False,
+        .MaximizeBox = False,
+        .MinimizeBox = False
+    }
+
+            Dim lblProperty As New Label() With {
+        .Text = propertyName,
+        .Font = New Font("Segoe UI", 11, FontStyle.Bold),
+        .Left = 20,
+        .Top = 76,
+        .AutoSize = True
+    }
+
+            Dim txtValue As New ReaLTaiizor.Controls.MaterialTextBoxEdit() With {
+        .Text = currentValue,
+        .Left = 20,
+        .Top = lblProperty.Top + lblProperty.Height + 12,
+        .Size = New Size(frm.ClientSize.Width - 40, 40),
+        .Hint = "Enter new value...",
+        .MaxLength = 500,
+        .UseSystemPasswordChar = False
+    }
+
+            Dim btnSave As New ReaLTaiizor.Controls.MaterialButton() With {
+        .Text = "SAVE",
+        .DialogResult = DialogResult.OK,
+        .Left = frm.ClientSize.Width - 220,
+        .Top = txtValue.Top + txtValue.Height + 20,
+        .Width = 100,
+        .HighEmphasis = True,
+        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+    }
+
+            Dim btnCancel As New ReaLTaiizor.Controls.MaterialButton() With {
+        .Text = "CANCEL",
+        .DialogResult = DialogResult.Cancel,
+        .Left = frm.ClientSize.Width - 110,
+        .Top = txtValue.Top + txtValue.Height + 20,
+        .Width = 100,
+        .HighEmphasis = False,
+        .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Text
+    }
+
+            frm.AcceptButton = btnSave
+            frm.CancelButton = btnCancel
+
+            frm.Controls.Add(lblProperty)
+            frm.Controls.Add(txtValue)
+            frm.Controls.Add(btnSave)
+            frm.Controls.Add(btnCancel)
+
+            AddHandler frm.Shown, Sub() txtValue.SelectAll()
+
+            Dim result As String = Nothing
+            If frm.ShowDialog() = DialogResult.OK Then
+                result = txtValue.Text
+            End If
+
+            frm.Dispose()
+            Return result
+        End Function
 
         'Get App Icons
         Public Async Function ExtractAndResizeAppIconAsync(jarFilePath As String, jamFilePath As String, SelectedGame As Game) As Task
@@ -1038,14 +1152,16 @@ Namespace My.Managers
                 Await Task.Delay(500)
 
                 ' Launch SJME with retry logic
-                Dim success As Boolean = Await LaunchEmulatorWithRetryandDelay(
+                Dim success As Boolean = Await LaunchEmulatorWithRetry(
                     appPath,
                     arguments,
                     SJMEProcessWatch,
                     baseDir,
                     Async Function()
                         Return Await WaitForProcessWindowAsync({SJMEProcessWatch}, "WaitForSQUIRREKJMEToStart")
-                    End Function
+                    End Function,
+                    initialDelayMs:=1500,
+                    captureOutput:=False
                 )
 
                 If Not success Then
@@ -1370,14 +1486,16 @@ Namespace My.Managers
                 Await Task.Delay(500) ' Let the filesystem settle
 
                 ' Launch VODAFONE  with retry logic
-                Dim success As Boolean = Await LaunchEmulatorWithRetryandDelay(
+                Dim success As Boolean = Await LaunchEmulatorWithRetry(
                     appPath,
                     arguments,
                     "emulator",
                     baseDir,
                     Async Function()
                         Return Await WaitForProcessWindowAsync({"emulator"}, "WaitForVODAFONEToStart")
-                    End Function
+                    End Function,
+                    initialDelayMs:=1500,
+                    captureOutput:=False
                 )
                 If Not success Then
                     HideLaunchOverlay()
@@ -1784,94 +1902,52 @@ Namespace My.Managers
 
         'Launch App Helpers
         Public Async Function LaunchEmulatorWithRetry(
-            fileName As String,
-            arguments As String,
-            processNameToCheck As String,
-            workingDir As String,
-            waitFunction As Func(Of Task(Of Boolean))
-        ) As Task(Of Boolean)
+    fileName As String,
+    arguments As String,
+    processNameToCheck As String,
+    workingDir As String,
+    waitFunction As Func(Of Task(Of Boolean)),
+    Optional initialDelayMs As Integer = 500,
+    Optional captureOutput As Boolean = True
+) As Task(Of Boolean)
 
             Dim startInfo As New ProcessStartInfo With {
-            .FileName = fileName,
-            .Arguments = arguments,
-            .UseShellExecute = False,
-            .CreateNoWindow = True,
-            .RedirectStandardOutput = True,
-            .RedirectStandardError = True,
-            .WorkingDirectory = workingDir
-        }
+        .FileName = fileName,
+        .Arguments = arguments,
+        .UseShellExecute = False,
+        .CreateNoWindow = True,
+        .RedirectStandardOutput = captureOutput,
+        .RedirectStandardError = captureOutput,
+        .RedirectStandardInput = Not captureOutput,
+        .WorkingDirectory = workingDir
+    }
 
             For attempt = 1 To 2
                 Try
                     Dim process As Process = Process.Start(startInfo)
-                    Await Task.Delay(500)
+                    Await Task.Delay(initialDelayMs)
+
                     If process Is Nothing Then
                         logger.Logger.LogError($"[LaunchHelper] Attempt {attempt} Failed to start process.")
                         Continue For
                     End If
 
-                    process.WaitForInputIdle()
-
-                    AddHandler process.OutputDataReceived, Sub(sender, e)
-                                                               If e.Data IsNot Nothing Then logger.Logger.LogInfo($"[{processNameToCheck.ToUpper()} STDOUT] {e.Data}")
-                                                           End Sub
-                    AddHandler process.ErrorDataReceived, Sub(sender, e)
-                                                              If e.Data IsNot Nothing Then logger.Logger.LogError($"[{processNameToCheck.ToUpper()} STDERR] {e.Data}")
-                                                          End Sub
-                    process.BeginOutputReadLine()
-                    process.BeginErrorReadLine()
+                    If captureOutput Then
+                        process.WaitForInputIdle()
+                        AddHandler process.OutputDataReceived, Sub(sender, e)
+                                                                   If e.Data IsNot Nothing Then logger.Logger.LogInfo($"[{processNameToCheck.ToUpper()} STDOUT] {e.Data}")
+                                                               End Sub
+                        AddHandler process.ErrorDataReceived, Sub(sender, e)
+                                                                  If e.Data IsNot Nothing Then logger.Logger.LogError($"[{processNameToCheck.ToUpper()} STDERR] {e.Data}")
+                                                              End Sub
+                        process.BeginOutputReadLine()
+                        process.BeginErrorReadLine()
+                    End If
 
                     logger.Logger.LogInfo($"[LaunchHelper] Waiting for {processNameToCheck} to become ready...")
 
                     If Await waitFunction() Then
-                        logger.Logger.LogInfo($"[LaunchHelper] {processNameToCheck} Is running And ready.")
-                        UtilManager.HideLaunchOverlay()
-                        Return True
-                    Else
-                        logger.Logger.LogWarning($"[LaunchHelper] {processNameToCheck} failed to become ready on attempt {attempt}. Retrying...")
-                        process.Kill()
-                        process.Dispose()
-                        Await Task.Delay(500)
-                    End If
-                Catch ex As Exception
-                    logger.Logger.LogError($"[LaunchHelper] Exception during attempt {attempt} {ex.Message}")
-                End Try
-            Next
-
-            logger.Logger.LogError($"[LaunchHelper] Failed to start {processNameToCheck} after 2 attempts.")
-            UtilManager.HideLaunchOverlay()
-            Return False
-        End Function
-        Public Async Function LaunchEmulatorWithRetryandDelay(
-            fileName As String,
-            arguments As String,
-            processNameToCheck As String,
-            workingDir As String,
-            waitFunction As Func(Of Task(Of Boolean))
-        ) As Task(Of Boolean)
-
-            Dim startInfo As New ProcessStartInfo With {
-            .FileName = fileName,
-            .Arguments = arguments,
-            .UseShellExecute = False,
-            .RedirectStandardInput = True,
-            .RedirectStandardError = True,
-            .RedirectStandardOutput = True,
-            .CreateNoWindow = True,
-            .WorkingDirectory = workingDir
-        }
-
-            For attempt = 1 To 2
-                Try
-                    Dim process As Process = Process.Start(startInfo)
-                    Await Task.Delay(1500)
-                    If process Is Nothing Then
-                        logger.Logger.LogError($"[LaunchHelper] Attempt {attempt} Failed to start process.")
-                        Continue For
-                    End If
-
-                    If Await waitFunction() Then
-                        logger.Logger.LogInfo($"[LaunchHelper] {processNameToCheck} Is running And ready.")
+                        logger.Logger.LogInfo($"[LaunchHelper] {processNameToCheck} is running and ready.")
                         UtilManager.HideLaunchOverlay()
                         Return True
                     Else
@@ -1928,161 +2004,6 @@ Namespace My.Managers
             End If
         End Sub
 
-        'Check and Close Functions
-        Shared Function CheckAndCloseAllEmulators() As Boolean
-            Dim emulatorProcesses As New Dictionary(Of String, String()) From {
-                {"DOJA Emulator", {"doja"}},
-                {"SquirrelJME", {"squirreljme"}},
-                {"Star Emulator", {"star"}},
-                {"Java-based runtime", {"java", "javaw", "jbime"}},
-                {"Vodafone Emulator", {"emulator"}},
-                {"Flashplayer", {"flashplayer"}}
-            }
-
-            Dim currentPid = Process.GetCurrentProcess().Id
-            Dim anyStillRunning As Boolean = False
-
-            For Each kvp In emulatorProcesses
-                Dim friendlyName = kvp.Key
-                Dim processNames = kvp.Value
-                Dim foundProcesses As New List(Of Process)
-
-                For Each name In processNames
-                    foundProcesses.AddRange(Process.GetProcessesByName(name))
-                Next
-
-                If foundProcesses.Count = 0 Then
-                    logger.Logger.LogInfo($"{friendlyName} is not currently running.")
-                    Continue For
-                End If
-
-                logger.Logger.LogWarning($"Found {foundProcesses.Count} instance(s) of {friendlyName} running.")
-                Dim result = MessageBox.Show($"{friendlyName} is currently running. Do you want to close it?",
-                                     "Confirm Close",
-                                     MessageBoxButtons.YesNo,
-                                     MessageBoxIcon.Question)
-
-                If result = DialogResult.Yes Then
-                    Try
-                        logger.Logger.LogInfo($"User agreed to close {friendlyName}.")
-                        CheckAndCloseShaderGlass()
-                        CheckAndCloseAMX()
-
-                        Dim closedCount As Integer = 0
-
-                        For Each proc In foundProcesses
-                            If proc.Id = currentPid Then
-                                logger.Logger.LogInfo($"Skipping self (PID={proc.Id})")
-                                Continue For
-                            End If
-
-                            Try
-                                logger.Logger.LogInfo($"Closing PID={proc.Id} Name={proc.ProcessName}")
-                                proc.Kill()
-                                proc.WaitForExit()
-                                closedCount += 1
-                            Catch ex As Exception
-                                logger.Logger.LogError($"Failed to close {proc.ProcessName} (PID={proc.Id}): {ex.Message}")
-                                anyStillRunning = True
-                            End Try
-                        Next
-
-                        logger.Logger.LogInfo($"Closed {closedCount} of {foundProcesses.Count} {friendlyName} process(es).")
-                    Catch ex As Exception
-                        logger.Logger.LogError($"Error closing {friendlyName}: {ex}")
-                        MessageBox.Show($"An error occurred while closing {friendlyName}: {ex.Message}",
-                                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                        anyStillRunning = True
-                    End Try
-                Else
-                    logger.Logger.LogInfo($"User chose not to close {friendlyName}.")
-                    anyStillRunning = True
-                End If
-            Next
-
-            Return anyStillRunning
-        End Function
-        Shared Function CheckAndCloseAMX() As Boolean
-            Dim AMXProcesses = Process.GetProcessesByName("antimicrox")
-            If AMXProcesses.Length = 0 Then
-                logger.Logger.LogInfo("antimicrox.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {AMXProcesses.Length} instance(s) of antimicrox.exe running.")
-            Try
-                For Each process As Process In AMXProcesses
-                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                    process.Kill()
-                    process.WaitForExit()
-                Next
-
-                logger.Logger.LogInfo("All antimicrox.exe processes closed successfully.")
-                Return False ' No longer running
-            Catch ex As Exception
-                logger.Logger.LogError("Error while closing antimicrox.exe: " & ex.ToString())
-                MessageBox.Show("An error occurred while trying to close antimicrox.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                Return True ' Still running
-            End Try
-        End Function
-        Shared Function CheckAndCloseAHK() As Boolean
-            Dim AHKProcesses = Process.GetProcessesByName("AutoHotkey32")
-            If AHKProcesses.Length = 0 Then
-                logger.Logger.LogInfo("AutoHotkey32.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {AHKProcesses.Length} instance(s) of AutoHotkey32.exe running.")
-            Try
-                For Each process As Process In AHKProcesses
-                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                    process.Kill()
-                    process.WaitForExit()
-                Next
-
-                logger.Logger.LogInfo("All AutoHotkey32.exe processes closed successfully.")
-                Return False ' No longer running
-            Catch ex As Exception
-                logger.Logger.LogError("Error while closing AutoHotkey32.exe: " & ex.ToString())
-                MessageBox.Show("An error occurred while trying to close AutoHotkey32.exe: " & ex.Message,
-                            "Error",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error)
-                Return True ' Still running
-            End Try
-        End Function
-        Shared Function CheckAndCloseShaderGlass() As Boolean
-            Dim shaderglassProcesses = Process.GetProcessesByName("shaderglass")
-
-            If shaderglassProcesses.Length = 0 Then
-                logger.Logger.LogInfo("shaderglass.exe is not currently running.")
-                Return False
-            End If
-
-            logger.Logger.LogWarning($"Found {shaderglassProcesses.Length} instance(s) of shaderglass.exe running.")
-
-            Try
-                For Each process As Process In shaderglassProcesses
-                    logger.Logger.LogInfo($"Attempting to close process PID={process.Id} Name={process.ProcessName}")
-                    process.Kill()
-                    process.WaitForExit()
-                Next
-
-                logger.Logger.LogInfo("All shaderglass.exe processes closed successfully.")
-                Return False ' No longer running
-            Catch ex As Exception
-                logger.Logger.LogError("Error while closing shaderglass.exe: " & ex.ToString())
-                MessageBox.Show("An error occurred while trying to close shaderglass.exe: " & ex.Message,
-                        "Error",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error)
-                Return True ' Still running
-            End Try
-        End Function
-
         'Asynchronous method to wait for the emulator process's to start
         Private Async Function WaitForProcessWindowAsync(processNames As IEnumerable(Of String), tag As String, Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
             Dim startTime As DateTime = DateTime.Now
@@ -2106,7 +2027,6 @@ Namespace My.Managers
         End Function
 
         'Iappli Helpers
-
         Public Shared Async Function UpdateNetworkUIDinJAMAsync(JamFile As String) As Task(Of Boolean)
             If Not File.Exists(JamFile) Then
                 logger.Logger.LogError($"ERROR Did Not find {JamFile} to update networkUID")
@@ -2322,7 +2242,7 @@ Namespace My.Managers
                                               End If
                                           Next
                                       Catch ex As Exception
-                                          Console.WriteLine($"Error reading width and height: {ex.Message}")
+                                          logger.Logger.LogError($"Error reading width and height: {ex.Message}")
                                       End Try
 
                                       Return (width, height)
@@ -2336,7 +2256,7 @@ Namespace My.Managers
         Public Async Function UpdateDOJASoundConf(DOJALOCATION As String, soundType As String) As Task
             Dim soundPath As String = Path.Combine(DOJALOCATION, "lib", "SoundConf.properties")
             If Not File.Exists(soundPath) Then
-                Console.WriteLine($"File Not found: {soundPath}")
+                logger.Logger.LogError($"File Not found: {soundPath}")
                 Return
             End If
 
@@ -2355,7 +2275,7 @@ Namespace My.Managers
                 Await File.WriteAllTextAsync(soundPath, conf, encoding)
 
             Catch ex As Exception
-                Console.WriteLine($"Error updating sound configuration: {ex.Message}")
+                logger.Logger.LogError($"Error updating sound configuration: {ex.Message}")
             End Try
         End Function
         Public Async Function UpdateDOJAAppconfig(DOJALOCATION As String, GAMEJAM As String) As Task
@@ -2370,7 +2290,7 @@ Namespace My.Managers
                                    If binIndex <> -1 Then
                                        GameDirectory = GAMEJAM.Substring(0, binIndex)
                                    Else
-                                       Console.WriteLine("'\bin' not found in path.")
+                                       logger.Logger.LogError("'\bin' not found in path.")
                                        Return
                                    End If
 
@@ -2390,7 +2310,7 @@ Namespace My.Managers
                                        End If
                                    End If
                                Catch ex As Exception
-                                   Console.WriteLine($"Error updating DOJA AppConfig: {ex.Message}")
+                                   logger.Logger.LogError($"Error updating DOJA AppConfig: {ex.Message}")
                                End Try
                            End Sub)
         End Function
@@ -2675,7 +2595,7 @@ Namespace My.Managers
                     height = 480
                 End If
             Catch ex As Exception
-                Console.WriteLine("Error: " & ex.Message)
+                logger.Logger.LogError("Error: " & ex.Message)
             End Try
 
             Return (width, height)
@@ -2689,7 +2609,7 @@ Namespace My.Managers
             Dim soundPath As String = Path.Combine(STARLOCATION, "lib", "SoundConf.properties")
 
             If Not File.Exists(soundPath) Then
-                Console.WriteLine($"File not found: {soundPath}")
+                logger.Logger.LogError($"File not found: {soundPath}")
                 Return
             End If
 
@@ -2706,7 +2626,7 @@ Namespace My.Managers
                 Await File.WriteAllTextAsync(soundPath, conf, enco)
 
             Catch ex As Exception
-                Console.WriteLine($"Error updating STAR sound config: {ex.Message}")
+                logger.Logger.LogError($"Error updating STAR sound config: {ex.Message}")
             End Try
         End Function
         Public Async Function UpdateSTARAppconfig(STARLOCATION As String, GAMEJAM As String) As Task
@@ -2721,7 +2641,7 @@ Namespace My.Managers
                                    If binIndex <> -1 Then
                                        gameDirectory = GAMEJAM.Substring(0, binIndex)
                                    Else
-                                       Console.WriteLine("'\bin' not found in path.")
+                                       logger.Logger.LogError("'\bin' not found in path.")
                                        Return
                                    End If
 
@@ -2734,7 +2654,7 @@ Namespace My.Managers
                                    File.Copy(appConfigFCFile, Path.Combine(gameDirectory, $"{gameName}.fc"), True)
 
                                Catch ex As Exception
-                                   Console.WriteLine($"Error updating STAR AppConfig: {ex.Message}")
+                                   logger.Logger.LogError($"Error updating STAR AppConfig: {ex.Message}")
                                End Try
                            End Sub)
         End Function
@@ -2831,6 +2751,57 @@ Namespace My.Managers
             If modified Then
                 Await File.WriteAllLinesAsync(GAMEJAM, lines, enc)
             End If
+        End Function
+
+        'EZWeb Helper
+        Private Shared Function ExtractKjxMetadata(kjxPath As String) As String()
+            Try
+                Dim raw As Byte() = File.ReadAllBytes(kjxPath)
+
+                ' Find start of metadata (first MIDlet or MicroEdition key)
+                Dim metaStart As Integer = -1
+                Dim searchTerms = {"MIDlet-", "MicroEdition-"}
+
+                For Each term In searchTerms
+                    Dim termBytes = Encoding.ASCII.GetBytes(term)
+                    For i = 0 To raw.Length - termBytes.Length
+                        Dim match = True
+                        For j = 0 To termBytes.Length - 1
+                            If raw(i + j) <> termBytes(j) Then
+                                match = False
+                                Exit For
+                            End If
+                        Next
+                        If match Then
+                            If metaStart = -1 OrElse i < metaStart Then
+                                metaStart = i
+                            End If
+                            Exit For
+                        End If
+                    Next
+                Next
+
+                If metaStart = -1 Then Return Array.Empty(Of String)()
+
+                ' Find end of metadata (PK zip signature)
+                Dim metaEnd As Integer = raw.Length
+                For i = metaStart To raw.Length - 2
+                    If raw(i) = &H50 AndAlso raw(i + 1) = &H4B Then  ' "PK"
+                        metaEnd = i
+                        Exit For
+                    End If
+                Next
+
+                ' Decode and split into lines, keeping only key:value metadata lines
+                Dim text As String = Encoding.ASCII.GetString(raw, metaStart, metaEnd - metaStart)
+                Return text.Split({vbLf(0), vbCr(0)}, StringSplitOptions.RemoveEmptyEntries) _
+                   .Where(Function(line) line.Contains(":"c)) _
+                   .ToArray()
+
+            Catch ex As Exception
+                logger.Logger.LogError($"Failed to extract KJX metadata from {kjxPath}: {ex.Message}")
+                Return Array.Empty(Of String)()
+            End Try
         End Function
 
         'JSKY Helpers
@@ -2947,12 +2918,10 @@ Namespace My.Managers
             Return True
         End Function
 
-        'EzPLus Helpers
-
         'ShaderGlass Helpers
         Public Async Function ModifyCaptureWindow(filePath As String, AppName As String) As Task
             If Not File.Exists(filePath) Then
-                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
+                logger.Logger.LogError($"ShaderGlass config file Not found {filePath}")
                 Return
             End If
 
@@ -2969,7 +2938,7 @@ Namespace My.Managers
         End Function
         Public Async Function ModifySelectedShader(filePath As String, ShaderName As String) As Task
             If Not File.Exists(filePath) Then
-                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
+                logger.Logger.LogError($"ShaderGlass config file Not found {filePath}")
                 Return
             End If
 
@@ -3007,7 +2976,7 @@ Namespace My.Managers
             End Select
 
             If Not File.Exists(filePath) Then
-                Console.WriteLine($"ShaderGlass config file Not found {filePath}")
+                logger.Logger.LogError($"ShaderGlass config file Not found {filePath}")
                 Return
             End If
 
@@ -3083,7 +3052,7 @@ Namespace My.Managers
                     Await Task.Delay(250, token) ' Respect cancellation
                     controller.SetVibration(New Vibration())
                 Else
-                    Console.WriteLine("XInput controller not connected.")
+                    logger.Logger.LogError("XInput controller not connected.")
                 End If
             Catch ex As TaskCanceledException
                 ' If cancelled mid-vibration, stop the motor
@@ -3097,7 +3066,6 @@ Namespace My.Managers
                 End SyncLock
             End Try
         End Function
-
 
     End Class
 End Namespace
