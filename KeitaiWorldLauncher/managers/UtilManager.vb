@@ -1228,6 +1228,7 @@ Namespace My.Managers
                 If GameJAM.EndsWith(".jad") Then
                     AppName = GetMidletNameFromJad(jadjamPath)
                     Await UpdateJADJarURLAsync(jadjamPath)
+                    Await AddJADMIDletEntriesAsync(jadjamPath, MainForm.NetworkUID, MainForm.TerminalID)
                 ElseIf GameJAM.EndsWith(".jam") Then
                     AppName = ExtractAppNamefromJAM(jadjamPath)
                 End If
@@ -1411,7 +1412,7 @@ Namespace My.Managers
 
                 ' Config updates
                 Await UpdateJADJarURLAsync(jadPath)
-
+                Await AddJADMIDletEntriesAsync(jadPath, MainForm.NetworkUID, MainForm.TerminalID)
                 Await Task.Delay(500) ' Let the filesystem settle
 
                 ' Launch JSKY JAVA with retry logic
@@ -1482,7 +1483,7 @@ Namespace My.Managers
 
                 ' Config updates
                 Await UpdateJADJarURLAsync(jadPath)
-
+                Await AddJADMIDletEntriesAsync(jadPath, MainForm.NetworkUID, MainForm.TerminalID)
                 Await Task.Delay(500) ' Let the filesystem settle
 
                 ' Launch VODAFONE  with retry logic
@@ -1565,6 +1566,14 @@ Namespace My.Managers
                 logger.Logger.LogInfo($"[Launch] Launching freej2me directly without Locale Emulator: {arguments}")
 
                 ' Config updates
+                Dim AppName As String
+                If GameJAM.EndsWith(".jad") Then
+                    AppName = GetMidletNameFromJad(jadjamPath)
+                    Await UpdateJADJarURLAsync(jadjamPath)
+                    Await AddJADMIDletEntriesAsync(jadjamPath, MainForm.NetworkUID, MainForm.TerminalID)
+                ElseIf GameJAM.EndsWith(".jam") Then
+                    AppName = ExtractAppNamefromJAM(jadjamPath)
+                End If
 
                 ' Launch freej2me JAVA with retry logic, KJX or JAR/JAD
                 If kjxpath <> "" Then
@@ -2844,7 +2853,25 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
+        Public Async Function AddJADMIDletEntriesAsync(txtFilePath As String, uid As String, terminalId As String) As Task
+            Dim sjis As Encoding = Encoding.GetEncoding("Shift_JIS")
+            Dim lines As New List(Of String)(Await File.ReadAllLinesAsync(txtFilePath, sjis))
 
+            Dim hasUID As Boolean = lines.Any(Function(l) l.StartsWith("MIDlet_UID:"))
+            Dim hasUCODE As Boolean = lines.Any(Function(l) l.StartsWith("MIDlet_UCODE:"))
+
+            If Not hasUID Then
+                lines.Add("MIDlet_UID: " & uid)
+            End If
+
+            If Not hasUCODE Then
+                lines.Add("MIDlet_UCODE: " & terminalId)
+            End If
+
+            If Not hasUID OrElse Not hasUCODE Then
+                Await File.WriteAllLinesAsync(txtFilePath, lines, sjis)
+            End If
+        End Function
         'KEmulator Helpers
         Public Shared Function GetMidletNameFromJad(jadFilePath As String) As String
             Try
