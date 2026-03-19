@@ -1034,7 +1034,7 @@ Namespace My.Managers
                 End If
 
                 ' Update UI skin
-                If Not Await UpdateDOJADeviceSkin(DOJAPATH, MainForm.chkbxHidePhoneUI.Checked) Then
+                If Not Await UpdateDeviceSkin(DOJAPATH, "doja", MainForm.chkbxHidePhoneUI.Checked) Then
                     logger.Logger.LogError("[Launch] Failed to update DOJA skins.")
                     MessageBox.Show("Failed to update DOJA skins.", "Skin Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Exit Sub
@@ -1112,7 +1112,7 @@ Namespace My.Managers
                 If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                     If MainForm.chkboxControllerVibration.Checked = True Then
-                        Await StartVibratorBmpMonitorAsync(Path.Combine(DOJAPATH, "lib", "skin", "device1", "vibrator.bmp"))
+                        MainForm.vibrationManager.StartMonitoring(Path.Combine(DOJAPATH, "lib", "skin", "device1", "vibrator.bmp"))
                     End If
                 End If
                 ProcessManager.StartMonitoring(jamPath)
@@ -1337,7 +1337,7 @@ Namespace My.Managers
                 End If
 
                 ' Update STAR UI skin
-                If Not Await UpdateSTARDeviceSkin(STARPATH, MainForm.chkbxHidePhoneUI.Checked) Then
+                If Not Await UpdateDeviceSkin(STARPATH, "star", MainForm.chkbxHidePhoneUI.Checked) Then
                     logger.Logger.LogError("[Launch] Failed to update STAR skins.")
                     MessageBox.Show("Failed to update STAR skins.", "Skin Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                     Exit Sub
@@ -1393,7 +1393,7 @@ Namespace My.Managers
                 If MainForm.chkbxEnableController.Checked = True Then
                     Await LaunchControllerProfileAMGP()
                     If MainForm.chkboxControllerVibration.Checked = True Then
-                        Await StartVibratorBmpMonitorAsync(Path.Combine(STARPATH, "lib", "skin", "device1", "vibrator.bmp"))
+                        MainForm.vibrationManager.StartMonitoring(Path.Combine(STARPATH, "lib", "skin", "device1", "vibrator.bmp"))
                     End If
                 End If
                 ProcessManager.StartMonitoring(jamPath)
@@ -2123,44 +2123,6 @@ Namespace My.Managers
         End Function
 
         'DOJA Helpers
-        Public Async Function UpdateDOJADeviceSkin(DOJALOCATION As String, hideUI As Boolean) As Task(Of Boolean)
-            Return Await Task.Run(Function()
-                                      Try
-                                          Dim dojaSkinFolder As String = Path.Combine(DOJALOCATION, "lib", "skin", "device1")
-                                          Dim DojaPath = Path.GetFileName(DOJALOCATION)
-
-                                          ' Clear or create skin folder
-                                          If Directory.Exists(dojaSkinFolder) Then
-                                              For Each fi In Directory.GetFiles(dojaSkinFolder)
-                                                  File.Delete(fi)
-                                              Next
-                                          Else
-                                              Directory.CreateDirectory(dojaSkinFolder)
-                                          End If
-
-                                          ' Choose correct UI skin folder
-                                          Dim skinUIFolder As String = If(hideUI, "noui", "ui")
-                                          Dim ourSkinsFolder As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", "doja", skinUIFolder, DojaPath)
-
-                                          If Not Directory.Exists(ourSkinsFolder) Then
-                                              MessageBox.Show($"Skin folder missing: {ourSkinsFolder}")
-                                              logger.Logger.LogError($"Skin folder missing: {ourSkinsFolder}")
-                                              Return False
-                                          End If
-
-                                          ' Copy skins
-                                          For Each skinFile In Directory.GetFiles(ourSkinsFolder)
-                                              Dim destFile = Path.Combine(dojaSkinFolder, Path.GetFileName(skinFile))
-                                              File.Copy(skinFile, destFile, True)
-                                          Next
-
-                                          Return True
-                                      Catch ex As Exception
-                                          logger.Logger.LogError($"[Skin Update Error] {ex.Message}")
-                                          Return False
-                                      End Try
-                                  End Function)
-        End Function
         Public Async Function UpdatedDOJADrawSize(DOJALOCATION As String, width As Integer, height As Integer) As Task
             Dim deviceInfoFile As String = Path.Combine(DOJALOCATION, "lib", "skin", "deviceinfo", "device1")
             Dim newValue As String = $"device1,{width},{height},120,120"
@@ -2312,46 +2274,6 @@ Namespace My.Managers
         End Function
 
         'STAR Helpers
-        Public Async Function UpdateSTARDeviceSkin(STARLOCATION As String, hideUI As Boolean) As Task(Of Boolean)
-            Return Await Task.Run(Function()
-                                      Try
-                                          Dim StarSkinFolder = Path.Combine(STARLOCATION, "lib", "skin", "device1")
-
-                                          If Directory.Exists(StarSkinFolder) Then
-                                              For Each deleteFile In Directory.GetFiles(StarSkinFolder, "*.*", SearchOption.TopDirectoryOnly)
-                                                  File.Delete(deleteFile)
-                                              Next
-                                          Else
-                                              Directory.CreateDirectory(StarSkinFolder)
-                                          End If
-
-                                          Dim OurSkinsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", "star")
-                                          If Not Directory.Exists(OurSkinsFolder) Then
-                                              MessageBox.Show($"Skin folder missing: {OurSkinsFolder}")
-                                              logger.Logger.LogError($"Skin folder missing: {OurSkinsFolder}")
-                                              Return False
-                                          End If
-
-                                          Dim skinSubfolder = If(hideUI, "noui\star-device1-noui", "ui\star-device1-ui")
-                                          Dim sourceFolder = Path.Combine(OurSkinsFolder, skinSubfolder)
-
-                                          If Not Directory.Exists(sourceFolder) Then
-                                              MessageBox.Show($"Sub skin folder missing: {sourceFolder}")
-                                              logger.Logger.LogError($"Sub skin folder missing: {sourceFolder}")
-                                              Return False
-                                          End If
-
-                                          For Each F In Directory.GetFiles(sourceFolder)
-                                              File.Copy(F, Path.Combine(StarSkinFolder, Path.GetFileName(F)), True)
-                                          Next
-
-                                          Return True
-                                      Catch ex As Exception
-                                          logger.Logger.LogError($"[STAR Skin Update] Error: {ex.Message}")
-                                          Return False
-                                      End Try
-                                  End Function)
-        End Function
         Public Async Function UpdatedSTARDrawSize(STARLOCATION As String, X As Integer, Y As Integer) As Task
             Dim device1InfoFile As String = Path.Combine(STARLOCATION, "lib", "skin", "deviceinfo", "device1")
             Dim newValue As String = $"device1,{X},{Y},120,120,0,2,0,1,3"
@@ -2579,6 +2501,59 @@ Namespace My.Managers
             End Try
 
             Return (width, height)
+        End Function
+        Public Async Function UpdateDeviceSkin(emulatorLocation As String, emulatorType As String, hideUI As Boolean) As Task(Of Boolean)
+            Return Await Task.Run(Function()
+                                      Try
+                                          ' Target: {emulatorLocation}/lib/skin/device1
+                                          Dim targetSkinFolder = Path.Combine(emulatorLocation, "lib", "skin", "device1")
+
+                                          ' Clear or create target folder
+                                          If Directory.Exists(targetSkinFolder) Then
+                                              For Each f In Directory.GetFiles(targetSkinFolder, "*.*", SearchOption.TopDirectoryOnly)
+                                                  File.Delete(f)
+                                              Next
+                                          Else
+                                              Directory.CreateDirectory(targetSkinFolder)
+                                          End If
+
+                                          ' Build source skin path based on emulator type
+                                          Dim baseSkinsFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins")
+                                          Dim sourceFolder As String
+
+                                          Select Case emulatorType.ToLower()
+                                              Case "doja"
+                                                  Dim sdkFolderName = Path.GetFileName(emulatorLocation)
+                                                  Dim uiSubfolder = If(hideUI, "noui", "ui")
+                                                  sourceFolder = Path.Combine(baseSkinsFolder, "doja", uiSubfolder, sdkFolderName)
+
+                                              Case "star"
+                                                  Dim skinSubfolder = If(hideUI, "noui\star-device1-noui", "ui\star-device1-ui")
+                                                  sourceFolder = Path.Combine(baseSkinsFolder, "star", skinSubfolder)
+
+                                              Case Else
+                                                  logger.Logger.LogWarning($"[Skin] Unknown emulator type: {emulatorType}")
+                                                  Return False
+                                          End Select
+
+                                          ' Validate source exists
+                                          If Not Directory.Exists(sourceFolder) Then
+                                              logger.Logger.LogError($"Skin folder missing: {sourceFolder}")
+                                              MessageBox.Show($"Skin folder missing: {sourceFolder}")
+                                              Return False
+                                          End If
+
+                                          ' Copy skins
+                                          For Each skinFile In Directory.GetFiles(sourceFolder)
+                                              File.Copy(skinFile, Path.Combine(targetSkinFolder, Path.GetFileName(skinFile)), True)
+                                          Next
+
+                                          Return True
+                                      Catch ex As Exception
+                                          logger.Logger.LogError($"[Skin Update Error] {emulatorType}: {ex.Message}")
+                                          Return False
+                                      End Try
+                                  End Function)
         End Function
 
         'EZWeb Helper
@@ -2834,81 +2809,6 @@ Namespace My.Managers
             Next
 
             Await File.WriteAllLinesAsync(filePath, lines)
-        End Function
-
-        'AMX - Vibration Functions
-        Private _cancellationSource As CancellationTokenSource
-        Private _lastAccessTime As DateTime
-        Private _vibrationLock As New Object()
-        Private _vibrating As Boolean = False
-        Public Async Function StartVibratorBmpMonitorAsync(bmpPath As String) As Task
-            _lastAccessTime = File.GetLastAccessTime(bmpPath)
-            _cancellationSource = New CancellationTokenSource()
-            Dim token = _cancellationSource.Token
-
-            Try
-                While Not token.IsCancellationRequested
-                    Await Task.Delay(100, token)
-
-                    Dim currentAccess = File.GetLastAccessTime(bmpPath)
-                    If currentAccess > _lastAccessTime Then
-                        _lastAccessTime = currentAccess
-                        Await TriggerVibrationAsync(token)
-                    End If
-                End While
-            Catch ex As TaskCanceledException
-                ' Expected on cancel
-            End Try
-        End Function
-        Public Sub StopVibratorBmpMonitor()
-            Try
-                _cancellationSource?.Cancel()
-            Catch ex As ObjectDisposedException
-                ' Already disposed
-            End Try
-
-            _cancellationSource = Nothing
-
-            ' Force stop any vibration
-            Try
-                Dim controller As New Controller(UserIndex.One)
-                If controller.IsConnected Then
-                    controller.SetVibration(New Vibration())
-                End If
-            Catch
-                ' Ignore controller errors on shutdown
-            End Try
-        End Sub
-        Public Async Function TriggerVibrationAsync(token As CancellationToken) As Task
-            SyncLock _vibrationLock
-                If _vibrating Then Exit Function ' Skip if already vibrating
-                _vibrating = True
-            End SyncLock
-
-            Try
-                Dim controller As New Controller(UserIndex.One)
-                If controller.IsConnected Then
-                    controller.SetVibration(New Vibration With {
-                .LeftMotorSpeed = 65535,
-                .RightMotorSpeed = 65535
-            })
-
-                    Await Task.Delay(250, token) ' Respect cancellation
-                    controller.SetVibration(New Vibration())
-                Else
-                    logger.Logger.LogError("XInput controller not connected.")
-                End If
-            Catch ex As TaskCanceledException
-                ' If cancelled mid-vibration, stop the motor
-                Dim controller As New Controller(UserIndex.One)
-                If controller.IsConnected Then
-                    controller.SetVibration(New Vibration())
-                End If
-            Finally
-                SyncLock _vibrationLock
-                    _vibrating = False
-                End SyncLock
-            End Try
         End Function
 
         'Network Helpers

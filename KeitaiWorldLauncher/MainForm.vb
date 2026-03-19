@@ -31,6 +31,7 @@ Public Class MainForm
     Dim UIDialogManager As New UIDialogManager()
     Dim HomepageManager As HomepageManager
     Dim favoritesManager As New FavoritesManager()
+    Public vibrationManager As New VibrationManager()
     Dim pathResolver As New GamePathResolver()
     Dim currentGamePaths As GamePaths = Nothing
 
@@ -39,7 +40,7 @@ Public Class MainForm
     Dim games As List(Of Game)
     Dim machicharas As List(Of MachiChara)
     Dim charadens As List(Of CharaDen)
-    Dim XInputDevices As New Dictionary(Of String, Integer)
+    Public XInputDevices As New Dictionary(Of String, Integer)
     Private Shared isGameDownloadInProgress As Boolean = False
     Dim CompletedBootSequence As Boolean = False
     Public Shared UsingJDK1_8 As Boolean = False
@@ -284,6 +285,11 @@ Public Class MainForm
 
         ' Set we Completed Boot Sequence
         CompletedBootSequence = True
+
+        ' Preload Appli Tab
+        MaterialTabControl1.SelectedIndex = 1
+        ListViewGames.Update()
+        MaterialTabControl1.SelectedIndex = 0
 
         ' Close the splash screen
         Await SplashScreen.CloseSplashAsync()
@@ -2128,7 +2134,7 @@ Public Class MainForm
         Try
             Logger.LogInfo("Attempting To launch game...")
             If chkbxEnableController.Checked Then
-                utilManager.StopVibratorBmpMonitor()
+                vibrationManager.StopMonitoring()
             End If
 
             ' Ensure a game is selected
