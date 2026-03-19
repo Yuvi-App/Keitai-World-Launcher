@@ -1,4 +1,5 @@
 ﻿Imports System.IO
+Imports System.Diagnostics
 
 Namespace My.logger
     Public Class Logger
@@ -31,12 +32,11 @@ Namespace My.logger
         Private Shared Sub Log(logType As String, message As String)
             Dim logMessage As String = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{logType}] {message}"
             Try
-                SyncLock GetType(Logger)  ' Ensures thread safety when multiple threads write to the log
+                SyncLock GetType(Logger)
                     File.AppendAllText(logFilePath, logMessage & Environment.NewLine)
                 End SyncLock
             Catch ioEx As IOException
-                ' Handle file IO exceptions if needed
-                Logger.LogError($"Failed to write to log: {ioEx.Message}")
+                Debug.WriteLine($"Failed to write to log: {ioEx.Message}")
             End Try
         End Sub
     End Class

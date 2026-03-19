@@ -181,7 +181,7 @@ Public Class SaveDataManagerForm
 
         ' Build destination full path: [GameFolder]\[relativeFolder]\[GameFolderName].[ext]
         Dim destinationFolder As String = Path.Combine(fullGameFolderPath, relativeFolder)
-        Dim destinationFileName As String = selectedGameFolder & backupExtension
+        Dim destinationFileName As String = Path.GetFileName(selectedBackupRelativePath)
         Dim destinationFullPath As String = Path.Combine(destinationFolder, destinationFileName)
 
         ' Confirm with the user

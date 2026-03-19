@@ -204,7 +204,7 @@ Namespace My.Managers
             Next
 
             For Each d In Directory.GetDirectories(sourceDir)
-                CopyDirectoryRecursive(Dir, Path.Combine(targetDir, Path.GetFileName(d)))
+                CopyDirectoryRecursive(d, Path.Combine(targetDir, Path.GetFileName(d)))
             Next
         End Sub
 

@@ -247,9 +247,9 @@ Public Class MainForm
 
         ' Starting Loading Downloaded List into ListViews
         ' Load Custom Games
-        Await gameListManager.LoadCustomGamesAsync(CustomGamesTxtFile, DownloadsFolder)
+        Dim customGames = Await gameListManager.LoadCustomGamesAsync(CustomGamesTxtFile, DownloadsFolder)
         Await Task.WhenAll(
-            LoadGameListFirstTimeAsync(),
+            LoadGameListFirstTimeAsync(customGames),
             LoadMachiCharaListFirsTimeASync(),
             LoadCharaDenListFirsTimeASync()
         )
@@ -496,19 +496,32 @@ Public Class MainForm
             ImageListGames.Images.Add(kvp.Key, kvp.Value)
         Next
     End Function
-    Private Async Function LoadGameListFirstTimeAsync() As Task
+    Private Async Function LoadGameListFirstTimeAsync(Optional customGames As List(Of Game) = Nothing) As Task
         Logger.LogInfo("Processing gamelist.xml")
 
         Try
             ' Ensure the favorites file exists
             If Not File.Exists(FavoritesTxtFile) Then
                 Using stream = File.Create(FavoritesTxtFile)
-                    ' Immediately close after creation
                 End Using
             End If
 
-            ' Load games on a background thread
+            ' Load games from XML
             games = Await Task.Run(Function() gameListManager.LoadGamesAsync())
+
+            ' Merge custom games (skip any already in the list)
+            If customGames IsNot Nothing AndAlso customGames.Count > 0 Then
+                Dim existingKeys = games.Select(Function(g) $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".ToLowerInvariant()).ToHashSet(StringComparer.OrdinalIgnoreCase)
+
+                For Each cg In customGames
+                    Dim key = $"{Path.GetFileNameWithoutExtension(cg.ZIPName)}_{cg.Emulator}".ToLowerInvariant()
+                    If Not existingKeys.Contains(key) Then
+                        games.Add(cg)
+                    End If
+                Next
+
+                Logger.LogInfo($"Merged {customGames.Count} custom game(s) into game list.")
+            End If
 
             ' Sort games A-Z by ENTitle
             games = games.OrderBy(Function(g)
@@ -516,7 +529,7 @@ Public Class MainForm
                                           Return "ZZZZZZZZZ" & g.ENTitle ' Push to bottom
                                       Else
                                           Return g.ENTitle
-                                      End If
+                                          End If
                                   End Function).ToList()
 
             'Check for Dupes
@@ -679,7 +692,7 @@ Public Class MainForm
                                                                             Dim zipFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName)
                                                                             Dim InstallKeyName As String = $"{Path.GetFileNameWithoutExtension(game.ZIPName)}_{game.Emulator}".ToLowerInvariant()
                                                                             Dim matchesSearch As Boolean = gameTitle.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0
-                                                                            Dim isFavorited As Boolean = favoriteGames.Contains(gameTitle)
+                                                                            Dim isFavorited As Boolean = favoriteGames.Contains(InstallKeyName)
                                                                             Dim isCustom As Boolean = customGames.Contains(gameTitle)
                                                                             Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(InstallKeyName) AndAlso installedGames.Contains(InstallKeyName)
                                                                             Dim isFanTranslation As Boolean = gameTitle.IndexOf("Patch", StringComparison.OrdinalIgnoreCase) >= 0
@@ -1043,7 +1056,6 @@ Public Class MainForm
 
                                            If filtered.Count <> lines.Count Then
                                                File.WriteAllLines(configPath, filtered)
-                                               Await gameListManager.RemoveGameAsync($"{baseName}_{game.Emulator}")
                                            End If
                                        End If
                                    Else
@@ -1057,13 +1069,22 @@ Public Class MainForm
                        End Function)
 
         ' === End Task.Run ===
-
-        ' Show results (back on the UI thread)
         If deletedGames.Count > 0 Then
+            Dim deletedSet = gamesToDelete.
+                Select(Function(g) $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".ToLowerInvariant()).
+                ToHashSet(StringComparer.OrdinalIgnoreCase)
+
+            games = games.Where(Function(g)
+                                    Dim key = $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".ToLowerInvariant()
+                                    Return Not deletedSet.Contains(key)
+                                End Function).ToList()
+
+            lblTotalGameCount.Text = $"Total: {games.Count}"
+
             MessageBox.Show(
-            $"Successfully deleted:{Environment.NewLine}{String.Join(Environment.NewLine, deletedGames)}",
-            "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information
-        )
+                $"Successfully deleted:{Environment.NewLine}{String.Join(Environment.NewLine, deletedGames)}",
+                "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information
+            )
             Await FilterAndHighlightGamesAsync()
         End If
 
@@ -1820,13 +1841,16 @@ Public Class MainForm
         Dim removedCount As Integer = 0
 
         For Each item As ListViewItem In ListViewGames.SelectedItems
-            Dim selectedGameTitle As String = item.Text
+            Dim game As Game = TryCast(item.Tag, Game)
+            If game Is Nothing Then Continue For
 
-            If favoritesManager.IsGameFavorited(selectedGameTitle) Then
-                favoritesManager.RemoveFromFavorites(selectedGameTitle)
+            Dim gameKey = $"{Path.GetFileNameWithoutExtension(game.ZIPName)}_{game.Emulator}"
+
+            If favoritesManager.IsGameFavorited(gameKey) Then
+                favoritesManager.RemoveFromFavorites(gameKey)
                 removedCount += 1
             Else
-                favoritesManager.AddToFavorites(selectedGameTitle)
+                favoritesManager.AddToFavorites(gameKey)
                 addedCount += 1
             End If
         Next
@@ -1845,13 +1869,12 @@ Public Class MainForm
     Private Async Sub cmsGameLV_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsGameLV.Opening
         If ListViewGames.SelectedItems.Count = 0 Then Return
 
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
+        Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
+        Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
+        If selectedGame Is Nothing Then Return
+        Dim gameKey = $"{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}_{selectedGame.Emulator}"
         Dim favoritesManager As New FavoritesManager()
-
-        ' Simulate async favorite check (future-safe)
-        Dim isFavorited As Boolean = Await Task.Run(Function()
-                                                        Return favoritesManager.IsGameFavorited(selectedGameTitle)
-                                                    End Function)
+        Dim isFavorited As Boolean = favoritesManager.IsGameFavorited(gameKey)
 
         cmsGameLV_Favorite.Text = If(isFavorited, "Unfavorite", "Favorite")
 
@@ -1865,7 +1888,7 @@ Public Class MainForm
                                  "Redownload", "Download")
 
         'To show custom game tools we create when needed
-        If selectedGameTitle.ToLower.Contains("bomberman puzzle special") Then
+        If selectedGame.ENTitle.ToLower.Contains("bomberman puzzle special") Then
             If cmsGameLV_Download.Text = "Redownload" Then
                 cmsBombermanPuzzle.Visible = True
             Else
@@ -2396,9 +2419,9 @@ Public Class MainForm
             lblInvalidTID.Visible = False
         End If
     End Sub
-    Private Sub btnAddCustomApps_Click(sender As Object, e As EventArgs) Handles btnAddCustomApps.Click
+    Private Async Sub btnAddCustomApps_Click(sender As Object, e As EventArgs) Handles btnAddCustomApps.Click
         ' —— 1) Pick emulator via a MaterialForm + ComboBox + Recursive checkbox —— '
-        Dim emus() As String = {"Doja", "Star", "JSky", "AirEdge", "Softbank", "Vodafone", "Flash"}
+        Dim emus() As String = {"Doja", "Star", "JSky", "AirEdge", "Softbank", "Vodafone", "Flash", "EZPlus"}
 
         Dim picker As New MaterialForm() With {
         .Text = "Choose Emulator",
@@ -2465,6 +2488,8 @@ Public Class MainForm
                 optionalExts.Add(".rms")
             Case "flash"
                 requiredExts.Add(".swf")
+            Case "ezplus"
+                requiredExts.Add(".kjx")
             Case Else
                 MessageBox.Show("Unsupported emulator.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 Exit Sub
@@ -2562,15 +2587,48 @@ Public Class MainForm
                 done.Add($"{name} | {selectedEmulator}")
             Next
 
-            ' —— 6) Log to configs/customgames.txt —— '
+            ' —— 6) Log to configs/customgames.txt and add to in-memory list —— '
             If done.Any() Then
                 Dim cfg = CustomGamesTxtFile
                 Directory.CreateDirectory(Path.GetDirectoryName(cfg))
                 File.AppendAllLines(cfg, done)
+
+                ' Add to in-memory games list (no restart needed)
+                For Each kvp In toDo
+                    Dim name = kvp.Key
+                    Dim gameKey = $"{name}_{selectedEmulator}"
+
+                    ' Skip if already in the list
+                    If games.Any(Function(g) $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".
+                        Equals(gameKey, StringComparison.OrdinalIgnoreCase)) Then
+                        Continue For
+                    End If
+
+                    games.Add(New Game With {
+                        .ENTitle = name,
+                        .ZIPName = name & ".zip",
+                        .DownloadURL = "",
+                        .CustomAppIconURL = "",
+                        .SDCardDataURL = "",
+                        .Emulator = selectedEmulator,
+                        .Variants = ""
+                    })
+                Next
+
+                ' Re-sort
+                games = games.OrderBy(Function(g)
+                                          If g.ENTitle.StartsWith("[") Then
+                                              Return "ZZZZZZZZZ" & g.ENTitle
+                                          Else
+                                              Return g.ENTitle
+                                          End If
+                                      End Function).ToList()
+
+                lblTotalGameCount.Text = $"Total: {games.Count}"
+                Await FilterAndHighlightGamesAsync()
             End If
 
             MessageBox.Show("Import complete!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Application.Restart()
         End Using
     End Sub
     Private Sub btnSaveDataManagement_Click(sender As Object, e As EventArgs) Handles btnSaveDataManagement.Click

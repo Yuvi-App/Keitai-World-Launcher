@@ -1867,25 +1867,25 @@ Namespace My.Managers
 
         'Launch App Helpers
         Public Async Function LaunchEmulatorWithRetry(
-    fileName As String,
-    arguments As String,
-    processNameToCheck As String,
-    workingDir As String,
-    waitFunction As Func(Of Task(Of Boolean)),
-    Optional initialDelayMs As Integer = 500,
-    Optional captureOutput As Boolean = True
-) As Task(Of Boolean)
+            fileName As String,
+            arguments As String,
+            processNameToCheck As String,
+            workingDir As String,
+            waitFunction As Func(Of Task(Of Boolean)),
+            Optional initialDelayMs As Integer = 500,
+            Optional captureOutput As Boolean = True
+        ) As Task(Of Boolean)
 
             Dim startInfo As New ProcessStartInfo With {
-        .FileName = fileName,
-        .Arguments = arguments,
-        .UseShellExecute = False,
-        .CreateNoWindow = True,
-        .RedirectStandardOutput = captureOutput,
-        .RedirectStandardError = captureOutput,
-        .RedirectStandardInput = Not captureOutput,
-        .WorkingDirectory = workingDir
-    }
+                .FileName = fileName,
+                .Arguments = arguments,
+                .UseShellExecute = False,
+                .CreateNoWindow = True,
+                .RedirectStandardOutput = captureOutput,
+                .RedirectStandardError = captureOutput,
+                .RedirectStandardInput = Not captureOutput,
+                .WorkingDirectory = workingDir
+            }
 
             For attempt = 1 To 2
                 Try
@@ -1898,7 +1898,11 @@ Namespace My.Managers
                     End If
 
                     If captureOutput Then
-                        process.WaitForInputIdle()
+                        Try
+                            process.WaitForInputIdle()
+                        Catch ex As Exception
+                            ' Some apps don't support WaitForInputIdle
+                        End Try
                         AddHandler process.OutputDataReceived, Sub(sender, e)
                                                                    If e.Data IsNot Nothing Then logger.Logger.LogInfo($"[{processNameToCheck.ToUpper()} STDOUT] {e.Data}")
                                                                End Sub
@@ -1911,20 +1915,46 @@ Namespace My.Managers
 
                     logger.Logger.LogInfo($"[LaunchHelper] Waiting for {processNameToCheck} to become ready...")
 
+                    ' App is Running
                     If Await waitFunction() Then
                         logger.Logger.LogInfo($"[LaunchHelper] {processNameToCheck} is running and ready.")
                         UtilManager.HideLaunchOverlay()
                         Return True
-                    Else
-                        logger.Logger.LogWarning($"[LaunchHelper] {processNameToCheck} failed to become ready on attempt {attempt}. Retrying...")
-                        process.Kill()
-                        process.Dispose()
-                        Await Task.Delay(500)
                     End If
+
+                    ' Wait timed out — but only kill and retry if the process actually died
+                    Dim stillRunning = Process.GetProcessesByName(processNameToCheck).Length > 0
+                    If stillRunning Then
+                        ' Process exists but window handle wasn't ready yet — treat as success
+                        logger.Logger.LogInfo($"[LaunchHelper] {processNameToCheck} process found (no window handle yet). Treating as success.")
+                        UtilManager.HideLaunchOverlay()
+                        Return True
+                    End If
+
+                    ' Process genuinely failed to start — clean up and retry
+                    logger.Logger.LogWarning($"[LaunchHelper] {processNameToCheck} not found on attempt {attempt}. Retrying...")
+                    Try
+                        If Not process.HasExited Then
+                            process.Kill()
+                            process.WaitForExit(2000)
+                        End If
+                    Catch
+                        ' Already exited
+                    End Try
+                    process.Dispose()
+                    Await Task.Delay(500)
+
                 Catch ex As Exception
                     logger.Logger.LogError($"[LaunchHelper] Exception during attempt {attempt} {ex.Message}")
                 End Try
             Next
+
+            ' Final safety check — the process might have started on the last attempt
+            If Process.GetProcessesByName(processNameToCheck).Length > 0 Then
+                logger.Logger.LogInfo($"[LaunchHelper] {processNameToCheck} detected running after retries. Treating as success.")
+                UtilManager.HideLaunchOverlay()
+                Return True
+            End If
 
             logger.Logger.LogError($"[LaunchHelper] Failed to start {processNameToCheck} after 2 attempts.")
             UtilManager.HideLaunchOverlay()
@@ -1970,24 +2000,29 @@ Namespace My.Managers
         End Sub
 
         'Asynchronous method to wait for the emulator process's to start
-        Private Async Function WaitForProcessWindowAsync(processNames As IEnumerable(Of String), tag As String, Optional timeoutMilliseconds As Integer = 4000) As Task(Of Boolean)
+        Private Async Function WaitForProcessWindowAsync(processNames As IEnumerable(Of String), tag As String, Optional timeoutMilliseconds As Integer = 10000) As Task(Of Boolean)
+
             Dim startTime As DateTime = DateTime.Now
 
             While (DateTime.Now - startTime).TotalMilliseconds < timeoutMilliseconds
                 For Each name In processNames
                     Dim procs As Process() = Process.GetProcessesByName(name)
                     For Each proc In procs
-                        If proc.MainWindowHandle <> IntPtr.Zero Then
-                            logger.Logger.LogInfo($"[{tag}] '{name}' process ready with MainWindowHandle.")
-                            Return True
-                        End If
+                        Try
+                            If proc.MainWindowHandle <> IntPtr.Zero Then
+                                logger.Logger.LogInfo($"[{tag}] '{name}' process ready with MainWindowHandle.")
+                                Return True
+                            End If
+                        Catch
+                            ' Process may have exited between GetProcessesByName and handle check
+                        End Try
                     Next
                 Next
 
-                Await Task.Delay(500)
+                Await Task.Delay(250)
             End While
 
-            logger.Logger.LogError($"[{tag}] Timed out waiting for {String.Join("/", processNames)} window.")
+            logger.Logger.LogWarning($"[{tag}] Timed out waiting for {String.Join("/", processNames)} window.")
             Return False
         End Function
 
