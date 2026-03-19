@@ -9,12 +9,11 @@ Namespace My.Managers
 
         Public Shared Async Function DownloadCharaDenListAsync(url As String) As Task
             Try
-                Using client As New Net.Http.HttpClient()
-                    Dim fileBytes As Byte() = Await client.GetByteArrayAsync(url)
-                    Await File.WriteAllBytesAsync(CharaDenListPath, fileBytes)
-                End Using
+                Dim fileBytes As Byte() = Await Http.GetByteArrayAsync(url)
+                Await File.WriteAllBytesAsync(CharaDenListPath, fileBytes)
+                logger.Logger.LogInfo("Updated CharaDen list downloaded successfully!")
             Catch ex As Exception
-                MessageBox.Show(owner:=SplashScreen, $"Failed to download Chara-den list: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogWarning($"Failed to download CharaDen list: {ex.Message}")
             End Try
         End Function
 

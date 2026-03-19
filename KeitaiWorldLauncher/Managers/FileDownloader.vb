@@ -1,34 +1,28 @@
-﻿Imports System.Net
+﻿Imports System.IO
+Imports System.Net.Http
 
 Namespace My.Managers
     Public Class FileDownloader
-        Private WithEvents client As WebClient
         Private progressBar As ProgressBar
-        Private downloadFilePath As String
-        Private contentTypeName As String
-        Dim overlay As New Panel With {
-                    .Dock = DockStyle.Fill,
-                    .BackColor = Color.FromArgb(160, Color.White),
-                    .Visible = True
-                }
+        Private overlay As Panel
 
         Public Sub New(progressBarControl As ProgressBar)
-            client = New WebClient()
             progressBar = progressBarControl
         End Sub
 
         Public Async Function DownloadFileAsync(url As String, savePath As String, contentName As String) As Task
             Try
-                contentTypeName = contentName
-                downloadFilePath = savePath
-
                 ' Create overlay
-
+                overlay = New Panel With {
+                    .Dock = DockStyle.Fill,
+                    .BackColor = Color.FromArgb(160, Color.White),
+                    .Visible = True
+                }
                 MainForm.Controls.Add(overlay)
                 overlay.BringToFront()
 
                 Dim loadingLabel As New Label With {
-                    .Text = "Downloading...",
+                    .Text = $"Downloading {contentName}...",
                     .ForeColor = Color.Black,
                     .Font = New Font("Segoe UI", 14, FontStyle.Bold),
                     .BackColor = Color.Transparent,
@@ -50,20 +44,25 @@ Namespace My.Managers
                 centerControls()
                 AddHandler overlay.Resize, Sub() centerControls()
 
-                progressBar.Value = 0
-
-                Await client.DownloadFileTaskAsync(New Uri(url), savePath)
+                ' Download using shared HttpClient
+                Using response = Await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead)
+                    response.EnsureSuccessStatusCode()
+                    Using contentStream = Await response.Content.ReadAsStreamAsync()
+                        Using fileStream As New FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None)
+                            Await contentStream.CopyToAsync(fileStream)
+                        End Using
+                    End Using
+                End Using
 
             Catch ex As Exception
                 logger.Logger.LogError($"[Download] Exception occurred during download:{vbCrLf}{ex}")
-                MessageBox.Show($"Failed to start download: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                MessageBox.Show($"Failed to download {contentName}: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Finally
                 If overlay IsNot Nothing Then
                     If progressBar IsNot Nothing Then
                         overlay.Controls.Remove(progressBar)
                         progressBar.Visible = False
                     End If
-
                     MainForm.Controls.Remove(overlay)
                     overlay.Dispose()
                     overlay = Nothing

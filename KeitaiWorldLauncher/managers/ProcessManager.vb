@@ -4,53 +4,59 @@
 Namespace My.Managers
     Public Class ProcessManager
         Private Shared applitrackerManager As New AppliTrackerManager()
-        Private Shared monitorThread As Thread = Nothing
-        Private Shared monitoring As Boolean = False
+        Private Shared _cts As CancellationTokenSource = Nothing
+        Private Shared _monitorTask As Task = Nothing
+
         Public Shared ReadOnly EmulatorProcessNames As String() = {
             "doja", "squirreljme", "star", "java", "javaw", "jbime", "emulator", "flashplayer"
         }
 
         Public Shared Sub StartMonitoring(applipath As String)
-            ' If already monitoring, or the thread is still alive, don't start another one
-            If monitoring OrElse (monitorThread IsNot Nothing AndAlso monitorThread.IsAlive) Then Exit Sub
+            ' If already monitoring, don't start another
+            If _monitorTask IsNot Nothing AndAlso Not _monitorTask.IsCompleted Then Exit Sub
 
-            monitoring = True
-            monitorThread = New Thread(AddressOf MonitorProcesses)
-            monitorThread.IsBackground = True
-            monitorThread.Start()
+            _cts = New CancellationTokenSource()
+            _monitorTask = MonitorProcessesAsync(_cts.Token)
 
             applitrackerManager.StartTrackingAppli(applipath)
         End Sub
 
-        Private Shared Async Sub MonitorProcesses()
+        Private Shared Async Function MonitorProcessesAsync(token As CancellationToken) As Task
             Try
-                While monitoring
+                While Not token.IsCancellationRequested
                     Dim anyRunning = EmulatorProcessNames.Any(
-                Function(name) Process.GetProcessesByName(name).Length > 0)
+                        Function(name) Process.GetProcessesByName(name).Length > 0)
 
                     If Not anyRunning Then
-                        CloseProcess("shaderglass")
-                        monitoring = False
+                        KillProcessesByName("shaderglass", "shaderglass.exe")
                         Await applitrackerManager.StopTrackingAppliAsync()
                         Exit While
                     End If
 
-                    Thread.Sleep(2000)
+                    Await Task.Delay(2000, token)
                 End While
+            Catch ex As TaskCanceledException
+                ' Expected on cancellation
             Catch ex As Exception
-                logger.Logger.LogError($"Failed to Close Shaderglass via processmanger {ex}")
-            Finally
-                monitoring = False
-                monitorThread = Nothing
+                logger.Logger.LogError($"Error in process monitor: {ex}")
             End Try
-        End Sub
+        End Function
 
         Public Shared Sub StopMonitoring()
-            monitoring = False
-            If monitorThread IsNot Nothing AndAlso monitorThread.IsAlive Then
-                monitorThread.Join()
-                monitorThread = Nothing
+            Try
+                _cts?.Cancel()
+            Catch ex As ObjectDisposedException
+                ' Already disposed
+            End Try
+
+            ' Give it a moment to finish cleanly
+            If _monitorTask IsNot Nothing AndAlso Not _monitorTask.IsCompleted Then
+                _monitorTask.Wait(2000)
             End If
+
+            _cts?.Dispose()
+            _cts = Nothing
+            _monitorTask = Nothing
         End Sub
 
         Private Shared Sub CloseProcess(processName As String)

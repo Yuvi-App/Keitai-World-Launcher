@@ -16,7 +16,7 @@ Namespace My.Managers
     Public Class UtilManager
         Private Shared LaunchOverlay As Panel = Nothing
         Dim gameManager As New GameManager()
-        Private Shared ReadOnly _httpClient As New Net.Http.HttpClient() With {.Timeout = TimeSpan.FromSeconds(60)}
+        Private Shared _appliEditWarningShown As Boolean = False
 
         'PreReq Check
         Public Shared Async Function CheckforPreReqAsync() As Task(Of Boolean)
@@ -69,6 +69,7 @@ Namespace My.Managers
                 My.logger.Logger.LogInfo("Missing Locale Emulator")
                 Await OpenURLAsync("https://github.com/xupefei/Locale-Emulator/releases")
                 MainForm.QuitApplication()
+                Return False
             End If
 
             ' Check for ShaderGlass
@@ -78,6 +79,7 @@ Namespace My.Managers
                 My.logger.Logger.LogInfo("Missing ShaderGlass")
                 Await OpenURLAsync("https://github.com/mausimus/ShaderGlass/releases")
                 MainForm.QuitApplication()
+                Return False
             End If
 
             ' Check for Java 1.8
@@ -86,6 +88,7 @@ Namespace My.Managers
                 MessageBox.Show(owner:=SplashScreen, "Missing JAVA 8 (JDK8u152)... Download is required")
                 My.logger.Logger.LogInfo("Missing JAVA 8")
                 MainForm.QuitApplication()
+                Return False
             End If
 
             ' Check for Visual C++ Runtimes
@@ -95,6 +98,7 @@ Namespace My.Managers
                 My.logger.Logger.LogInfo("Missing C++ Runtimes")
                 Await OpenURLAsync("https://www.techpowerup.com/download/visual-c-redistributable-runtime-package-all-in-one/")
                 MainForm.QuitApplication()
+                Return False
             End If
 
             ' Check for .net 8 Runtime
@@ -104,6 +108,7 @@ Namespace My.Managers
                 My.logger.Logger.LogInfo("Missing .Net 8.0.15+ Runtimes")
                 Await OpenURLAsync("https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-8.0.15-windows-x86-installer?cid=getdotnetcore")
                 MainForm.QuitApplication()
+                Return False
             End If
             Return True
         End Function
@@ -370,36 +375,27 @@ Namespace My.Managers
         End Function
 
         ' Stats
-        Public Shared Sub SendKWLLaunchStats()
-            Dim whUrl = "https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec"
-            Dim dotNetVersion As String = Environment.Version.ToString()
-            Dim javaVersion As String = GetJavaVersion()
-            Dim version As String = KeitaiWorldLauncher.My.Application.Info.Version.ToString
-            Dim platform As String = Environment.OSVersion.Platform.ToString()
-            Dim source As String = "KWL"
-            Dim json As String = $"{{""version"":""{version}"",""platform"":""{platform}"",""dotNetVersion"":""{dotNetVersion}"",""javaVersion"":""{javaVersion}"",""source"":""{source}""}}"
-            Dim client As New WebClient()
-            client.Headers(HttpRequestHeader.ContentType) = "application/json"
+        Public Shared Async Sub SendKWLLaunchStats()
             Try
-                client.UploadStringAsync(New Uri(whUrl), "POST", json)
-            Catch ex As Exception
+                Dim dotNetVersion As String = Environment.Version.ToString()
+                Dim javaVersion As String = GetJavaVersion()
+                Dim version As String = KeitaiWorldLauncher.My.Application.Info.Version.ToString
+                Dim platform As String = Environment.OSVersion.Platform.ToString()
+                Dim json As String = $"{{""version"":""{version}"",""platform"":""{platform}"",""dotNetVersion"":""{dotNetVersion}"",""javaVersion"":""{javaVersion}"",""source"":""KWL""}}"
+
+                Dim content As New StringContent(json, Encoding.UTF8, "application/json")
+                Await Http.PostAsync("https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec", content)
+            Catch
                 ' Fail silently
             End Try
         End Sub
-        Public Shared Sub SendAppLaunch(inputAppName As String)
-            Dim telemetryUrl As String = "https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec"
-
-            Dim appName As String = inputAppName
-
-            Dim json As String = $"{{""appName"":""{appName}""}}"
-
-            Dim client As New Net.WebClient()
-            client.Headers(HttpRequestHeader.ContentType) = "application/json"
-
+        Public Shared Async Sub SendAppLaunch(inputAppName As String)
             Try
-                client.UploadStringAsync(New Uri(telemetryUrl), "POST", json)
-            Catch ex As Exception
-                ' Silent fail
+                Dim json As String = $"{{""appName"":""{inputAppName}""}}"
+                Dim content As New StringContent(json, Encoding.UTF8, "application/json")
+                Await Http.PostAsync("https://script.google.com/macros/s/AKfycbwtXDCzN-V2XYV-zDHkYfxJdDd6xPyR8xhHSpKrXhMFDQklkxgENVUvXSTcgablGoOvmQ/exec", content)
+            Catch
+                ' Fail silently
             End Try
         End Sub
         Public Shared Function GetJavaVersion() As String
@@ -530,7 +526,7 @@ Namespace My.Managers
         urls.Select(Function(url) Task.Run(Async Function() As Task(Of Boolean)
                                                Try
                                                    Using request As New Net.Http.HttpRequestMessage(Net.Http.HttpMethod.Head, url)
-                                                       Using response = Await _httpClient.SendAsync(
+                                                       Using response = Await Http.SendAsync(
                         request,
                         Net.Http.HttpCompletionOption.ResponseHeadersRead)
                                                            Return True
@@ -559,22 +555,15 @@ Namespace My.Managers
         End Function
         Public Shared Async Function CanReachFileAsync(url As String) As Task(Of Boolean)
             Try
-                Using client As New HttpClient() With {
-                    .Timeout = TimeSpan.FromSeconds(10)
-                }
+                Using cts As New CancellationTokenSource(TimeSpan.FromSeconds(10))
                     Using request As New HttpRequestMessage(HttpMethod.Head, url)
-                        Using response As HttpResponseMessage =
-                            Await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
-                            ' 2xx or 3xx = reachable
+                        Using response = Await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cts.Token)
                             Return response.IsSuccessStatusCode OrElse
-                                   (CInt(response.StatusCode) >= 300 AndAlso CInt(response.StatusCode) < 400)
+                           (CInt(response.StatusCode) >= 300 AndAlso CInt(response.StatusCode) < 400)
                         End Using
                     End Using
                 End Using
-            Catch ex As TaskCanceledException
-                ' Timeout
-                Return False
-            Catch ex As Exception
+            Catch
                 Return False
             End Try
         End Function
@@ -682,7 +671,59 @@ Namespace My.Managers
                 ' Handle the edit click
                 AddHandler editItem.Click, Sub(sender, e)
                                                If lv.SelectedItems.Count = 0 Then Return
+                                               ' Show one-time warning per app launch
+                                               If Not _appliEditWarningShown Then
+                                                   Dim accepted As Boolean = False
+                                                   Dim warningForm As New ReaLTaiizor.Forms.MaterialForm() With {
+                                                       .Text = "Appli Info Editor",
+                                                       .Size = New Size(480, 230),
+                                                       .StartPosition = FormStartPosition.CenterParent,
+                                                       .FormBorderStyle = FormBorderStyle.FixedDialog,
+                                                       .Sizable = False,
+                                                       .MaximizeBox = False,
+                                                       .MinimizeBox = False
+                                                   }
+                                                   Dim lblWarning As New Label() With {
+                                                       .Text = "Modifying Appli Info values can break games or cause" & vbCrLf &
+                                                               "unexpected behavior." & vbCrLf & vbCrLf &
+                                                               "Please do not modify this unless you know what you are doing.",
+                                                       .Font = New Font("Segoe UI", 10),
+                                                       .Left = 20,
+                                                       .Top = 76,
+                                                       .AutoSize = True
+                                                   }
+                                                   Dim btnContinue As New ReaLTaiizor.Controls.MaterialButton() With {
+                                                       .Text = "CONTINUE",
+                                                       .Left = warningForm.ClientSize.Width - 230,
+                                                       .Top = warningForm.ClientSize.Height - 52,
+                                                       .Width = 110,
+                                                       .HighEmphasis = True,
+                                                       .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
+                                                   }
+                                                   Dim btnCancel As New ReaLTaiizor.Controls.MaterialButton() With {
+                                                       .Text = "CANCEL",
+                                                       .Left = warningForm.ClientSize.Width - 110,
+                                                       .Top = warningForm.ClientSize.Height - 52,
+                                                       .Width = 100,
+                                                       .HighEmphasis = False,
+                                                       .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Text
+                                                   }
+                                                   AddHandler btnContinue.Click, Sub()
+                                                                                     accepted = True
+                                                                                     warningForm.Close()
+                                                                                 End Sub
+                                                   AddHandler btnCancel.Click, Sub()
+                                                                                   warningForm.Close()
+                                                                               End Sub
 
+                                                   warningForm.Controls.Add(lblWarning)
+                                                   warningForm.Controls.Add(btnContinue)
+                                                   warningForm.Controls.Add(btnCancel)
+                                                   warningForm.ShowDialog()
+                                                   warningForm.Dispose()
+                                                   If Not accepted Then Return
+                                                   _appliEditWarningShown = True
+                                               End If
                                                Dim selectedRow = lv.SelectedItems(0)
                                                Dim propertyName = selectedRow.Text
                                                Dim currentValue = selectedRow.SubItems(1).Text

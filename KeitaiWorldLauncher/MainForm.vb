@@ -150,6 +150,7 @@ Public Class MainForm
         Catch ex As Exception
             MessageBox.Show(owner:=SplashScreen, $"Failed to Load App Config: Please put a valid appconfig.xml into ""Configs"" Folder Error: {vbCrLf}{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             MainForm.QuitApplication()
+            Return
         End Try
 
         ' Access and Assign Config settings
@@ -188,6 +189,7 @@ Public Class MainForm
             Logger.LogInfo("Invalid FirstStart Parameter in Config")
             MessageBox.Show("Invalid FirstStart parameter in AppConfig.xml, Please set to true and relaunch app.")
             MainForm.QuitApplication()
+            Return
         End If
 
         'We need to check for java every run, since these get used for all emu's

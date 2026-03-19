@@ -9,13 +9,11 @@ Namespace My.Managers
 
         Public Shared Async Function DownloadMachiCharaListAsync(url As String) As Task
             Try
-                Using client As New Net.Http.HttpClient()
-                    Dim fileBytes As Byte() = Await client.GetByteArrayAsync(url)
-                    Await File.WriteAllBytesAsync(MachiCharaListPath, fileBytes)
-                    'MessageBox.Show("Updated Machi Chara list downloaded successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                End Using
+                Dim fileBytes As Byte() = Await Http.GetByteArrayAsync(url)
+                Await File.WriteAllBytesAsync(MachiCharaListPath, fileBytes)
+                logger.Logger.LogInfo("Updated MachiChara list downloaded successfully!")
             Catch ex As Exception
-                MessageBox.Show(owner:=SplashScreen, $"Failed to download Machi Chara list: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                logger.Logger.LogWarning($"Failed to download MachiChara list: {ex.Message}")
             End Try
         End Function
 

@@ -10,14 +10,11 @@ Namespace My.Managers
         ' Download gamelist from URL and save to local path
         Public Shared Async Function DownloadGameListAsync(url As String) As Task
             Try
-                Using client As New Net.Http.HttpClient()
-                    Dim fileBytes As Byte() = Await client.GetByteArrayAsync(url)
-                    Await File.WriteAllBytesAsync(GameListPath, fileBytes)
-                    logger.Logger.LogInfo("Updated Game list downloaded successfully!")
-                End Using
+                Dim fileBytes As Byte() = Await Http.GetByteArrayAsync(url)
+                Await File.WriteAllBytesAsync(GameListPath, fileBytes)
+                logger.Logger.LogInfo("Updated Game list downloaded successfully!")
             Catch ex As Exception
                 logger.Logger.LogWarning($"Failed to download gamelist: {ex.Message}")
-                MessageBox.Show(owner:=SplashScreen, $"Failed to download gamelist: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Function
 

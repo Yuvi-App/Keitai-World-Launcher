@@ -11,7 +11,7 @@ Namespace My.Managers
 
             Try
                 Using client As New HttpClient()
-                    Dim versionData As String = (Await client.GetStringAsync(versionCheckUrl)).Trim()
+                    Dim versionData As String = (Await Http.GetStringAsync(versionCheckUrl)).Trim()
                     Dim lines As String() = versionData.Split({vbCrLf, vbLf}, StringSplitOptions.RemoveEmptyEntries)
 
                     If lines.Length < 2 Then
@@ -26,7 +26,21 @@ Namespace My.Managers
                     logger.Logger.LogInfo($"Latest version found: {latestVersion}")
                     logger.Logger.LogInfo($"Update package URL: {updatePackageUrl}")
 
-                    If currentVersion <> latestVersion Then
+                    ' Compare as proper version numbers, not strings
+                    Dim currentVer As Version = Nothing
+                    Dim latestVer As Version = Nothing
+
+                    If Not Version.TryParse(currentVersion, currentVer) Then
+                        logger.Logger.LogWarning($"Could not parse current version: {currentVersion}")
+                        Return
+                    End If
+
+                    If Not Version.TryParse(latestVersion, latestVer) Then
+                        logger.Logger.LogWarning($"Could not parse latest version from server: {latestVersion}")
+                        Return
+                    End If
+
+                    If latestVer > currentVer Then
                         logger.Logger.LogInfo("Update required — prompting user.")
                         Dim confirm = MessageBox.Show(ownerWindow, $"A new version is available!" & vbCrLf &
                                                   $"Current: {currentVersion}" & vbCrLf &
