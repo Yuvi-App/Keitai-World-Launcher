@@ -1005,7 +1005,7 @@ Namespace My.Managers
 
                 ' Update draw size for DOJA5
                 If DOJAVER = 5 Then
-                    Dim dimensions = Await ExtractDOJAWidthHeightAsync(jamPath)
+                    Dim dimensions = ExtractDrawAreaFromJam(jamPath, 240, 240)
                     Dim width As Integer = dimensions.Item1
                     Dim height As Integer = dimensions.Item2
                     Await UpdatedDOJADrawSize(DOJAPATH, width, height)
@@ -1013,30 +1013,24 @@ Namespace My.Managers
                 End If
 
                 ' Update sound config
-                Await UpdateDOJASoundConf(DOJAPATH, MainForm.cbxAudioType.SelectedItem.ToString())
+                Await UpdateSoundConf(DOJAPATH, MainForm.cbxAudioType.SelectedItem.ToString())
                 logger.Logger.LogInfo($"[Launch] Updated DOJA sound config to {MainForm.cbxAudioType.SelectedItem}")
 
                 ' Update app config and JAM entries
                 Dim NoGameJameUpdatedList As List(Of String) = gameManager.NoUpdateJAMGames
-                If NoGameJameUpdatedList.Contains(Path.GetFileNameWithoutExtension(GameJAM)) = False Then
+                If Not NoGameJameUpdatedList.Contains(Path.GetFileNameWithoutExtension(GameJAM)) Then
                     Await UpdateDOJAAppconfig(DOJAPATH, jamPath)
+
                     If DOJAVER = 3 Then
-                        Await RemoveDOJAJamFileEntries(jamPath)
-                        logger.Logger.LogInfo("[Launch] Removed DOJA3 jam entries")
-                        'convert SP to SCR
-                        Dim rootFolder As String = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(GameJAM), ".."))
-                        Dim gameName As String = Path.GetFileNameWithoutExtension(GameJAM)
-                        Dim SPFile As String = Path.Combine(rootFolder, "sp", gameName & ".sp")
+                        Await PrepareJamFileForLaunchAsync(jamPath, "doja3", MainForm.NetworkUID, MainForm.chkbxModifyJamFiles.Checked, MainForm.chkboxNetworkModifyURLS.Checked)
+                        ' Convert SP to SCR
+                        Dim rootFolder = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(GameJAM), ".."))
+                        Dim SPFile = Path.Combine(rootFolder, "sp", Path.GetFileNameWithoutExtension(GameJAM) & ".sp")
                         Await ProcessDOJA3SPtoSCR(SPFile)
                     Else
-                        Await EnsureDOJAJamFileEntries(jamPath)
-                        logger.Logger.LogInfo("[Launch] Ensured DOJA jam entries")
+                        Await PrepareJamFileForLaunchAsync(jamPath, "doja5", MainForm.NetworkUID, MainForm.chkbxModifyJamFiles.Checked, MainForm.chkboxNetworkModifyURLS.Checked)
                     End If
                 End If
-
-                'Update NetworkUID in JAM if found
-                Await UpdateNetworkUIDinJAMAsync(GameJAM)
-                Await UpdateNetworkURLSinJAMAsync(GameJAM)
 
                 ' Let filesystem settle (especially important on slower drives)
                 Await Task.Delay(500)
@@ -1096,7 +1090,6 @@ Namespace My.Managers
                 'Start overlay
                 UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
 
-
                 ' Construct all paths
                 Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
                 Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
@@ -1144,9 +1137,6 @@ Namespace My.Managers
                     logger.Logger.LogInfo($"[Launch] Launching directly without Locale Emulator: {arguments}")
                 End If
 
-                ' Update NetworkURLS in Jam
-                Await UpdateNetworkUIDinJAMAsync(GameJAM)
-                Await UpdateNetworkURLSinJAMAsync(GameJAM)
 
                 ' Let filesystem settle (especially important on slower drives)
                 Await Task.Delay(500)
@@ -1313,18 +1303,16 @@ Namespace My.Managers
                 End If
 
                 ' Screen size
-                Dim dimensions = ExtractSTARWidthHeight(jamPath)
+                Dim dimensions = ExtractDrawAreaFromJam(jamPath, 480, 480)
                 Await UpdatedSTARDrawSize(STARPATH, dimensions.Item1, dimensions.Item2)
                 logger.Logger.LogInfo($"[Launch] STAR draw size set to {dimensions.Item1}x{dimensions.Item2}")
 
                 ' Config updates
-                Await UpdateSTARSoundConf(STARPATH, MainForm.cbxAudioType.SelectedItem.ToString())
+                Await UpdateSoundConf(STARPATH, MainForm.cbxAudioType.SelectedItem.ToString())
                 logger.Logger.LogInfo($"[Launch] STAR sound config set to {MainForm.cbxAudioType.SelectedItem}")
                 Await UpdateSTARAppconfig(STARPATH, GameJAM)
-                Await EnsureSTARJamFileEntries(GameJAM)
+                Await PrepareJamFileForLaunchAsync(GameJAM, "star", MainForm.NetworkUID, MainForm.chkbxModifyJamFiles.Checked, MainForm.chkboxNetworkModifyURLS.Checked)
                 logger.Logger.LogInfo("[Launch] STAR app configuration and JAM entries updated.")
-                Await UpdateNetworkUIDinJAMAsync(GameJAM)
-                Await UpdateNetworkURLSinJAMAsync(GameJAM)
 
                 Await Task.Delay(500) ' Let the filesystem settle
 
@@ -1761,38 +1749,6 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Async Function LaunchShaderGlass(AppName As String) As Task
-            Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
-            Dim appPath As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "ShaderGlass.exe")
-            Dim argumentFile As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "keitai.sgp")
-
-            If Not File.Exists(appPath) Then
-                MessageBox.Show("ShaderGlass executable not found at: " & appPath, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-
-            If Not File.Exists(argumentFile) Then
-                MessageBox.Show("Argument file not found at: " & argumentFile, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                Return
-            End If
-            Await ModifyCaptureWindow(argumentFile, AppName)
-            Await ModifyScalingWindow(argumentFile)
-
-            Dim startInfo As New ProcessStartInfo() With {
-                .FileName = appPath,
-                .Arguments = $"""{argumentFile}""",
-                .UseShellExecute = True,
-                .WorkingDirectory = baseDir
-            }
-
-            Await Task.Delay(1000)
-
-            Try
-                Process.Start(startInfo)
-            Catch ex As Exception
-                MessageBox.Show("Failed to launch ShaderGlass: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
-        End Function
         Public Async Function LaunchControllerProfileAMGP() As Task
             Dim selectedProfile As String = TryCast(MainForm.cbxControllerProfile.SelectedItem, String)
             Dim selectedController As String = TryCast(MainForm.cbxGameControllers.SelectedItem, String)
@@ -2035,111 +1991,6 @@ Namespace My.Managers
             Return False
         End Function
 
-        'Iappli Helpers
-        Public Shared Async Function UpdateNetworkUIDinJAMAsync(JamFile As String) As Task(Of Boolean)
-            If Not File.Exists(JamFile) Then
-                logger.Logger.LogError($"ERROR Did Not find {JamFile} to update networkUID")
-                Return False
-            End If
-
-            If MainForm.NetworkUID.ToLower.Trim = "nullgwdocomo" Then
-                logger.Logger.LogInfo("Skipping update to NetworkUID in Jam due to it Not being set (still NULLGWDOCOMO).")
-                Return True
-            End If
-            Dim enc = Encoding.GetEncoding(932)
-            Dim originalLines As String() = Await File.ReadAllLinesAsync(JamFile, enc)
-            Dim lines As New List(Of String)
-            Dim replacementCount As Integer = 0
-
-            For Each line In originalLines
-                If Regex.IsMatch(line, "NULLGWDOCOMO", RegexOptions.IgnoreCase) Then
-                    replacementCount += Regex.Matches(line, "NULLGWDOCOMO", RegexOptions.IgnoreCase).Count
-                    Dim newLine = Regex.Replace(line, "NULLGWDOCOMO", MainForm.NetworkUID, RegexOptions.IgnoreCase)
-                    lines.Add(newLine)
-                Else
-                    lines.Add(line)
-                End If
-            Next
-
-            If replacementCount > 0 Then
-                logger.Logger.LogInfo($"Replaced {replacementCount} occurrence(s) of 'NULLGWDOCOMO' with '{MainForm.NetworkUID}' in {JamFile}")
-            Else
-                logger.Logger.LogInfo($"No occurrences of 'NULLGWDOCOMO' found in {JamFile}. No changes made.")
-            End If
-
-            Await File.WriteAllLinesAsync(JamFile, lines, enc)
-            logger.Logger.LogInfo($"Successfully updated {JamFile}")
-            Return True
-        End Function
-        Public Shared Async Function UpdateNetworkURLSinJAMAsync(JamFile As String) As Task(Of Boolean)
-            If Not File.Exists(JamFile) Then
-                logger.Logger.LogError($"ERROR Did not find {JamFile} to update network URLs")
-                Return False
-            End If
-
-            If MainForm.chkboxNetworkModifyURLS.Checked = False Then
-                logger.Logger.LogInfo("Skipping update to network URLs in Jam due to option being unchecked.")
-                Return True
-            End If
-
-            ' key   = source domain suffix
-            ' value = replacement domain
-            Dim domainMap As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase) From {
-                {"mbga.jp", "mobage.gs.keitaiarchive.org"},
-                {"gree.jp", "gree.gs.keitaiarchive.org"},
-                {"m-app.jp", "moco.gs.keitaiarchive.org"},
-                {"i-simple100.channel.or.jp", "simple100.gs.keitaiarchive.org"},
-                {"*.shiftup.net", "shiftup.gs.keitaiarchive.org"},
-                {"*.gp.commseed.jp", "upss.gs.keitaiarchive.org"},
-                {"igc.cave.co.jp", "cave.gs.keitaiarchive.org"},
-                {"icd.i.konami.net", "konami.gs.keitaiarchive.org"}
-            }
-
-            Dim enc = Encoding.GetEncoding(932)
-            Dim originalLines As String() = Await File.ReadAllLinesAsync(JamFile, enc)
-            Dim lines As New List(Of String)
-            Dim replacementCount As Integer = 0
-            Dim urlRegex As New Regex(
-                "(https?://)([^/]+)",
-                RegexOptions.IgnoreCase Or RegexOptions.Compiled
-            )
-            For Each line In originalLines
-                If urlRegex.IsMatch(line) Then
-                    Dim newLine As String = urlRegex.Replace(
-                line,
-                Function(m)
-                    Dim protocol = m.Groups(1).Value
-                    Dim host = m.Groups(2).Value
-
-                    For Each kvp In domainMap
-                        If host.EndsWith(kvp.Key, StringComparison.OrdinalIgnoreCase) Then
-                            replacementCount += 1
-                            Return protocol & kvp.Value
-                        End If
-                    Next
-
-                    Return m.Value
-                End Function
-            )
-                    lines.Add(newLine)
-                Else
-                    lines.Add(line)
-                End If
-            Next
-            If replacementCount > 0 Then
-                logger.Logger.LogInfo(
-            $"Replaced {replacementCount} network URL host(s) in {JamFile}"
-        )
-            Else
-                logger.Logger.LogInfo(
-            $"No matching network URLs found in {JamFile}. No changes made."
-        )
-            End If
-            Await File.WriteAllLinesAsync(JamFile, lines, enc)
-            logger.Logger.LogInfo($"Successfully updated network URLs in {JamFile}")
-            Return True
-        End Function
-
         'EXE Get/Patchers
         Public Function ReadRawStringFromExe(exePath As String, offset As Long, Optional length As Integer = 37) As String
             If Not File.Exists(exePath) Then
@@ -2234,58 +2085,10 @@ Namespace My.Managers
                                       End Try
                                   End Function)
         End Function
-        Public Async Function ExtractDOJAWidthHeightAsync(filePath As String) As Task(Of (Integer, Integer))
-            Return Await Task.Run(Function()
-                                      Dim width As Integer = 240
-                                      Dim height As Integer = 240
-
-                                      Try
-                                          For Each line As String In File.ReadLines(filePath, Encoding.GetEncoding("shift-jis"))
-                                              If line.StartsWith("DrawArea =", StringComparison.OrdinalIgnoreCase) Then
-                                                  Dim dimensions = line.Split("="c)(1).Trim().Split("x"c)
-                                                  If dimensions.Length = 2 Then
-                                                      width = Convert.ToInt32(dimensions(0).Trim())
-                                                      height = Convert.ToInt32(dimensions(1).Trim())
-                                                  End If
-                                                  Exit For
-                                              End If
-                                          Next
-                                      Catch ex As Exception
-                                          logger.Logger.LogError($"Error reading width and height: {ex.Message}")
-                                      End Try
-
-                                      Return (width, height)
-                                  End Function)
-        End Function
         Public Async Function UpdatedDOJADrawSize(DOJALOCATION As String, width As Integer, height As Integer) As Task
             Dim deviceInfoFile As String = Path.Combine(DOJALOCATION, "lib", "skin", "deviceinfo", "device1")
             Dim newValue As String = $"device1,{width},{height},120,120"
             Await File.WriteAllTextAsync(deviceInfoFile, newValue)
-        End Function
-        Public Async Function UpdateDOJASoundConf(DOJALOCATION As String, soundType As String) As Task
-            Dim soundPath As String = Path.Combine(DOJALOCATION, "lib", "SoundConf.properties")
-            If Not File.Exists(soundPath) Then
-                logger.Logger.LogError($"File Not found: {soundPath}")
-                Return
-            End If
-
-            Try
-                ' Read the file with Shift-JIS encoding
-                Dim encoding = Text.Encoding.GetEncoding("shift-jis")
-                Dim conf As String = Await File.ReadAllTextAsync(soundPath, encoding)
-
-                ' Update mode and sound library
-                conf = Regex.Replace(conf, "MODE=.", "MODE=0")
-
-                Dim soundLibValue As String = If(soundType = "903i", "002", "001")
-                conf = Regex.Replace(conf, "SOUNDLIB=...", $"SOUNDLIB={soundLibValue}")
-
-                ' Write it back
-                Await File.WriteAllTextAsync(soundPath, conf, encoding)
-
-            Catch ex As Exception
-                logger.Logger.LogError($"Error updating sound configuration: {ex.Message}")
-            End Try
         End Function
         Public Async Function UpdateDOJAAppconfig(DOJALOCATION As String, GAMEJAM As String) As Task
             Await Task.Run(Sub()
@@ -2323,129 +2126,18 @@ Namespace My.Managers
                                End Try
                            End Sub)
         End Function
-        Public Async Function EnsureDOJAJamFileEntries(GAMEJAM As String) As Task
-            If Not File.Exists(GAMEJAM) Then
-                Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
-            End If
-
-            If MainForm.chkbxModifyJamFiles.Checked = False Then
-                logger.Logger.LogInfo("Skipping .jam file modifications due to user settings.")
-                Return
-            End If
-
-            Dim enc = Encoding.GetEncoding("shift-jis")
-            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(GAMEJAM, enc)).ToList()
-            lines.Add(vbCrLf)
-            Dim modified As Boolean = False
-
-            ' Remove empty or whitespace-only lines
-            lines = lines.Where(Function(line) Not String.IsNullOrWhiteSpace(line)).ToList()
-
-            ' Normalize spacing around equals signs
-            Dim keyValuePattern As New Regex("^(\S+)\s*=\s*(.*)$")
-            For i As Integer = 0 To lines.Count - 1
-                Dim match As Match = keyValuePattern.Match(lines(i))
-                If match.Success Then
-                    Dim key As String = match.Groups(1).Value
-                    Dim value As String = match.Groups(2).Value
-                    lines(i) = $"{key} = {value}"
-                    modified = True
-                End If
-            Next
-
-            ' Check if AppType = MiniApp exists
-            Dim isMiniApp As Boolean = lines.Any(Function(line) Regex.IsMatch(line, "^AppType\s*=\s*MiniApp$", RegexOptions.IgnoreCase))
-
-            ' If it's a MiniApp, remove any existing MessageCode entries
-            If isMiniApp Then
-                Dim originalCount As Integer = lines.Count
-                lines = lines.Where(Function(line) Not Regex.IsMatch(line, "^MessageCode\s*=", RegexOptions.IgnoreCase)).ToList()
-                If lines.Count < originalCount Then
-                    modified = True
-                End If
-            End If
-
-            ' Required entries - conditionally include MessageCode
-            Dim requiredEntries As New Dictionary(Of String, String) From {}
-
-            ' Only add MessageCode if NOT a MiniApp
-            If Not isMiniApp Then
-                requiredEntries.Add("TrustedAPID", "00000000000")
-                requiredEntries.Add("MessageCode", "0000000000")
-            End If
-
-            ' Add missing entries
-            For Each entry In requiredEntries
-                If Not lines.Any(Function(line) Regex.IsMatch(line, $"^{Regex.Escape(entry.Key)}\s*=")) Then
-                    lines.Add(entry.Key & " = " & entry.Value)
-                    modified = True
-                End If
-            Next
-
-            ' Fix PackageURL
-            Dim packageUrlPattern As New Regex("^PackageURL\s*=\s*(.+)$", RegexOptions.IgnoreCase)
-            For i As Integer = 0 To lines.Count - 1
-                Dim match As Match = packageUrlPattern.Match(lines(i))
-                If match.Success Then
-                    Dim value As String = match.Groups(1).Value.Trim()
-                    If Not value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) AndAlso Not value.StartsWith("https://", StringComparison.OrdinalIgnoreCase) Then
-                        Dim fileName As String = Path.GetFileName(value)
-                        Dim folderName As String = Path.GetFileNameWithoutExtension(fileName)
-                        lines(i) = $"PackageURL = http://localhost/{folderName}/{fileName}"
-                        modified = True
-                    End If
-                    Exit For
-                End If
-            Next
-
-            ' Fix SPsize: remove any spaces in its value
-            Dim spSizePattern As New Regex("^SPsize\s*=\s*(.+)$", RegexOptions.IgnoreCase)
-            For i As Integer = 0 To lines.Count - 1
-                Dim match As Match = spSizePattern.Match(lines(i))
-                If match.Success Then
-                    Dim rawValue As String = match.Groups(1).Value
-                    Dim cleanedValue As String = rawValue.Replace(" "c, "")
-                    lines(i) = $"SPsize = {cleanedValue}"
-                    modified = True
-                    Exit For
-                End If
-            Next
-
-            ' Always write back
-            Await File.WriteAllLinesAsync(GAMEJAM, lines, enc)
-        End Function
-        Public Async Function RemoveDOJAJamFileEntries(GAMEJAM As String) As Task
-            If Not File.Exists(GAMEJAM) Then
-                Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
-            End If
-
-            Dim enc = Encoding.GetEncoding("shift-jis")
-            Dim originalLines As List(Of String) = (Await File.ReadAllLinesAsync(GAMEJAM, enc)).ToList()
-
-            Dim entriesToRemove As List(Of String) = New List(Of String) From {
-                "TrustedAPID =",
-                "MessageCode ="
-            }
-
-            ' Perform filtering on background thread
-            Dim filteredLines As List(Of String) = Await Task.Run(Function()
-                                                                      Return originalLines.Where(Function(line) Not entriesToRemove.Any(Function(entry) line.StartsWith(entry))).ToList()
-                                                                  End Function)
-
-            If filteredLines.Count <> originalLines.Count Then
-                Await File.WriteAllLinesAsync(GAMEJAM, filteredLines, enc)
-            End If
-        End Function
         Public Async Function ProcessDOJA3SPtoSCR(inputSpPath As String, Optional idkdoja2 As Boolean = False) As Task(Of List(Of String))
 
             Const HEADER_SIZE As Integer = &H40
 
             If String.IsNullOrWhiteSpace(inputSpPath) Then
                 Throw New ArgumentException("inputSpPath is required.")
+                Return Nothing
             End If
 
             If Not File.Exists(inputSpPath) Then
                 Throw New FileNotFoundException("Input .sp file not found.", inputSpPath)
+                Return Nothing
             End If
 
             Dim outputDir As String = Path.GetDirectoryName(inputSpPath)
@@ -2584,59 +2276,10 @@ Namespace My.Managers
                                       End Try
                                   End Function)
         End Function
-        Public Function ExtractSTARWidthHeight(filePath As String) As (Integer, Integer)
-            Dim width As Integer = 0
-            Dim height As Integer = 0
-
-            Try
-                For Each line As String In IO.File.ReadLines(filePath)
-                    If line.StartsWith("DrawArea =") Then
-                        Dim parts() As String = line.Split("="c)(1).Trim().Split("x"c)
-                        If parts.Length = 2 Then
-                            width = Convert.ToInt32(parts(0).Trim())
-                            height = Convert.ToInt32(parts(1).Trim())
-                        End If
-                        Exit For
-                    End If
-                Next
-                If width = 0 Or height = 0 Then
-                    width = 480
-                    height = 480
-                End If
-            Catch ex As Exception
-                logger.Logger.LogError("Error: " & ex.Message)
-            End Try
-
-            Return (width, height)
-        End Function
         Public Async Function UpdatedSTARDrawSize(STARLOCATION As String, X As Integer, Y As Integer) As Task
             Dim device1InfoFile As String = Path.Combine(STARLOCATION, "lib", "skin", "deviceinfo", "device1")
             Dim newValue As String = $"device1,{X},{Y},120,120,0,2,0,1,3"
             Await File.WriteAllTextAsync(device1InfoFile, newValue)
-        End Function
-        Public Async Function UpdateSTARSoundConf(STARLOCATION As String, soundType As String) As Task
-            Dim soundPath As String = Path.Combine(STARLOCATION, "lib", "SoundConf.properties")
-
-            If Not File.Exists(soundPath) Then
-                logger.Logger.LogError($"File not found: {soundPath}")
-                Return
-            End If
-
-            Try
-                Dim enco = Text.Encoding.GetEncoding("shift-jis")
-                Dim conf As String = Await File.ReadAllTextAsync(soundPath, enco)
-
-                ' Apply substitutions
-                conf = Regex.Replace(conf, "MODE=.", "MODE=0")
-                Dim soundLibValue As String = If(soundType = "903i", "002", "001")
-                conf = Regex.Replace(conf, "SOUNDLIB=...", $"SOUNDLIB={soundLibValue}")
-
-                ' Write updated config
-                Await File.WriteAllTextAsync(soundPath, conf, enco)
-
-            Catch ex As Exception
-                logger.Logger.LogError($"Error updating STAR sound config: {ex.Message}")
-            End Try
         End Function
         Public Async Function UpdateSTARAppconfig(STARLOCATION As String, GAMEJAM As String) As Task
             Await Task.Run(Sub()
@@ -2667,99 +2310,199 @@ Namespace My.Managers
                                End Try
                            End Sub)
         End Function
-        Public Async Function EnsureSTARJamFileEntries(GAMEJAM As String) As Task
-            If Not File.Exists(GAMEJAM) Then
-                Throw New FileNotFoundException($"The file '{GAMEJAM}' does not exist.")
-            End If
 
-            If MainForm.chkbxModifyJamFiles.Checked = False Then
-                logger.Logger.LogInfo("Skipping .jam file modifications due to user settings.")
+        'DOJA/STAR Helpers
+        Public Async Function PrepareJamFileForLaunchAsync(
+            jamFile As String,
+            mode As String,
+            networkUID As String,
+            modifyJam As Boolean,
+            modifyUrls As Boolean
+        ) As Task
+
+            If Not File.Exists(jamFile) Then
+                logger.Logger.LogError($"JAM file not found: {jamFile}")
                 Return
             End If
 
             Dim enc = Encoding.GetEncoding(932)
-            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(GAMEJAM, enc)).ToList()
+            Dim lines = (Await File.ReadAllLinesAsync(jamFile, enc)).ToList()
             Dim modified As Boolean = False
 
-            ' Remove empty or whitespace-only lines
-            lines = lines.Where(Function(line) Not String.IsNullOrWhiteSpace(line)).ToList()
+            ' DOJA3 special case: strip entries and exit early 
+            If mode = "doja3" Then
+                Dim entriesToRemove = {"TrustedAPID =", "MessageCode ="}
+                Dim filtered = lines.Where(Function(l) Not entriesToRemove.Any(
+            Function(e) l.StartsWith(e, StringComparison.OrdinalIgnoreCase))).ToList()
 
-            ' Normalize spacing around equal signs
-            Dim keyValuePattern As New Regex("^(\S+)\s*=\s*(.*)$")
-            For i As Integer = 0 To lines.Count - 1
-                Dim match As Match = keyValuePattern.Match(lines(i))
-                If match.Success Then
-                    Dim key As String = match.Groups(1).Value
-                    Dim value As String = match.Groups(2).Value
-                    lines(i) = $"{key} = {value}"
-                    modified = True
+                If filtered.Count <> lines.Count Then
+                    Await File.WriteAllLinesAsync(jamFile, filtered, enc)
+                    logger.Logger.LogInfo($"Removed DOJA3 jam entries from {jamFile}")
                 End If
-            Next
-
-            ' Check if AppType = MiniApp exists
-            Dim isMiniApp As Boolean = lines.Any(Function(line) Regex.IsMatch(line, "^AppType\s*=\s*MiniApp$", RegexOptions.IgnoreCase))
-
-            ' If it's a MiniApp, remove any existing MessageCode entries
-            If isMiniApp Then
-                Dim originalCount As Integer = lines.Count
-                lines = lines.Where(Function(line) Not Regex.IsMatch(line, "^MessageCode\s*=", RegexOptions.IgnoreCase)).ToList()
-                If lines.Count < originalCount Then
-                    modified = True
-                End If
+                Return
             End If
 
-            ' Required entries - conditionally include MessageCode
-            Dim requiredEntries As New Dictionary(Of String, String) From {
-                {"UseNetwork", "yes"}
-            }
+            ' Normalize and ensure entries (if user allows JAM modifications)
+            If modifyJam Then
+                ' Remove empty lines
+                Dim before = lines.Count
+                lines = lines.Where(Function(l) Not String.IsNullOrWhiteSpace(l)).ToList()
+                If lines.Count <> before Then modified = True
 
-            ' Only add MessageCode if NOT a MiniApp
-            If Not isMiniApp Then
-                requiredEntries.Add("TrustedAPID", "00000000000")
-                requiredEntries.Add("MessageCode", "0000000000")
-            End If
+                ' Normalize spacing around equals signs
+                Dim kvPattern As New Regex("^(\S+)\s*=\s*(.*)$")
+                For i = 0 To lines.Count - 1
+                    Dim m = kvPattern.Match(lines(i))
+                    If m.Success Then
+                        Dim normalized = $"{m.Groups(1).Value} = {m.Groups(2).Value}"
+                        If lines(i) <> normalized Then
+                            lines(i) = normalized
+                            modified = True
+                        End If
+                    End If
+                Next
 
-            For Each entry In requiredEntries
-                If Not lines.Any(Function(line) Regex.IsMatch(line, $"^{Regex.Escape(entry.Key)}\s*=")) Then
-                    lines.Add($"{entry.Key} = {entry.Value}")
-                    modified = True
+                ' Check MiniApp status
+                Dim isMiniApp = lines.Any(Function(l) Regex.IsMatch(l, "^AppType\s*=\s*MiniApp$", RegexOptions.IgnoreCase))
+
+                ' Remove MessageCode if MiniApp
+                If isMiniApp Then
+                    before = lines.Count
+                    lines = lines.Where(Function(l) Not Regex.IsMatch(l, "^MessageCode\s*=", RegexOptions.IgnoreCase)).ToList()
+                    If lines.Count < before Then modified = True
                 End If
-            Next
 
-            ' Handle PackageURL
-            Dim packageUrlPattern As New Regex("^PackageURL\s*=\s*(.+)$", RegexOptions.IgnoreCase)
-            For i As Integer = 0 To lines.Count - 1
-                Dim match As Match = packageUrlPattern.Match(lines(i))
-                If match.Success Then
-                    Dim value As String = match.Groups(1).Value.Trim()
-                    If Not value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) AndAlso
-       Not value.StartsWith("https://", StringComparison.OrdinalIgnoreCase) Then
-                        Dim fileName As String = Path.GetFileName(value)
-                        Dim folderName As String = Path.GetFileNameWithoutExtension(fileName)
-                        lines(i) = $"PackageURL = http://localhost/{folderName}/{fileName}"
+                ' Build required entries based on mode
+                Dim requiredEntries As New Dictionary(Of String, String)
+
+                If mode = "star" Then
+                    requiredEntries.Add("UseNetwork", "yes")
+                End If
+
+                If Not isMiniApp Then
+                    requiredEntries.Add("TrustedAPID", "00000000000")
+                    requiredEntries.Add("MessageCode", "0000000000")
+                End If
+
+                For Each entry In requiredEntries
+                    If Not lines.Any(Function(l) Regex.IsMatch(l, $"^{Regex.Escape(entry.Key)}\s*=")) Then
+                        lines.Add($"{entry.Key} = {entry.Value}")
                         modified = True
                     End If
-                    Exit For
-                End If
-            Next
+                Next
 
-            ' Fix SPsize: remove any spaces in its value
-            Dim spSizePattern As New Regex("^SPsize\s*=\s*(.+)$", RegexOptions.IgnoreCase)
-            For i As Integer = 0 To lines.Count - 1
-                Dim match As Match = spSizePattern.Match(lines(i))
-                If match.Success Then
-                    Dim rawValue As String = match.Groups(1).Value
-                    Dim cleanedValue As String = rawValue.Replace(" "c, "")
-                    lines(i) = $"SPsize = {cleanedValue}"
-                    modified = True
-                    Exit For
-                End If
-            Next
+                ' Fix PackageURL
+                Dim pkgPattern As New Regex("^PackageURL\s*=\s*(.+)$", RegexOptions.IgnoreCase)
+                For i = 0 To lines.Count - 1
+                    Dim m = pkgPattern.Match(lines(i))
+                    If m.Success Then
+                        Dim val = m.Groups(1).Value.Trim()
+                        If Not val.StartsWith("http://", StringComparison.OrdinalIgnoreCase) AndAlso
+                   Not val.StartsWith("https://", StringComparison.OrdinalIgnoreCase) Then
+                            Dim fn = Path.GetFileName(val)
+                            lines(i) = $"PackageURL = http://localhost/{Path.GetFileNameWithoutExtension(fn)}/{fn}"
+                            modified = True
+                        End If
+                        Exit For
+                    End If
+                Next
 
-            ' Write back if modified
-            If modified Then
-                Await File.WriteAllLinesAsync(GAMEJAM, lines, enc)
+                ' Fix SPsize spaces
+                Dim spPattern As New Regex("^SPsize\s*=\s*(.+)$", RegexOptions.IgnoreCase)
+                For i = 0 To lines.Count - 1
+                    Dim m = spPattern.Match(lines(i))
+                    If m.Success Then
+                        Dim cleaned = m.Groups(1).Value.Replace(" "c, "")
+                        If lines(i) <> $"SPsize = {cleaned}" Then
+                            lines(i) = $"SPsize = {cleaned}"
+                            modified = True
+                        End If
+                        Exit For
+                    End If
+                Next
             End If
+
+            ' Replace NetworkUID 
+            If Not String.IsNullOrWhiteSpace(networkUID) AndAlso
+       Not networkUID.Equals("NULLGWDOCOMO", StringComparison.OrdinalIgnoreCase) Then
+                For i = 0 To lines.Count - 1
+                    If Regex.IsMatch(lines(i), "NULLGWDOCOMO", RegexOptions.IgnoreCase) Then
+                        lines(i) = Regex.Replace(lines(i), "NULLGWDOCOMO", networkUID, RegexOptions.IgnoreCase)
+                        modified = True
+                    End If
+                Next
+            End If
+
+            ' Rewrite network URLs
+            If modifyUrls Then
+                Dim domainMap = GetNetworkDomainMap()
+                Dim urlRegex As New Regex("(https?://)([^/]+)", RegexOptions.IgnoreCase Or RegexOptions.Compiled)
+
+                For i = 0 To lines.Count - 1
+                    If urlRegex.IsMatch(lines(i)) Then
+                        Dim original = lines(i)
+                        lines(i) = urlRegex.Replace(lines(i), Function(m)
+                                                                  Dim host = m.Groups(2).Value
+                                                                  For Each kvp In domainMap
+                                                                      If host.EndsWith(kvp.Key, StringComparison.OrdinalIgnoreCase) Then
+                                                                          Return m.Groups(1).Value & kvp.Value
+                                                                      End If
+                                                                  Next
+                                                                  Return m.Value
+                                                              End Function)
+                        If lines(i) <> original Then modified = True
+                    End If
+                Next
+            End If
+
+            If modified Then
+                Await File.WriteAllLinesAsync(jamFile, lines, enc)
+                logger.Logger.LogInfo($"JAM file updated: {jamFile}")
+            Else
+                logger.Logger.LogInfo($"JAM file unchanged: {jamFile}")
+            End If
+        End Function
+        Public Async Function UpdateSoundConf(emulatorLocation As String, soundType As String) As Task
+            Dim soundPath = Path.Combine(emulatorLocation, "lib", "SoundConf.properties")
+
+            If Not File.Exists(soundPath) Then
+                logger.Logger.LogError($"File not found: {soundPath}")
+                Return
+            End If
+
+            Try
+                Dim enc = Encoding.GetEncoding("shift-jis")
+                Dim conf = Await File.ReadAllTextAsync(soundPath, enc)
+
+                conf = Regex.Replace(conf, "MODE=.", "MODE=0")
+                Dim soundLibValue = If(soundType = "903i", "002", "001")
+                conf = Regex.Replace(conf, "SOUNDLIB=...", $"SOUNDLIB={soundLibValue}")
+
+                Await File.WriteAllTextAsync(soundPath, conf, enc)
+            Catch ex As Exception
+                logger.Logger.LogError($"Error updating sound configuration: {ex.Message}")
+            End Try
+        End Function
+        Public Function ExtractDrawAreaFromJam(filePath As String, Optional defaultWidth As Integer = 240, Optional defaultHeight As Integer = 240) As (Integer, Integer)
+            Dim width = defaultWidth
+            Dim height = defaultHeight
+
+            Try
+                For Each line In File.ReadLines(filePath, Encoding.GetEncoding("shift-jis"))
+                    If line.StartsWith("DrawArea =", StringComparison.OrdinalIgnoreCase) Then
+                        Dim parts = line.Split("="c)(1).Trim().Split("x"c)
+                        If parts.Length = 2 Then
+                            width = Convert.ToInt32(parts(0).Trim())
+                            height = Convert.ToInt32(parts(1).Trim())
+                        End If
+                        Exit For
+                    End If
+                Next
+            Catch ex As Exception
+                logger.Logger.LogError($"Error reading draw area: {ex.Message}")
+            End Try
+
+            Return (width, height)
         End Function
 
         'EZWeb Helper
@@ -2872,6 +2615,7 @@ Namespace My.Managers
                 Await File.WriteAllLinesAsync(txtFilePath, lines, sjis)
             End If
         End Function
+
         'KEmulator Helpers
         Public Shared Function GetMidletNameFromJad(jadFilePath As String) As String
             Try
@@ -2946,73 +2690,70 @@ Namespace My.Managers
         End Function
 
         'ShaderGlass Helpers
-        Public Async Function ModifyCaptureWindow(filePath As String, AppName As String) As Task
-            If Not File.Exists(filePath) Then
-                logger.Logger.LogError($"ShaderGlass config file Not found {filePath}")
+        Public Async Function LaunchShaderGlass(AppName As String) As Task
+            Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
+            Dim appPath As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "ShaderGlass.exe")
+            Dim argumentFile As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "keitai.sgp")
+
+            If Not File.Exists(appPath) Then
+                MessageBox.Show("ShaderGlass executable not found at: " & appPath, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
                 Return
             End If
 
-            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(filePath)).ToList()
+            If Not File.Exists(argumentFile) Then
+                MessageBox.Show("Argument file not found at: " & argumentFile, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Return
+            End If
+            Await UpdateShaderGlassConfig(argumentFile, captureWindowName:=AppName, scalingSelection:=MainForm.cbxShaderGlassScaling.SelectedItem.ToString())
 
-            For i As Integer = 0 To lines.Count - 1
-                If lines(i).StartsWith("CaptureWindow") Then
-                    lines(i) = $"CaptureWindow ""{AppName}"""
-                    Exit For
-                End If
-            Next
+            Dim startInfo As New ProcessStartInfo() With {
+                .FileName = appPath,
+                .Arguments = $"""{argumentFile}""",
+                .UseShellExecute = True,
+                .WorkingDirectory = baseDir
+            }
 
-            Await File.WriteAllLinesAsync(filePath, lines)
+            Await Task.Delay(1000)
+
+            Try
+                Process.Start(startInfo)
+            Catch ex As Exception
+                MessageBox.Show("Failed to launch ShaderGlass: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
         End Function
-        Public Async Function ModifySelectedShader(filePath As String, ShaderName As String) As Task
+        Public Async Function UpdateShaderGlassConfig(filePath As String, Optional captureWindowName As String = Nothing, Optional shaderName As String = Nothing, Optional scalingSelection As String = Nothing) As Task
+
             If Not File.Exists(filePath) Then
-                logger.Logger.LogError($"ShaderGlass config file Not found {filePath}")
+                logger.Logger.LogError($"ShaderGlass config file not found: {filePath}")
                 Return
             End If
 
-            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(filePath)).ToList()
-
-            For i As Integer = 0 To lines.Count - 1
-                If lines(i).StartsWith("ShaderName") Then
-                    lines(i) = $"ShaderName ""{ShaderName.ToLower}"""
-                    Exit For
-                End If
-            Next
-            Await File.WriteAllLinesAsync(filePath, lines)
-        End Function
-        Public Async Function ModifyScalingWindow(filePath As String) As Task
-            Dim selectedValue As String = MainForm.cbxShaderGlassScaling.SelectedItem.ToString()
-            Dim scaleValue As Integer
-
-            Select Case selectedValue
-                Case "1x"
-                    scaleValue = 100
-                Case "1.5x"
-                    scaleValue = 150
-                Case "2x"
-                    scaleValue = 200
-                Case "2.5x"
-                    scaleValue = 250
-                Case "3x"
-                    scaleValue = 300
-                Case "3.5x"
-                    scaleValue = 350
-                Case "4x"
-                    scaleValue = 400
-                Case Else
-                    scaleValue = 100 ' default value
-            End Select
-
-            If Not File.Exists(filePath) Then
-                logger.Logger.LogError($"ShaderGlass config file Not found {filePath}")
-                Return
+            ' Resolve scaling text to integer value
+            Dim scaleValue As Integer = -1
+            If scalingSelection IsNot Nothing Then
+                Select Case scalingSelection
+                    Case "1x" : scaleValue = 100
+                    Case "1.5x" : scaleValue = 150
+                    Case "2x" : scaleValue = 200
+                    Case "2.5x" : scaleValue = 250
+                    Case "3x" : scaleValue = 300
+                    Case "3.5x" : scaleValue = 350
+                    Case "4x" : scaleValue = 400
+                    Case Else : scaleValue = 100
+                End Select
             End If
 
-            Dim lines As List(Of String) = (Await File.ReadAllLinesAsync(filePath)).ToList()
+            Dim lines = (Await File.ReadAllLinesAsync(filePath)).ToList()
 
-            For i As Integer = 0 To lines.Count - 1
-                If lines(i).StartsWith("OutputScale") Then
+            For i = 0 To lines.Count - 1
+                If captureWindowName IsNot Nothing AndAlso lines(i).StartsWith("CaptureWindow") Then
+                    lines(i) = $"CaptureWindow ""{captureWindowName}"""
+
+                ElseIf shaderName IsNot Nothing AndAlso lines(i).StartsWith("ShaderName") Then
+                    lines(i) = $"ShaderName ""{shaderName.ToLower()}"""
+
+                ElseIf scaleValue >= 0 AndAlso lines(i).StartsWith("OutputScale") Then
                     lines(i) = $"OutputScale ""{scaleValue}"""
-                    Exit For
                 End If
             Next
 
@@ -3094,5 +2835,18 @@ Namespace My.Managers
             End Try
         End Function
 
+        'Network Helpers
+        Public Shared Function GetNetworkDomainMap() As Dictionary(Of String, String)
+            Return New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase) From {
+                {"mbga.jp", "mobage.gs.keitaiarchive.org"},
+                {"gree.jp", "gree.gs.keitaiarchive.org"},
+                {"m-app.jp", "moco.gs.keitaiarchive.org"},
+                {"i-simple100.channel.or.jp", "simple100.gs.keitaiarchive.org"},
+                {"*.shiftup.net", "shiftup.gs.keitaiarchive.org"},
+                {"*.gp.commseed.jp", "upss.gs.keitaiarchive.org"},
+                {"igc.cave.co.jp", "cave.gs.keitaiarchive.org"},
+                {"icd.i.konami.net", "konami.gs.keitaiarchive.org"}
+            }
+        End Function
     End Class
 End Namespace
