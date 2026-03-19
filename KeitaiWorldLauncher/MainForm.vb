@@ -30,6 +30,7 @@ Public Class MainForm
     Dim zipManager As New ZipManager()
     Dim UIDialogManager As New UIDialogManager()
     Dim HomepageManager As HomepageManager
+    Dim favoritesManager As New FavoritesManager()
     Dim pathResolver As New GamePathResolver()
     Dim currentGamePaths As GamePaths = Nothing
 
@@ -765,10 +766,7 @@ Public Class MainForm
                                                                         Dim result As New List(Of ListViewItem)
 
                                                                         ' Load favorites and custom games
-                                                                        Dim favoriteGames As HashSet(Of String) =
-                                                                            If(File.Exists(FavoritesTxtFile),
-                                                                               File.ReadAllLines(FavoritesTxtFile).Select(Function(f) f.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase),
-                                                                               New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
+                                                                        Dim favoriteGames As HashSet(Of String) = favoritesManager.GetAllFavorites()
 
                                                                         Dim customGames As HashSet(Of String) =
                                                                             If(File.Exists(CustomGamesTxtFile),
@@ -1279,7 +1277,6 @@ Public Class MainForm
         End If
     End Function
     Public Sub RefreshGameHighlighting()
-        Dim favoritesManager As New FavoritesManager()
         ListViewGames.BeginUpdate()
         For Each item As ListViewItem In ListViewGames.Items
 
@@ -1940,8 +1937,6 @@ Public Class MainForm
     End Sub
     Private Async Sub cmsGameLV_Favorite_Click(sender As Object, e As EventArgs) Handles cmsGameLV_Favorite.Click
         If ListViewGames.SelectedItems.Count = 0 Then Return
-
-        Dim favoritesManager As New FavoritesManager()
         Dim addedCount As Integer = 0
         Dim removedCount As Integer = 0
 
@@ -1978,7 +1973,6 @@ Public Class MainForm
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
         If selectedGame Is Nothing Then Return
         Dim gameKey = $"{Path.GetFileNameWithoutExtension(selectedGame.ZIPName)}_{selectedGame.Emulator}"
-        Dim favoritesManager As New FavoritesManager()
         Dim isFavorited As Boolean = favoritesManager.IsGameFavorited(gameKey)
 
         cmsGameLV_Favorite.Text = If(isFavorited, "Unfavorite", "Favorite")
