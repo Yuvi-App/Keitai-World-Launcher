@@ -1,5 +1,6 @@
 ﻿Imports System.ComponentModel
 Imports System.IO
+Imports System.IO.Compression
 Imports System.Text
 Imports System.Xml
 Imports KeitaiWorldLauncher.My.logger
@@ -41,6 +42,7 @@ Public Class MainForm
     Private Shared isGameDownloadInProgress As Boolean = False
     Dim CompletedBootSequence As Boolean = False
     Public Shared UsingJDK1_8 As Boolean = False
+    Private WithEvents searchDebounceTimer As New Timer With {.Interval = 400}
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -437,9 +439,31 @@ Public Class MainForm
         Dim imageDict As Dictionary(Of String, Image) = Await Task.Run(Function()
                                                                            Dim result As New Dictionary(Of String, Image)(StringComparer.OrdinalIgnoreCase)
 
+                                                                           ' Load default icons ONCE
+                                                                           Dim defaultIcons As New Dictionary(Of String, Image)(StringComparer.OrdinalIgnoreCase)
+                                                                           Dim defaultPaths As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase) From {
+                                                                                {"doja", DojaIconPath},
+                                                                                {"star", StarIconPath},
+                                                                                {"jsky", JskyIconPath},
+                                                                                {"softbank", SoftBankIconPath},
+                                                                                {"vodafone", vodafoneIconPath},
+                                                                                {"airedge", airedgeIconPath},
+                                                                                {"ezplus", ezwebezplusIconPath},
+                                                                                {"flash", FlashIconPath}
+                                                                            }
+
+                                                                           For Each kvp In defaultPaths
+                                                                               If File.Exists(kvp.Value) Then
+                                                                                   Using fs As New FileStream(kvp.Value, FileMode.Open, FileAccess.Read)
+                                                                                       defaultIcons(kvp.Key) = Image.FromStream(fs)
+                                                                                   End Using
+                                                                               End If
+                                                                           Next
+
+                                                                           ' Build available custom icons set
                                                                            Dim availableIcons As HashSet(Of String) = Directory.GetFiles(Path.Combine(ToolsFolder, "icons")).
-                   Select(Function(iconPath) Path.GetFileNameWithoutExtension(iconPath).ToLower()).
-                   ToHashSet()
+                                                                            Select(Function(iconPath) Path.GetFileNameWithoutExtension(iconPath).ToLower()).
+                                                                            ToHashSet()
 
                                                                            For Each game In games
                                                                                Dim iconFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName).ToLower()
@@ -449,36 +473,64 @@ Public Class MainForm
                                                                                    Dim iconToUse As Image
 
                                                                                    If availableIcons.Contains(iconFileName) AndAlso File.Exists(customIconPath) Then
+                                                                                       ' Custom icon — still needs individual load
                                                                                        Using fs As New FileStream(customIconPath, FileMode.Open, FileAccess.Read)
                                                                                            iconToUse = Image.FromStream(fs)
                                                                                        End Using
+                                                                                   ElseIf game.DownloadURL.StartsWith("custom://") Then
+                                                                                       ' Custom game — try to extract icon from its JAR file
+                                                                                       Dim emuKey = If(game.Emulator, "doja").ToLower()
+                                                                                       Dim baseName = Path.GetFileNameWithoutExtension(game.ZIPName)
+                                                                                       Dim gameFolder = Path.Combine(DownloadsFolder, $"{baseName}_{emuKey}")
+                                                                                       Dim jarPath As String = Nothing
+
+                                                                                       ' Find the JAR based on emulator type
+                                                                                       If emuKey = "doja" OrElse emuKey = "star" Then
+                                                                                           jarPath = Path.Combine(gameFolder, "bin", $"{baseName}.jar")
+                                                                                       Else
+                                                                                           jarPath = Path.Combine(gameFolder, $"{baseName}.jar")
+                                                                                       End If
+
+                                                                                       If jarPath IsNot Nothing AndAlso File.Exists(jarPath) Then
+                                                                                           Try
+                                                                                               ' Look for a .gif or .png icon inside the JAR (it's a ZIP)
+                                                                                               Using archive = ZipFile.OpenRead(jarPath)
+                                                                                                   Dim iconEntry = archive.Entries.FirstOrDefault(
+                                                                                                       Function(entry) entry.Name.EndsWith(".gif", StringComparison.OrdinalIgnoreCase) AndAlso
+                                                                                                                       entry.Length < 50000)
+
+                                                                                                   If iconEntry IsNot Nothing Then
+                                                                                                       Using entryStream = iconEntry.Open()
+                                                                                                           Dim original = Image.FromStream(entryStream)
+                                                                                                           Dim resized As New Bitmap(36, 36)
+                                                                                                           Using g = Graphics.FromImage(resized)
+                                                                                                               g.InterpolationMode = Drawing2D.InterpolationMode.HighQualityBicubic
+                                                                                                               g.DrawImage(original, 0, 0, 36, 36)
+                                                                                                           End Using
+
+                                                                                                           ' Cache it to disk for next time
+                                                                                                           Dim outputPath = Path.Combine(ToolsFolder, "icons", $"{iconFileName}.gif")
+                                                                                                           resized.Save(outputPath, Imaging.ImageFormat.Gif)
+
+                                                                                                           iconToUse = resized
+                                                                                                       End Using
+                                                                                                   End If
+                                                                                               End Using
+                                                                                           Catch ex As Exception
+                                                                                               Logger.LogError($"Failed to extract icon from custom game JAR: {game.ENTitle}", ex)
+                                                                                           End Try
+                                                                                       End If
+
+                                                                                       ' Fall back to default emulator icon if extraction failed
+                                                                                       If iconToUse Is Nothing Then
+                                                                                           If Not defaultIcons.ContainsKey(emuKey) Then emuKey = "doja"
+                                                                                           iconToUse = defaultIcons(emuKey)
+                                                                                       End If
                                                                                    Else
-                                                                                       Dim defaultIconPath As String
-
-                                                                                       Select Case game.Emulator.ToLower()
-                                                                                           Case "doja"
-                                                                                               defaultIconPath = DojaIconPath
-                                                                                           Case "star"
-                                                                                               defaultIconPath = StarIconPath
-                                                                                           Case "jsky"
-                                                                                               defaultIconPath = JskyIconPath
-                                                                                           Case "softbank"
-                                                                                               defaultIconPath = SoftBankIconPath
-                                                                                           Case "vodafone"
-                                                                                               defaultIconPath = vodafoneIconPath
-                                                                                           Case "airedge"
-                                                                                               defaultIconPath = airedgeIconPath
-                                                                                           Case "ezplus"
-                                                                                               defaultIconPath = ezwebezplusIconPath
-                                                                                           Case "flash"
-                                                                                               defaultIconPath = FlashIconPath
-                                                                                           Case Else
-                                                                                               defaultIconPath = DojaIconPath ' fallback
-                                                                                       End Select
-
-                                                                                       Using fs As New FileStream(defaultIconPath, FileMode.Open, FileAccess.Read)
-                                                                                           iconToUse = Image.FromStream(fs)
-                                                                                       End Using
+                                                                                       ' Default icon — reuse the cached copy
+                                                                                       Dim emuKey = If(game.Emulator, "doja").ToLower()
+                                                                                       If Not defaultIcons.ContainsKey(emuKey) Then emuKey = "doja"
+                                                                                       iconToUse = defaultIcons(emuKey)
                                                                                    End If
 
                                                                                    result(game.DownloadURL) = iconToUse
@@ -496,6 +548,52 @@ Public Class MainForm
             ImageListGames.Images.Add(kvp.Key, kvp.Value)
         Next
     End Function
+    Private Sub LoadIconsForNewGames(newGames As List(Of Game))
+        Dim defaultPaths As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase) From {
+        {"doja", Path.Combine(ToolsFolder, "icons", "defaults", "doja.gif")},
+        {"star", Path.Combine(ToolsFolder, "icons", "defaults", "star.gif")},
+        {"jsky", Path.Combine(ToolsFolder, "icons", "defaults", "jsky.gif")},
+        {"softbank", Path.Combine(ToolsFolder, "icons", "defaults", "softbank.gif")},
+        {"vodafone", Path.Combine(ToolsFolder, "icons", "defaults", "vodafone.gif")},
+        {"airedge", Path.Combine(ToolsFolder, "icons", "defaults", "airedge.gif")},
+        {"ezplus", Path.Combine(ToolsFolder, "icons", "defaults", "ezplus.gif")},
+        {"flash", Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")}
+    }
+
+        For Each game In newGames
+            ' Skip if already in ImageList
+            If ImageListGames.Images.ContainsKey(game.DownloadURL) Then Continue For
+
+            Dim emuKey = If(game.Emulator, "doja").ToLower()
+            Dim iconFileName = Path.GetFileNameWithoutExtension(game.ZIPName).ToLower()
+            Dim customIconPath = Path.Combine(ToolsFolder, "icons", $"{iconFileName}.gif")
+
+            Try
+                Dim iconToUse As Image = Nothing
+
+                ' Check for a cached/extracted icon first
+                If File.Exists(customIconPath) Then
+                    Using fs As New FileStream(customIconPath, FileMode.Open, FileAccess.Read)
+                        iconToUse = Image.FromStream(fs)
+                    End Using
+                Else
+                    ' Fall back to default emulator icon
+                    Dim defaultPath = If(defaultPaths.ContainsKey(emuKey), defaultPaths(emuKey), defaultPaths("doja"))
+                    If File.Exists(defaultPath) Then
+                        Using fs As New FileStream(defaultPath, FileMode.Open, FileAccess.Read)
+                            iconToUse = Image.FromStream(fs)
+                        End Using
+                    End If
+                End If
+
+                If iconToUse IsNot Nothing Then
+                    ImageListGames.Images.Add(game.DownloadURL, iconToUse)
+                End If
+            Catch ex As Exception
+                Logger.LogError($"Failed to load icon for custom game: {game.ENTitle}", ex)
+            End Try
+        Next
+    End Sub
     Private Async Function LoadGameListFirstTimeAsync(Optional customGames As List(Of Game) = Nothing) As Task
         Logger.LogInfo("Processing gamelist.xml")
 
@@ -1822,6 +1920,11 @@ Public Class MainForm
 
     'Textbox Changes
     Private Async Sub txtLVSearch_TextChanged(sender As Object, e As EventArgs) Handles txtLVSearch.TextChanged
+        searchDebounceTimer.Stop()
+        searchDebounceTimer.Start()
+    End Sub
+    Private Async Sub SearchDebounceTimer_Tick(sender As Object, e As EventArgs) Handles searchDebounceTimer.Tick
+        searchDebounceTimer.Stop()
         Await FilterAndHighlightGamesAsync()
     End Sub
 
@@ -2593,7 +2696,8 @@ Public Class MainForm
                 Directory.CreateDirectory(Path.GetDirectoryName(cfg))
                 File.AppendAllLines(cfg, done)
 
-                ' Add to in-memory games list (no restart needed)
+                ' Add to in-memory games list
+                Dim newlyAdded As New List(Of Game)
                 For Each kvp In toDo
                     Dim name = kvp.Key
                     Dim gameKey = $"{name}_{selectedEmulator}"
@@ -2604,17 +2708,19 @@ Public Class MainForm
                         Continue For
                     End If
 
-                    games.Add(New Game With {
+                    Dim newGame As New Game With {
                         .ENTitle = name,
                         .ZIPName = name & ".zip",
-                        .DownloadURL = "",
+                        .DownloadURL = $"custom://{name}_{selectedEmulator}",
                         .CustomAppIconURL = "",
                         .SDCardDataURL = "",
                         .Emulator = selectedEmulator,
                         .Variants = ""
-                    })
+                    }
+                    games.Add(newGame)
+                    newlyAdded.Add(newGame)
                 Next
-
+                LoadIconsForNewGames(newlyAdded)
                 ' Re-sort
                 games = games.OrderBy(Function(g)
                                           If g.ENTitle.StartsWith("[") Then

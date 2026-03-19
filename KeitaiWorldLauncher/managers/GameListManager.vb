@@ -105,14 +105,14 @@ Namespace My.Managers
 
                 If Directory.Exists(gameFolderPath) Then
                     result.Add(New Game With {
-                .ENTitle = appName,
-                .ZIPName = appName & ".zip",
-                .DownloadURL = "",
-                .CustomAppIconURL = "",
-                .SDCardDataURL = "",
-                .Emulator = emulatorValue,
-                .Variants = ""
-            })
+                        .ENTitle = appName,
+                        .ZIPName = appName & ".zip",
+                        .DownloadURL = $"custom://{appName}_{emulatorValue}",
+                        .CustomAppIconURL = "",
+                        .SDCardDataURL = "",
+                        .Emulator = emulatorValue,
+                        .Variants = ""
+                    })
                 End If
             Next
 
