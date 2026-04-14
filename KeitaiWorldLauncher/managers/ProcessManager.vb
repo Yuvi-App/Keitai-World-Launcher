@@ -6,21 +6,23 @@ Namespace My.Managers
         Private Shared applitrackerManager As New AppliTrackerManager()
         Private Shared _cts As CancellationTokenSource = Nothing
         Private Shared _monitorTask As Task = Nothing
+        Private Shared ReadOnly _monitorLock As New Object()
 
         Public Shared ReadOnly EmulatorProcessNames As String() = {
             "doja", "squirreljme", "star", "java", "javaw", "jbime", "emulator", "flashplayer"
         }
 
         Public Shared Sub StartMonitoring(applipath As String)
-            ' If already monitoring, don't start another
-            If _monitorTask IsNot Nothing AndAlso Not _monitorTask.IsCompleted Then Exit Sub
+            SyncLock _monitorLock
+                ' If already monitoring, don't start another
+                If _monitorTask IsNot Nothing AndAlso Not _monitorTask.IsCompleted Then Exit Sub
 
-            _cts = New CancellationTokenSource()
-            _monitorTask = MonitorProcessesAsync(_cts.Token)
+                _cts = New CancellationTokenSource()
+                _monitorTask = MonitorProcessesAsync(_cts.Token)
+            End SyncLock
 
             applitrackerManager.StartTrackingAppli(applipath)
         End Sub
-
         Private Shared Async Function MonitorProcessesAsync(token As CancellationToken) As Task
             Try
                 While Not token.IsCancellationRequested
@@ -41,24 +43,38 @@ Namespace My.Managers
                 logger.Logger.LogError($"Error in process monitor: {ex}")
             End Try
         End Function
-
         Public Shared Sub StopMonitoring()
+            Dim ctsToCancel As CancellationTokenSource = Nothing
+            Dim taskToObserve As Task = Nothing
+
+            SyncLock _monitorLock
+                ctsToCancel = _cts
+                taskToObserve = _monitorTask
+                _cts = Nothing
+                _monitorTask = Nothing
+            End SyncLock
+
             Try
-                _cts?.Cancel()
+                ctsToCancel?.Cancel()
             Catch ex As ObjectDisposedException
                 ' Already disposed
             End Try
 
-            ' Give it a moment to finish cleanly
-            If _monitorTask IsNot Nothing AndAlso Not _monitorTask.IsCompleted Then
-                _monitorTask.Wait(2000)
+            If ctsToCancel IsNot Nothing Then
+                ctsToCancel.Dispose()
             End If
 
-            _cts?.Dispose()
-            _cts = Nothing
-            _monitorTask = Nothing
+            ' Observe completion/faults without blocking UI thread.
+            If taskToObserve IsNot Nothing Then
+                taskToObserve.ContinueWith(
+                    Sub(t)
+                        If t.IsFaulted AndAlso t.Exception IsNot Nothing Then
+                            logger.Logger.LogError($"Error while stopping process monitor: {t.Exception.GetBaseException().Message}")
+                        End If
+                    End Sub,
+                    TaskScheduler.Default)
+            End If
         End Sub
-
         Private Shared Sub CloseProcess(processName As String)
             Try
                 For Each proc As Process In Process.GetProcessesByName(processName)
@@ -100,20 +116,17 @@ Namespace My.Managers
         Public Shared Function CheckAndCloseShaderGlass() As Boolean
             Return KillProcessesByName("shaderglass", "shaderglass.exe")
         End Function
-
         Public Shared Function CheckAndCloseAMX() As Boolean
             Return KillProcessesByName("antimicrox", "antimicrox.exe")
         End Function
-
         Public Shared Function CheckAndCloseAHK() As Boolean
             Return KillProcessesByName("AutoHotkey32", "AutoHotkey32.exe")
         End Function
-
         Public Shared Function CheckAndCloseAllEmulators() As Boolean
             Dim emulatorProcesses As New Dictionary(Of String, String()) From {
                 {"DOJA Emulator", {"doja"}},
                 {"SquirrelJME", {"squirreljme"}},
-                {"Star Emulator", {"star"}},
+                {"Star Emulator", {"star", "full"}},
                 {"Java-based runtime", {"java", "javaw", "jbime"}},
                 {"Vodafone Emulator", {"emulator"}},
                 {"Flashplayer", {"flashplayer"}}

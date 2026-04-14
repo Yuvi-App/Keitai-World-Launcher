@@ -43,8 +43,10 @@ Public Class MainForm
     Public XInputDevices As New Dictionary(Of String, Integer)
     Private Shared isGameDownloadInProgress As Boolean = False
     Dim CompletedBootSequence As Boolean = False
+    Private _isProgrammaticVariantSelection As Boolean = False
     Public Shared UsingJDK1_8 As Boolean = False
     Private WithEvents searchDebounceTimer As New Timer With {.Interval = 400}
+    Private _controlsImage As Image = Nothing
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -78,6 +80,8 @@ Public Class MainForm
     Public autoUpdatecharadenList As Boolean
     Public UseShaderGlass As Boolean
     Public UseDialPad As Boolean
+    Public DojaStarHardwareRendering As Boolean
+    Public DojaStarHighPerformanceEXE As Boolean
     Public NetworkUID As String
     Public TerminalID As String
     Public DOJApath As String
@@ -102,10 +106,15 @@ Public Class MainForm
     Public MachiCharaExe As String
     Public CharaDenpath As String
     Public CharaDenExe As String
+    Public OpenDojapath As String
+    Public OpenDojaExe As String
     Public Java1_8BinFolderPath As String
+    Public Java21PlusBinFolderPath As String
 
     ' FORM Close/Load
     Private Sub MainForm_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
+        ProcessManager.StopMonitoring()
+        vibrationManager.StopMonitoring()
         ProcessManager.CheckAndCloseAllEmulators()
         ProcessManager.CheckAndCloseAMX()
         ProcessManager.CheckAndCloseAHK()
@@ -196,11 +205,12 @@ Public Class MainForm
 
         'We need to check for java every run, since these get used for all emu's
         Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
-        If Not javaReady Then
+        Dim java21Ready = Await UtilManager.DetectJava21PlusAsync()
+        If Not javaReady AndAlso Not java21Ready Then
             MainForm.QuitApplication()
             Return
         End If
-        Logger.LogInfo($"Using JDK: {UsingJDK1_8}")
+        Logger.LogInfo($"Using JDK: {UsingJDK1_8}, Java 21+: {java21Ready}")
 
         'Needs Internet If none we skip and use local file
         Logger.LogInfo("Checking internet connectivity...")
@@ -269,6 +279,15 @@ Public Class MainForm
             InitializeHomepageInBackground()
         End If
 
+        ' Get ShaderGlass Shader from Config
+        Dim CurrentSetShader As String = utilManager.GetCurrentSetShader()
+        If String.IsNullOrEmpty(CurrentSetShader) Then
+            CurrentSetShader = "general//none"
+        End If
+        cbxShaderGlass_Shader.SelectedItem = CurrentSetShader
+
+        ' Cleanup CrashDmps
+
         'Last Step
         Await GetSDKsAsync()
 
@@ -278,18 +297,27 @@ Public Class MainForm
         cbxAudioType.SelectedIndex = atindex
         chkbxShaderGlass.Checked = UseShaderGlass
         chkbxDialpadNumpad.Checked = UseDialPad
+        chkboxEnforceHardwareRendering.Checked = DojaStarHardwareRendering
+        If chkboxEnforceHardwareRendering.Checked = True Then
+            cbxInternalRenderingResolution.Enabled = True
+        End If
+        chkbxEnableHighPerformanceEmulator.Checked = DojaStarHighPerformanceEXE
         cbxFilterType.SelectedIndex = 0
         cbxShaderGlassScaling.SelectedIndex = 2
         cbxSJMELaunchOption.SelectedIndex = 0
         cbxSJMEScaling.SelectedIndex = 1
-
-        ' Set we Completed Boot Sequence
-        CompletedBootSequence = True
+        cbxInternalRenderingResolution.SelectedIndex = 1
+        cbxOpenDojaAudioType.SelectedIndex = 0
+        cbxOpenDojaFontType.SelectedIndex = 0
+        cbxOpenDojaHostScale.SelectedIndex = 1
 
         ' Preload Appli Tab
         MaterialTabControl1.SelectedIndex = 1
         ListViewGames.Update()
         MaterialTabControl1.SelectedIndex = 0
+
+        ' Set we Completed Boot Sequence
+        CompletedBootSequence = True
 
         ' Close the splash screen
         Await SplashScreen.CloseSplashAsync()
@@ -319,7 +347,7 @@ Public Class MainForm
 
         ' SDK configuration: (ComboBox, DefaultValue, Prefixes)
         Dim sdkMappings As New List(Of (Combo As ComboBox, DefaultSdk As String, Prefixes As String())) From {
-        (cbxDojaSDK, "iDKDoJa5.1", {"idkdoja", "squirreljme", "kemnnx64", "freej2me"}),
+        (cbxDojaSDK, "iDKDoJa5.1", {"idkdoja", "squirreljme", "kemnnx64", "freej2me", "opendoja"}),
         (cbxStarSDK, "iDKStar2.0", {"idkstar", "freej2me"}),
         (cbxJSKYSDK, "kemnnx64", {"jsky_", "kemnnx64"}),
         (cbxSoftbankSDK, "kemnnx64", {"kemnnx64", "freej2me"}),
@@ -436,7 +464,6 @@ Public Class MainForm
         Dim airedgeIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "airedge.gif")
         Dim ezwebezplusIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "ezplus.gif")
         Dim FlashIconPath As String = Path.Combine(ToolsFolder, "icons", "defaults", "flash.gif")
-        Dim ezweb
 
         ' Validate default icons
         If Not File.Exists(DojaIconPath) OrElse Not File.Exists(StarIconPath) OrElse Not File.Exists(JskyIconPath) Then
@@ -636,7 +663,7 @@ Public Class MainForm
                                           Return "ZZZZZZZZZ" & g.ENTitle ' Push to bottom
                                       Else
                                           Return g.ENTitle
-                                          End If
+                                      End If
                                   End Function).ToList()
 
             'Check for Dupes
@@ -773,15 +800,10 @@ Public Class MainForm
 
                                                                         ' Load favorites and custom games
                                                                         Dim favoriteGames As HashSet(Of String) = favoritesManager.GetAllFavorites()
-
-                                                                        Dim customGames As HashSet(Of String) =
-                                                                            If(File.Exists(CustomGamesTxtFile),
-                                                                               File.ReadAllLines(CustomGamesTxtFile) _
-                                                                                   .Select(Function(line) line.Trim()) _
-                                                                                   .Where(Function(line) Not String.IsNullOrWhiteSpace(line)) _
-                                                                                   .Select(Function(line) line.Split("|"c)(0).Trim()) _
-                                                                                   .ToHashSet(StringComparer.OrdinalIgnoreCase),
-                                                                               New HashSet(Of String)(StringComparer.OrdinalIgnoreCase))
+                                                                        Dim customGames As HashSet(Of String) = games _
+                                                                            .Where(Function(g) g.DownloadURL.StartsWith("custom://")) _
+                                                                            .Select(Function(g) g.ENTitle) _
+                                                                            .ToHashSet(StringComparer.OrdinalIgnoreCase)
 
                                                                         ' Load installed game folders
                                                                         Dim installedGames As HashSet(Of String) =
@@ -844,6 +866,7 @@ Public Class MainForm
     End Function
     Private Async Function LoadGameVariantsAsync() As Task
         ListViewGamesVariants.BeginUpdate()
+        _isProgrammaticVariantSelection = True
         Try
             ListViewGamesVariants.View = View.Details
             ListViewGamesVariants.Items.Clear()
@@ -875,10 +898,13 @@ Public Class MainForm
 
             If ListViewGamesVariants.Items.Count = 1 Then
                 ListViewGamesVariants.Items(0).Selected = True
+            Else
+                ListViewGamesVariants.Items(0).Selected = True
             End If
 
             lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count}"
         Finally
+            _isProgrammaticVariantSelection = False
             ListViewGamesVariants.EndUpdate()
         End Try
     End Function
@@ -1082,8 +1108,6 @@ Public Class MainForm
             Return
         End If
 
-        ' Gather all selected games
-        ' Gather all selected games
         Dim gamesToDelete As New List(Of Game)
 
         For Each item As ListViewItem In ListViewGames.SelectedItems
@@ -1093,112 +1117,138 @@ Public Class MainForm
             End If
         Next
 
-        ' Display confirmation
         Dim gameList = String.Join(Environment.NewLine, gamesToDelete.Select(Function(g) $"{g.ENTitle} ({g.ZIPName})"))
         Dim result = MessageBox.Show(
-            $"The following games will be deleted:{Environment.NewLine}{Environment.NewLine}{gameList}{Environment.NewLine}{Environment.NewLine}Do you want to proceed?",
-            "Delete Games", MessageBoxButtons.YesNo, MessageBoxIcon.Question
-        )
+        $"The following games will be deleted:{Environment.NewLine}{Environment.NewLine}{gameList}{Environment.NewLine}{Environment.NewLine}Do you want to proceed?",
+        "Delete Games", MessageBoxButtons.YesNo, MessageBoxIcon.Question
+    )
         If result <> DialogResult.Yes Then Return
+
         UtilManager.ShowLaunchOverlay(Me, "Deleting...")
-        Dim deletedGames As New List(Of String)
-        Dim failedGames As New List(Of String)
+        Try
 
-        ' === Run all deletions in background and truly await completion ===
-        Await Task.Run(Async Function() As Task
-                           For Each game In gamesToDelete
-                               Try
-                                   Dim baseName = Path.GetFileNameWithoutExtension(game.ZIPName)
+            Dim deletedGames As New List(Of String)
+            Dim deletedCustomGames As New List(Of String)
+            Dim failedGames As New List(Of String)
 
-                                   ' NEW format folder/zip (ZIPNameNoExt + "_" + Emulator)
-                                   Dim gameFolder = Path.Combine(DownloadsFolder, $"{baseName}_{game.Emulator}")
-                                   Dim zipPath = Path.Combine(DownloadsFolder, $"{baseName}_{game.Emulator}.zip")
+            ' Build a set of custom game base names for lookup
+            Dim customGameNames As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+            If File.Exists(CustomGamesTxtFile) Then
+                For Each line In File.ReadAllLines(CustomGamesTxtFile)
+                    Dim parts = line.Split("|"c)
+                    If parts.Length > 0 AndAlso Not String.IsNullOrWhiteSpace(parts(0)) Then
+                        customGameNames.Add(parts(0).Trim())
+                    End If
+                Next
+            End If
 
-                                   If Directory.Exists(gameFolder) Then
-                                       ' 1) Remove the downloaded folder
-                                       My.Computer.FileSystem.DeleteDirectory(
-                                   gameFolder,
-                                   FileIO.UIOption.OnlyErrorDialogs,
-                                   FileIO.RecycleOption.DeletePermanently
-                               )
+            Await Task.Run(Async Function() As Task
+                               For Each game In gamesToDelete
+                                   Try
+                                       Dim baseName = Path.GetFileNameWithoutExtension(game.ZIPName)
+                                       Dim isCustom = customGameNames.Contains(baseName)
 
-                                       deletedGames.Add($"{game.ENTitle} [{game.Emulator}]")
+                                       Dim gameFolder = Path.Combine(DownloadsFolder, $"{baseName}_{game.Emulator}")
+                                       Dim zipPath = Path.Combine(DownloadsFolder, $"{baseName}_{game.Emulator}.zip")
 
-                                       ' Optional: delete the cached zip if you keep it
-                                       If File.Exists(zipPath) Then
-                                           File.Delete(zipPath)
-                                       End If
-
-                                       ' 2) If it's an SD-card title, clean up the SD_BIND file
-                                       If Not String.IsNullOrEmpty(game.SDCardDataURL) Then
-                                           For Each emu As String In cbxDojaSDK.Items
-                                               Dim sdJamFile = Path.Combine(
-                                           ToolsFolder,
-                                           Path.GetFileName(emu),
-                                           "lib", "storagedevice", "ext0", "SD_BIND",
-                                           "SVC0000" & baseName & ".jam"
+                                       If Directory.Exists(gameFolder) Then
+                                           ' 1) Remove the downloaded folder
+                                           My.Computer.FileSystem.DeleteDirectory(
+                                           gameFolder,
+                                           FileIO.UIOption.OnlyErrorDialogs,
+                                           FileIO.RecycleOption.DeletePermanently
                                        )
 
-                                               If File.Exists(sdJamFile) Then
-                                                   File.Delete(sdJamFile)
-                                               End If
-                                           Next
-                                       End If
-
-                                       ' 3) Remove its line from customgames.txt and notify manager
-                                       Dim configPath = CustomGamesTxtFile
-                                       If File.Exists(configPath) Then
-                                           Dim lines = File.ReadAllLines(configPath).ToList()
-
-                                           Dim filtered = lines.Where(Function(line)
-                                                                          Dim parts = line.Split("|"c)
-                                                                          If parts.Length = 0 Then Return True
-
-                                                                          Return Not parts(0).Trim().
-                                                                      Equals($"{baseName}", StringComparison.OrdinalIgnoreCase)
-                                                                      End Function).ToList()
-
-                                           If filtered.Count <> lines.Count Then
-                                               File.WriteAllLines(configPath, filtered)
+                                           ' 2) Delete the cached zip if it exists
+                                           If File.Exists(zipPath) Then
+                                               File.Delete(zipPath)
                                            End If
+
+                                           ' 3) Clean up SD_BIND if needed
+                                           If Not String.IsNullOrEmpty(game.SDCardDataURL) Then
+                                               For Each emu As String In cbxDojaSDK.Items
+                                                   Dim sdJamFile = Path.Combine(
+                                                   ToolsFolder,
+                                                   Path.GetFileName(emu),
+                                                   "lib", "storagedevice", "ext0", "SD_BIND",
+                                                   "SVC0000" & baseName & ".jam"
+                                               )
+                                                   If File.Exists(sdJamFile) Then
+                                                       File.Delete(sdJamFile)
+                                                   End If
+                                               Next
+                                           End If
+
+                                           ' 4) If custom, remove from customgames.txt
+                                           If isCustom Then
+                                               Dim configPath = CustomGamesTxtFile
+                                               If File.Exists(configPath) Then
+                                                   Dim lines = File.ReadAllLines(configPath).ToList()
+                                                   Dim filtered = lines.Where(Function(line)
+                                                                                  Dim parts = line.Split("|"c)
+                                                                                  If parts.Length = 0 Then Return True
+                                                                                  Return Not parts(0).Trim().Equals(baseName, StringComparison.OrdinalIgnoreCase)
+                                                                              End Function).ToList()
+                                                   If filtered.Count <> lines.Count Then
+                                                       File.WriteAllLines(configPath, filtered)
+                                                   End If
+                                               End If
+                                               deletedCustomGames.Add($"{game.ENTitle} [{game.Emulator}]")
+                                           End If
+
+                                           deletedGames.Add($"{game.ENTitle} [{game.Emulator}]")
+                                       Else
+                                           failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Not downloaded)")
                                        End If
-                                   Else
-                                       failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Not downloaded)")
-                                   End If
 
-                               Catch ex As Exception
-                                   failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Error: {ex.Message})")
-                               End Try
-                           Next
-                       End Function)
+                                   Catch ex As Exception
+                                       failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Error: {ex.Message})")
+                                   End Try
+                               Next
+                           End Function)
 
-        ' === End Task.Run ===
-        If deletedGames.Count > 0 Then
-            Dim deletedSet = gamesToDelete.
+            ' Only remove CUSTOM games from the listview/games list
+            If deletedCustomGames.Count > 0 Then
+                Dim deletedSet = gamesToDelete.
+                Where(Function(g) customGameNames.Contains(Path.GetFileNameWithoutExtension(g.ZIPName))).
                 Select(Function(g) $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".ToLowerInvariant()).
                 ToHashSet(StringComparer.OrdinalIgnoreCase)
 
-            games = games.Where(Function(g)
-                                    Dim key = $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".ToLowerInvariant()
-                                    Return Not deletedSet.Contains(key)
-                                End Function).ToList()
+                games = games.Where(Function(g)
+                                        Dim key = $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".ToLowerInvariant()
+                                        Return Not deletedSet.Contains(key)
+                                    End Function).ToList()
 
-            lblTotalGameCount.Text = $"Total: {games.Count}"
+                lblTotalGameCount.Text = $"Total: {games.Count}"
+            End If
 
-            MessageBox.Show(
-                $"Successfully deleted:{Environment.NewLine}{String.Join(Environment.NewLine, deletedGames)}",
-                "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information
+            ' Show summary
+            If deletedGames.Count > 0 Then
+                Dim message As String = $"Successfully deleted files for:{Environment.NewLine}{String.Join(Environment.NewLine, deletedGames)}"
+
+                If deletedCustomGames.Count > 0 Then
+                    message &= $"{Environment.NewLine}{Environment.NewLine}Custom games removed from library:{Environment.NewLine}{String.Join(Environment.NewLine, deletedCustomGames)}"
+                End If
+
+                Dim staticCount = deletedGames.Count - deletedCustomGames.Count
+                If staticCount > 0 Then
+                    message &= $"{Environment.NewLine}{Environment.NewLine}{staticCount} game(s) removed."
+                End If
+
+                MessageBox.Show(message, "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                Await FilterAndHighlightGamesAsync()
+            End If
+
+            If failedGames.Count > 0 Then
+                MessageBox.Show(
+                $"Could not delete the following games:{Environment.NewLine}{String.Join(Environment.NewLine, failedGames)}",
+                "Deletion Errors", MessageBoxButtons.OK, MessageBoxIcon.Warning
             )
-            Await FilterAndHighlightGamesAsync()
-        End If
+            End If
 
-        If failedGames.Count > 0 Then
-            MessageBox.Show(
-            $"Could not delete the following games:{Environment.NewLine}{String.Join(Environment.NewLine, failedGames)}",
-            "Deletion Errors", MessageBoxButtons.OK, MessageBoxIcon.Warning
-        )
-        End If
-        UtilManager.HideLaunchOverlay()
+        Finally
+            UtilManager.HideLaunchOverlay()
+        End Try
     End Function
     Public Async Function DeleteMachiCharaAsync() As Task
         If ListViewMachiChara.SelectedItems.Count = 0 Then
@@ -1630,6 +1680,7 @@ Public Class MainForm
         EnableButtons(selectedGame)
     End Sub
     Private Async Sub ListViewGamesVariants_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGamesVariants.SelectedIndexChanged
+        If _isProgrammaticVariantSelection Then Return
         Await DownloadGames(False)
     End Sub
     Private Sub lbxMachiCharaList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewMachiChara.SelectedIndexChanged
@@ -1713,15 +1764,47 @@ Public Class MainForm
         ProcessManager.CheckAndCloseAHK()
         StartAHKScript()
     End Sub
+    Private Async Sub chkboxEnforceHardwareRendering_CheckedChanged(sender As Object, e As EventArgs) Handles chkboxEnforceHardwareRendering.CheckedChanged
+        If CompletedBootSequence = True Then
+            Try
+                Dim enableHardware As Boolean = chkboxEnforceHardwareRendering.Checked
+                Await utilManager.EnableDisableHardwareRendering(STARpath, DOJApath, ToolsFolder, enableHardware)
+                cbxInternalRenderingResolution.Enabled = enableHardware
+                Logger.LogInfo($"Changing Hardware Rendering to: {enableHardware}")
+            Catch ex As Exception
+                Logger.LogError($"Failed to update rendering mode: {ex.Message}")
+            Finally
+                configManager.UpdateDojaStarHardwareRenderingSetting(chkboxEnforceHardwareRendering.Checked)
+            End Try
+        End If
+    End Sub
+    Private Async Sub chkbxEnableHighPerformanceEmulator_CheckedChanged(sender As Object, e As EventArgs) Handles chkbxEnableHighPerformanceEmulator.CheckedChanged
+        If CompletedBootSequence Then
+            Try
+                Dim enableHighperformanceEmu As Boolean = chkbxEnableHighPerformanceEmulator.Checked
+                Await utilManager.EnableDisableHighPerformanceEmulators(STARpath, DOJApath, ToolsFolder, enableHighperformanceEmu)
+                Logger.LogInfo($"Changing HighPerformanceEmulators to: {enableHighperformanceEmu}")
+            Catch ex As Exception
+                Logger.LogError($"Failed to update high performance mode: {ex.Message}")
+            Finally
+                configManager.UpdateDojaStarHighPerformanceEXESetting(chkbxEnableHighPerformanceEmulator.Checked)
+            End Try
+        End If
+    End Sub
 
     ' ComboBox Changes
-    Private Sub cbxAudioType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxAudioType.SelectedIndexChanged
-        If cbxAudioType.SelectedItem.ToString = "Standard" Or cbxAudioType.SelectedItem.ToString = "903i" Then
+    Private Async Sub cbxAudioType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxAudioType.SelectedIndexChanged
+        If CompletedBootSequence = True Then
             configManager.UpdateDOJASoundSetting(cbxAudioType.SelectedItem.ToString)
             If cbxAudioType.SelectedItem.ToString = "903i" Then
                 lblAudioWarning.Visible = True
+                Await utilManager.EnableDisableHP903iSound(STARpath, DOJApath, ToolsFolder, False)
+            ElseIf cbxAudioType.SelectedItem.ToString = "903i-HP" Then
+                lblAudioWarning.Visible = True
+                Await utilManager.EnableDisableHP903iSound(STARpath, DOJApath, ToolsFolder, True)
             Else
                 lblAudioWarning.Visible = False
+                Await utilManager.EnableDisableHP903iSound(STARpath, DOJApath, ToolsFolder, False)
             End If
         End If
     End Sub
@@ -1731,7 +1814,7 @@ Public Class MainForm
     Private Sub cbxStarSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxStarSDK.SelectedIndexChanged
         ' Ensure the SDKs are selected
         If cbxStarSDK.SelectedItem Is Nothing Then
-            MessageBox.Show("Please select a Star SDK before launching.")
+            MessageBox.Show("Please Select a Star SDK before launching.")
             Return
         End If
 
@@ -1787,11 +1870,16 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("freej2me")
             End If
             DOJAEXE = Path.Combine(DOJApath, "freej2me.jar")
+        ElseIf sdkLower.StartsWith("opendoja") Then
+            If CompletedBootSequence = True Then
+                ShowEmulatorDisclaimer("opendoja")
+            End If
+            DOJAEXE = Path.Combine(DOJApath, "opendoja-release.jar")
         End If
     End Sub
     Private Sub cbxSoftbankSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxSoftbankSDK.SelectedIndexChanged
         If cbxSoftbankSDK.SelectedItem Is Nothing Then
-            MessageBox.Show("Please select a SOFTBANK SDK before launching.")
+            MessageBox.Show("Please Select a SOFTBANK SDK before launching.")
             Return
         End If
 
@@ -1813,7 +1901,7 @@ Public Class MainForm
     End Sub
     Private Sub cbxJSKYSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxJSKYSDK.SelectedIndexChanged
         If cbxJSKYSDK.SelectedItem Is Nothing Then
-            MessageBox.Show("Please select a JSKY SDK before launching.")
+            MessageBox.Show("Please Select a JSKY SDK before launching.")
             Return
         End If
 
@@ -1833,7 +1921,7 @@ Public Class MainForm
     End Sub
     Private Sub cbxVODAFONESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxVodafoneSDK.SelectedIndexChanged
         If cbxVodafoneSDK.SelectedItem Is Nothing Then
-            MessageBox.Show("Please select a VODAFONE SDK before launching.")
+            MessageBox.Show("Please Select a VODAFONE SDK before launching.")
             Return
         End If
 
@@ -1850,7 +1938,7 @@ Public Class MainForm
     End Sub
     Private Sub cbxAIREDGESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxAirEdgeSDK.SelectedIndexChanged
         If cbxAirEdgeSDK.SelectedItem Is Nothing Then
-            MessageBox.Show("Please select a AIREDGE SDK before launching.")
+            MessageBox.Show("Please Select a AIREDGE SDK before launching.")
             Return
         End If
 
@@ -1872,7 +1960,7 @@ Public Class MainForm
     End Sub
     Private Sub cbxEZWEBEZPLUSSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxEZWebEZPlusSDK.SelectedIndexChanged
         If cbxEZWebEZPlusSDK.SelectedItem Is Nothing Then
-            MessageBox.Show("Please select a EZplus SDK before launching.")
+            MessageBox.Show("Please Select a EZplus SDK before launching.")
             Return
         End If
 
@@ -1908,18 +1996,70 @@ Public Class MainForm
 
                 controller.SetVibration(New Vibration())
             Else
-                MessageBox.Show("Controller is not connected.")
+                MessageBox.Show("Controller Is Not connected.")
             End If
         Else
-            MessageBox.Show("Selected controller does not support XInput vibration.")
+            MessageBox.Show("Selected controller does Not support XInput vibration.")
         End If
     End Sub
     Private Sub cbxSJMELaunchOption_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxSJMELaunchOption.SelectedIndexChanged
         Dim selectedSJMELaunchOption = cbxSJMELaunchOption.SelectedItem.ToString
         If selectedSJMELaunchOption = "SpringCoat" Then
-            lblSJMELaunchOptionsText.Text = "Optimized for compatibility, slower but more reliable."
+            'lblSJMELaunchOptionsText.Text = "Optimized For compatibility, slower but more reliable."
         ElseIf selectedSJMELaunchOption = "Hosted" Then
-            lblSJMELaunchOptionsText.Text = "Uses the system JVM, fastest but disregards any compatibility."
+            'lblSJMELaunchOptionsText.Text = "Uses the system JVM, fastest but disregards any compatibility."
+        End If
+    End Sub
+    Private Sub cbxShaderGlass_Shader_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxShaderGlass_Shader.SelectedIndexChanged
+        If CompletedBootSequence = True Then
+            Dim selectedShader = cbxShaderGlass_Shader.SelectedItem?.ToString
+            If String.IsNullOrEmpty(selectedShader) Then Return
+            utilManager.SetCurrentShader(selectedShader)
+        End If
+    End Sub
+    Private Sub cbxInternalRenderingResolution_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxInternalRenderingResolution.SelectedIndexChanged
+        If CompletedBootSequence = True Then
+            Try
+                Dim starLocation As String = Path.Combine(STARpath, "bin")
+
+                ' Extract numeric value from "1x", "2x", etc.
+                Dim selectedText As String = cbxInternalRenderingResolution.SelectedItem?.ToString()
+
+                If String.IsNullOrWhiteSpace(selectedText) Then Exit Sub
+
+                Dim renderScale As String = selectedText.Replace("x", "").Trim()
+
+                Dim iniPath As String = Path.Combine(starLocation, "gles_hw_accel.ini")
+
+                Dim lines As New List(Of String)
+
+                ' Read existing file if it exists
+                If File.Exists(iniPath) Then
+                    lines = File.ReadAllLines(iniPath).ToList()
+                End If
+
+                Dim found As Boolean = False
+
+                ' Update existing renderscale line
+                For i As Integer = 0 To lines.Count - 1
+                    If lines(i).Trim().StartsWith("renderscale", StringComparison.OrdinalIgnoreCase) Then
+                        lines(i) = $"renderscale={renderScale}"
+                        found = True
+                        Exit For
+                    End If
+                Next
+
+                ' If not found, add it
+                If Not found Then
+                    lines.Add($"renderscale={renderScale}")
+                End If
+
+                ' Write back to file
+                File.WriteAllLines(iniPath, lines)
+
+            Catch ex As Exception
+                Logger.LogError($"Failed To update render scale: {ex.Message}")
+            End Try
         End If
     End Sub
 
@@ -1934,6 +2074,7 @@ Public Class MainForm
     End Sub
 
     'ContextMenuStrip Changes
+
     'Appli CMS
     Private Async Sub cmsGameLV_Download_Click(sender As Object, e As EventArgs) Handles cmsGameLV_Download.Click
         Await DownloadGames(True)
@@ -2253,6 +2394,9 @@ Public Class MainForm
                     If lowerDojaPath.Contains("idkdoja") Then
                         Logger.LogInfo("Launching game using DOJA emulator.")
                         utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerDojaPath.Contains("opendoja") Then
+                        Logger.LogInfo("Launching game using opendoja emulator.")
+                        utilManager.LaunchCustom_OpenDojaGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
                     ElseIf lowerDojaPath.Contains("squirreljme") Then
                         Logger.LogInfo("Launching game using SJME emulator.")
                         utilManager.LaunchCustomDOJA_SJMEGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
@@ -2261,7 +2405,7 @@ Public Class MainForm
                         utilManager.LaunchCustom_KEmulatorGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
                     ElseIf lowerDojaPath.Contains("freej2me") Then
                         Logger.LogInfo("Launching game using FreeJ2ME emulator.")
-                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: DojaPath={DOJApath}, DojaEXE={DOJAEXE}, GamePath={CurrentSelectedGameJAM}")
 
@@ -2272,7 +2416,7 @@ Public Class MainForm
                         utilManager.LaunchCustomSTARGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
                     ElseIf lowerStarPath.Contains("freej2me") Then
                         Logger.LogInfo("Launching game using FreeJ2ME emulator.")
-                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
 
@@ -2299,7 +2443,7 @@ Public Class MainForm
                         utilManager.LaunchCustom_KEmulatorGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
                     ElseIf lowerAIREDGEPath.Contains("freej2me") Then
                         Logger.LogInfo("Launching game using FreeJ2ME emulator.")
-                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: AIREDGEPath={AIREDGEpath}, AIREDGEEXE={AIREDGEEXE}, GamePath={CurrentSelectedGameJAM}")
 
@@ -2310,7 +2454,7 @@ Public Class MainForm
                         utilManager.LaunchCustom_KEmulatorGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
                     ElseIf lowerSOFTBANKPath.Contains("freej2me") Then
                         Logger.LogInfo("Launching game using FreeJ2ME emulator.")
-                        utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: SOFTBANKPath={SOFTBANKpath}, SOFTBANKEXE={SOFTBANKEXE}, GamePath={CurrentSelectedGameJAM}")
 
@@ -2398,30 +2542,6 @@ Public Class MainForm
             startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory ' Set working directory
             Dim process As Process = Process.Start(startInfo)
         End If
-    End Sub
-    Private Sub btnLaunchAppConfig_Click(sender As Object, e As EventArgs) Handles btnLaunchAppConfig.Click
-        Dim Apppath = $"cmd"
-        Dim startInfo As New ProcessStartInfo()
-        startInfo.FileName = Apppath
-        startInfo.Arguments = $"/C {Chr(34)}notepad {AppDomain.CurrentDomain.BaseDirectory}\configs\appconfig.xml {Chr(34)}"
-        startInfo.UseShellExecute = False
-        startInfo.CreateNoWindow = True
-        startInfo.RedirectStandardOutput = True
-        startInfo.RedirectStandardError = True
-        startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
-        Dim process As Process = Process.Start(startInfo)
-    End Sub
-    Private Sub btnLoadShaderGlassConfig_Click(sender As Object, e As EventArgs) Handles btnLoadShaderGlassConfig.Click
-        Dim Apppath = $"cmd"
-        Dim startInfo As New ProcessStartInfo()
-        startInfo.FileName = Apppath
-        startInfo.Arguments = $"/C {Chr(34)}notepad {AppDomain.CurrentDomain.BaseDirectory}\{ToolsFolder}\shaderglass\keitai.sgp {Chr(34)}"
-        startInfo.UseShellExecute = False
-        startInfo.CreateNoWindow = True
-        startInfo.RedirectStandardOutput = True
-        startInfo.RedirectStandardError = True
-        startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
-        Dim process As Process = Process.Start(startInfo)
     End Sub
     Private Sub btnUpdateNetworkUID_Click(sender As Object, e As EventArgs) Handles btnUpdateNetworkUID.Click
         Dim promptForm As New ReaLTaiizor.Forms.MaterialForm With {
@@ -2831,7 +2951,12 @@ Public Class MainForm
     }
 
         If picControls.Visible Then
-            picControls.Image = Image.FromFile(imagePath)
+            If _controlsImage Is Nothing Then
+                Using fs As New FileStream(imagePath, FileMode.Open, FileAccess.Read)
+                    _controlsImage = Image.FromStream(fs)
+                End Using
+            End If
+            picControls.Image = _controlsImage
         Else
             Logger.LogInfo("Image not found for Keybind Form: " & imagePath)
         End If

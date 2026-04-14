@@ -104,6 +104,9 @@ Partial Class MainForm
         DeleteCMS_CharaDen = New ToolStripMenuItem()
         lblCharadenTotalCount = New Label()
         tpConfig = New TabPage()
+        GroupBox12 = New GroupBox()
+        cbxShaderGlass_Shader = New ComboBox()
+        Label17 = New Label()
         GroupBox8 = New GroupBox()
         lblHelp_troubleshooting = New Label()
         GroupBox7 = New GroupBox()
@@ -123,16 +126,18 @@ Partial Class MainForm
         GroupBox6 = New GroupBox()
         btnSaveDataManagement = New Button()
         btnAddCustomApps = New Button()
-        btnLoadShaderGlassConfig = New Button()
-        btnLaunchAppConfig = New Button()
         btnLaunchKey2Pad = New Button()
         GroupBox5 = New GroupBox()
+        GroupBox13 = New GroupBox()
+        chkbxEnableHighPerformanceEmulator = New CheckBox()
+        Label18 = New Label()
+        cbxInternalRenderingResolution = New ComboBox()
+        chkboxEnforceHardwareRendering = New CheckBox()
         chkbxModifyJamFiles = New CheckBox()
         gbxSJMELaunchOptions = New GroupBox()
         Label10 = New Label()
         cbxSJMEScaling = New ComboBox()
         btnSJMEUpdate = New Button()
-        lblSJMELaunchOptionsText = New Label()
         Label9 = New Label()
         cbxSJMELaunchOption = New ComboBox()
         chkbxHidePhoneUI = New CheckBox()
@@ -161,6 +166,13 @@ Partial Class MainForm
         GroupBox9 = New GroupBox()
         lvwPlaytimes = New ListView()
         MaterialTabSelector1 = New ReaLTaiizor.Controls.MaterialTabSelector()
+        Label19 = New Label()
+        cbxOpenDojaHostScale = New ComboBox()
+        Label20 = New Label()
+        cbxOpenDojaAudioType = New ComboBox()
+        chkbxOpenDojaLaunchGUI = New CheckBox()
+        Label21 = New Label()
+        cbxOpenDojaFontType = New ComboBox()
         cmsGameLV.SuspendLayout()
         GroupBox2.SuspendLayout()
         cmsMachiCharaLV.SuspendLayout()
@@ -176,11 +188,13 @@ Partial Class MainForm
         GroupBox10.SuspendLayout()
         cmsCharadenLV.SuspendLayout()
         tpConfig.SuspendLayout()
+        GroupBox12.SuspendLayout()
         GroupBox8.SuspendLayout()
         GroupBox7.SuspendLayout()
         GroupBox11.SuspendLayout()
         GroupBox6.SuspendLayout()
         GroupBox5.SuspendLayout()
+        GroupBox13.SuspendLayout()
         gbxSJMELaunchOptions.SuspendLayout()
         GroupBox4.SuspendLayout()
         tpStats.SuspendLayout()
@@ -910,6 +924,7 @@ Partial Class MainForm
         ' 
         ' tpConfig
         ' 
+        tpConfig.Controls.Add(GroupBox12)
         tpConfig.Controls.Add(GroupBox8)
         tpConfig.Controls.Add(GroupBox7)
         tpConfig.Controls.Add(btnVisitKeitaiArchive)
@@ -924,6 +939,35 @@ Partial Class MainForm
         tpConfig.TabIndex = 2
         tpConfig.Text = "Config"
         tpConfig.UseVisualStyleBackColor = True
+        ' 
+        ' GroupBox12
+        ' 
+        GroupBox12.Controls.Add(cbxShaderGlass_Shader)
+        GroupBox12.Controls.Add(Label17)
+        GroupBox12.Location = New Point(245, 497)
+        GroupBox12.Name = "GroupBox12"
+        GroupBox12.Size = New Size(315, 65)
+        GroupBox12.TabIndex = 22
+        GroupBox12.TabStop = False
+        GroupBox12.Text = "ShaderGlass Options"
+        ' 
+        ' cbxShaderGlass_Shader
+        ' 
+        cbxShaderGlass_Shader.FormattingEnabled = True
+        cbxShaderGlass_Shader.Items.AddRange(New Object() {"general//none", "anti-aliasing//reverse-aa", "crt//crt-guest-advanced", "crt//crt-guest-advanced-fast", "crt//crt-guest-advanced-hd", "crt//crt-nes-mini", "crt//gizmo-crt", "denoisers//crt-fast-bilateral-super-xbr", "handheld//retro-v3", "pixel-art-scaling//pixel_aa_fast"})
+        cbxShaderGlass_Shader.Location = New Point(71, 25)
+        cbxShaderGlass_Shader.Name = "cbxShaderGlass_Shader"
+        cbxShaderGlass_Shader.Size = New Size(233, 23)
+        cbxShaderGlass_Shader.TabIndex = 1
+        ' 
+        ' Label17
+        ' 
+        Label17.Location = New Point(12, 25)
+        Label17.Name = "Label17"
+        Label17.Size = New Size(53, 23)
+        Label17.TabIndex = 0
+        Label17.Text = "Shader"
+        Label17.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' GroupBox8
         ' 
@@ -947,9 +991,9 @@ Partial Class MainForm
         ' GroupBox7
         ' 
         GroupBox7.Controls.Add(lblHelp_AppVer)
-        GroupBox7.Location = New Point(245, 361)
+        GroupBox7.Location = New Point(3, 386)
         GroupBox7.Name = "GroupBox7"
-        GroupBox7.Size = New Size(315, 122)
+        GroupBox7.Size = New Size(236, 122)
         GroupBox7.TabIndex = 21
         GroupBox7.TabStop = False
         GroupBox7.Text = "About App"
@@ -959,25 +1003,25 @@ Partial Class MainForm
         lblHelp_AppVer.Dock = DockStyle.Fill
         lblHelp_AppVer.Location = New Point(3, 19)
         lblHelp_AppVer.Name = "lblHelp_AppVer"
-        lblHelp_AppVer.Size = New Size(309, 100)
+        lblHelp_AppVer.Size = New Size(230, 100)
         lblHelp_AppVer.TabIndex = 0
         lblHelp_AppVer.Text = "App Version"
         lblHelp_AppVer.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' btnVisitKeitaiArchive
         ' 
-        btnVisitKeitaiArchive.Location = New Point(245, 489)
+        btnVisitKeitaiArchive.Location = New Point(9, 514)
         btnVisitKeitaiArchive.Name = "btnVisitKeitaiArchive"
-        btnVisitKeitaiArchive.Size = New Size(143, 37)
+        btnVisitKeitaiArchive.Size = New Size(123, 48)
         btnVisitKeitaiArchive.TabIndex = 20
         btnVisitKeitaiArchive.Text = "Visit Keitai Archive"
         btnVisitKeitaiArchive.UseVisualStyleBackColor = True
         ' 
         ' btnControls
         ' 
-        btnControls.Location = New Point(417, 489)
+        btnControls.Location = New Point(138, 514)
         btnControls.Name = "btnControls"
-        btnControls.Size = New Size(143, 37)
+        btnControls.Size = New Size(101, 48)
         btnControls.TabIndex = 19
         btnControls.Text = "Keybinds Controls"
         btnControls.UseVisualStyleBackColor = True
@@ -1033,9 +1077,10 @@ Partial Class MainForm
         chkboxNetworkModifyURLS.AutoSize = True
         chkboxNetworkModifyURLS.Checked = True
         chkboxNetworkModifyURLS.CheckState = CheckState.Checked
+        chkboxNetworkModifyURLS.FlatStyle = FlatStyle.Flat
         chkboxNetworkModifyURLS.Location = New Point(6, 165)
         chkboxNetworkModifyURLS.Name = "chkboxNetworkModifyURLS"
-        chkboxNetworkModifyURLS.Size = New Size(248, 19)
+        chkboxNetworkModifyURLS.Size = New Size(245, 19)
         chkboxNetworkModifyURLS.TabIndex = 7
         chkboxNetworkModifyURLS.Text = "Modify URL's for supported online games."
         chkboxNetworkModifyURLS.UseVisualStyleBackColor = True
@@ -1089,8 +1134,6 @@ Partial Class MainForm
         ' 
         GroupBox6.Controls.Add(btnSaveDataManagement)
         GroupBox6.Controls.Add(btnAddCustomApps)
-        GroupBox6.Controls.Add(btnLoadShaderGlassConfig)
-        GroupBox6.Controls.Add(btnLaunchAppConfig)
         GroupBox6.Controls.Add(btnLaunchKey2Pad)
         GroupBox6.Location = New Point(3, 3)
         GroupBox6.Name = "GroupBox6"
@@ -1103,49 +1146,36 @@ Partial Class MainForm
         ' 
         btnSaveDataManagement.Location = New Point(6, 22)
         btnSaveDataManagement.Name = "btnSaveDataManagement"
-        btnSaveDataManagement.Size = New Size(201, 55)
+        btnSaveDataManagement.Size = New Size(172, 55)
         btnSaveDataManagement.TabIndex = 5
         btnSaveDataManagement.Text = "Save Data Management"
         btnSaveDataManagement.UseVisualStyleBackColor = True
         ' 
         ' btnAddCustomApps
         ' 
-        btnAddCustomApps.Location = New Point(213, 22)
+        btnAddCustomApps.Location = New Point(409, 21)
         btnAddCustomApps.Name = "btnAddCustomApps"
-        btnAddCustomApps.Size = New Size(80, 55)
+        btnAddCustomApps.Size = New Size(142, 55)
         btnAddCustomApps.TabIndex = 4
         btnAddCustomApps.Text = "Add Custom Apps"
         btnAddCustomApps.UseVisualStyleBackColor = True
         ' 
-        ' btnLoadShaderGlassConfig
-        ' 
-        btnLoadShaderGlassConfig.Location = New Point(471, 22)
-        btnLoadShaderGlassConfig.Name = "btnLoadShaderGlassConfig"
-        btnLoadShaderGlassConfig.Size = New Size(80, 55)
-        btnLoadShaderGlassConfig.TabIndex = 2
-        btnLoadShaderGlassConfig.Text = "ShaderGlass Config"
-        btnLoadShaderGlassConfig.UseVisualStyleBackColor = True
-        ' 
-        ' btnLaunchAppConfig
-        ' 
-        btnLaunchAppConfig.Location = New Point(385, 22)
-        btnLaunchAppConfig.Name = "btnLaunchAppConfig"
-        btnLaunchAppConfig.Size = New Size(80, 55)
-        btnLaunchAppConfig.TabIndex = 1
-        btnLaunchAppConfig.Text = "AppConfig"
-        btnLaunchAppConfig.UseVisualStyleBackColor = True
-        ' 
         ' btnLaunchKey2Pad
         ' 
-        btnLaunchKey2Pad.Location = New Point(299, 22)
+        btnLaunchKey2Pad.Location = New Point(184, 21)
         btnLaunchKey2Pad.Name = "btnLaunchKey2Pad"
-        btnLaunchKey2Pad.Size = New Size(80, 55)
+        btnLaunchKey2Pad.Size = New Size(219, 55)
         btnLaunchKey2Pad.TabIndex = 0
         btnLaunchKey2Pad.Text = "Key2Pad App"
         btnLaunchKey2Pad.UseVisualStyleBackColor = True
         ' 
         ' GroupBox5
         ' 
+        GroupBox5.Controls.Add(GroupBox13)
+        GroupBox5.Controls.Add(chkbxEnableHighPerformanceEmulator)
+        GroupBox5.Controls.Add(Label18)
+        GroupBox5.Controls.Add(cbxInternalRenderingResolution)
+        GroupBox5.Controls.Add(chkboxEnforceHardwareRendering)
         GroupBox5.Controls.Add(chkbxModifyJamFiles)
         GroupBox5.Controls.Add(gbxSJMELaunchOptions)
         GroupBox5.Controls.Add(chkbxHidePhoneUI)
@@ -1154,10 +1184,75 @@ Partial Class MainForm
         GroupBox5.Controls.Add(cbxAudioType)
         GroupBox5.Location = New Point(245, 93)
         GroupBox5.Name = "GroupBox5"
-        GroupBox5.Size = New Size(315, 262)
+        GroupBox5.Size = New Size(315, 398)
         GroupBox5.TabIndex = 16
         GroupBox5.TabStop = False
         GroupBox5.Text = "Doja/Star SDK Options"
+        ' 
+        ' GroupBox13
+        ' 
+        GroupBox13.Controls.Add(Label21)
+        GroupBox13.Controls.Add(cbxOpenDojaFontType)
+        GroupBox13.Controls.Add(chkbxOpenDojaLaunchGUI)
+        GroupBox13.Controls.Add(Label20)
+        GroupBox13.Controls.Add(cbxOpenDojaAudioType)
+        GroupBox13.Controls.Add(Label19)
+        GroupBox13.Controls.Add(cbxOpenDojaHostScale)
+        GroupBox13.Location = New Point(6, 164)
+        GroupBox13.Name = "GroupBox13"
+        GroupBox13.Size = New Size(303, 114)
+        GroupBox13.TabIndex = 23
+        GroupBox13.TabStop = False
+        GroupBox13.Text = "OpenDoja Options"
+        ' 
+        ' chkbxEnableHighPerformanceEmulator
+        ' 
+        chkbxEnableHighPerformanceEmulator.AutoSize = True
+        chkbxEnableHighPerformanceEmulator.FlatStyle = FlatStyle.Flat
+        chkbxEnableHighPerformanceEmulator.Font = New Font("Segoe UI", 9F)
+        chkbxEnableHighPerformanceEmulator.Location = New Point(5, 94)
+        chkbxEnableHighPerformanceEmulator.Margin = New Padding(2)
+        chkbxEnableHighPerformanceEmulator.Name = "chkbxEnableHighPerformanceEmulator"
+        chkbxEnableHighPerformanceEmulator.Size = New Size(293, 19)
+        chkbxEnableHighPerformanceEmulator.TabIndex = 21
+        chkbxEnableHighPerformanceEmulator.Text = "Enable High Performance Emulators (experimental)"
+        chkbxEnableHighPerformanceEmulator.UseVisualStyleBackColor = True
+        ' 
+        ' Label18
+        ' 
+        Label18.AutoSize = True
+        Label18.Location = New Point(28, 139)
+        Label18.Name = "Label18"
+        Label18.Size = New Size(163, 15)
+        Label18.TabIndex = 20
+        Label18.Text = "Internal Rendering Resolution"
+        ' 
+        ' cbxInternalRenderingResolution
+        ' 
+        cbxInternalRenderingResolution.DropDownStyle = ComboBoxStyle.DropDownList
+        cbxInternalRenderingResolution.Enabled = False
+        cbxInternalRenderingResolution.FlatStyle = FlatStyle.Flat
+        cbxInternalRenderingResolution.Font = New Font("Segoe UI", 9F)
+        cbxInternalRenderingResolution.FormattingEnabled = True
+        cbxInternalRenderingResolution.Items.AddRange(New Object() {"1x", "2x", "3x", "4x", "5x", "6x"})
+        cbxInternalRenderingResolution.Location = New Point(196, 136)
+        cbxInternalRenderingResolution.Margin = New Padding(2)
+        cbxInternalRenderingResolution.Name = "cbxInternalRenderingResolution"
+        cbxInternalRenderingResolution.Size = New Size(58, 23)
+        cbxInternalRenderingResolution.TabIndex = 19
+        ' 
+        ' chkboxEnforceHardwareRendering
+        ' 
+        chkboxEnforceHardwareRendering.AutoSize = True
+        chkboxEnforceHardwareRendering.FlatStyle = FlatStyle.Flat
+        chkboxEnforceHardwareRendering.Font = New Font("Segoe UI", 9F)
+        chkboxEnforceHardwareRendering.Location = New Point(5, 117)
+        chkboxEnforceHardwareRendering.Margin = New Padding(2)
+        chkboxEnforceHardwareRendering.Name = "chkboxEnforceHardwareRendering"
+        chkboxEnforceHardwareRendering.Size = New Size(247, 19)
+        chkboxEnforceHardwareRendering.TabIndex = 18
+        chkboxEnforceHardwareRendering.Text = "Enforce Hardware Rendering (exprimental)"
+        chkboxEnforceHardwareRendering.UseVisualStyleBackColor = True
         ' 
         ' chkbxModifyJamFiles
         ' 
@@ -1179,19 +1274,18 @@ Partial Class MainForm
         gbxSJMELaunchOptions.Controls.Add(Label10)
         gbxSJMELaunchOptions.Controls.Add(cbxSJMEScaling)
         gbxSJMELaunchOptions.Controls.Add(btnSJMEUpdate)
-        gbxSJMELaunchOptions.Controls.Add(lblSJMELaunchOptionsText)
         gbxSJMELaunchOptions.Controls.Add(Label9)
         gbxSJMELaunchOptions.Controls.Add(cbxSJMELaunchOption)
-        gbxSJMELaunchOptions.Location = New Point(5, 93)
+        gbxSJMELaunchOptions.Location = New Point(6, 278)
         gbxSJMELaunchOptions.Name = "gbxSJMELaunchOptions"
-        gbxSJMELaunchOptions.Size = New Size(304, 162)
+        gbxSJMELaunchOptions.Size = New Size(304, 114)
         gbxSJMELaunchOptions.TabIndex = 16
         gbxSJMELaunchOptions.TabStop = False
         gbxSJMELaunchOptions.Text = "SqurrielJME Emulator Config"
         ' 
         ' Label10
         ' 
-        Label10.Location = New Point(6, 95)
+        Label10.Location = New Point(6, 48)
         Label10.Name = "Label10"
         Label10.Size = New Size(86, 23)
         Label10.TabIndex = 8
@@ -1202,32 +1296,23 @@ Partial Class MainForm
         ' 
         cbxSJMEScaling.FormattingEnabled = True
         cbxSJMEScaling.Items.AddRange(New Object() {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"})
-        cbxSJMEScaling.Location = New Point(98, 95)
+        cbxSJMEScaling.Location = New Point(98, 48)
         cbxSJMEScaling.Name = "cbxSJMEScaling"
         cbxSJMEScaling.Size = New Size(77, 23)
         cbxSJMEScaling.TabIndex = 7
         ' 
         ' btnSJMEUpdate
         ' 
-        btnSJMEUpdate.Location = New Point(6, 124)
+        btnSJMEUpdate.Location = New Point(6, 77)
         btnSJMEUpdate.Name = "btnSJMEUpdate"
         btnSJMEUpdate.Size = New Size(292, 33)
         btnSJMEUpdate.TabIndex = 6
         btnSJMEUpdate.Text = "Update SqurrielJME"
         btnSJMEUpdate.UseVisualStyleBackColor = True
         ' 
-        ' lblSJMELaunchOptionsText
-        ' 
-        lblSJMELaunchOptionsText.Location = New Point(6, 52)
-        lblSJMELaunchOptionsText.Name = "lblSJMELaunchOptionsText"
-        lblSJMELaunchOptionsText.Size = New Size(292, 35)
-        lblSJMELaunchOptionsText.TabIndex = 2
-        lblSJMELaunchOptionsText.Text = "N/A"
-        lblSJMELaunchOptionsText.TextAlign = ContentAlignment.MiddleCenter
-        ' 
         ' Label9
         ' 
-        Label9.Location = New Point(6, 26)
+        Label9.Location = New Point(6, 19)
         Label9.Name = "Label9"
         Label9.Size = New Size(86, 23)
         Label9.TabIndex = 1
@@ -1238,7 +1323,7 @@ Partial Class MainForm
         ' 
         cbxSJMELaunchOption.FormattingEnabled = True
         cbxSJMELaunchOption.Items.AddRange(New Object() {"SpringCoat", "Hosted"})
-        cbxSJMELaunchOption.Location = New Point(98, 26)
+        cbxSJMELaunchOption.Location = New Point(98, 19)
         cbxSJMELaunchOption.Name = "cbxSJMELaunchOption"
         cbxSJMELaunchOption.Size = New Size(156, 23)
         cbxSJMELaunchOption.TabIndex = 0
@@ -1289,7 +1374,7 @@ Partial Class MainForm
         cbxAudioType.FlatStyle = FlatStyle.Flat
         cbxAudioType.Font = New Font("Segoe UI", 9F)
         cbxAudioType.FormattingEnabled = True
-        cbxAudioType.Items.AddRange(New Object() {"Standard", "903i"})
+        cbxAudioType.Items.AddRange(New Object() {"Standard", "903i", "903i-HP"})
         cbxAudioType.Location = New Point(95, 22)
         cbxAudioType.Margin = New Padding(2)
         cbxAudioType.Name = "cbxAudioType"
@@ -1317,7 +1402,7 @@ Partial Class MainForm
         GroupBox4.Controls.Add(Label4)
         GroupBox4.Location = New Point(3, 93)
         GroupBox4.Name = "GroupBox4"
-        GroupBox4.Size = New Size(236, 485)
+        GroupBox4.Size = New Size(236, 287)
         GroupBox4.TabIndex = 15
         GroupBox4.TabStop = False
         GroupBox4.Text = "SDK Configuration"
@@ -1574,6 +1659,73 @@ Partial Class MainForm
         MaterialTabSelector1.TabIndex = 9
         MaterialTabSelector1.Text = "MaterialTabSelector1"
         ' 
+        ' Label19
+        ' 
+        Label19.Location = New Point(6, 19)
+        Label19.Name = "Label19"
+        Label19.Size = New Size(77, 23)
+        Label19.TabIndex = 10
+        Label19.Text = "Host Scale"
+        Label19.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' cbxOpenDojaHostScale
+        ' 
+        cbxOpenDojaHostScale.FormattingEnabled = True
+        cbxOpenDojaHostScale.Items.AddRange(New Object() {"100%", "200%", "300%", "400%"})
+        cbxOpenDojaHostScale.Location = New Point(89, 19)
+        cbxOpenDojaHostScale.Name = "cbxOpenDojaHostScale"
+        cbxOpenDojaHostScale.Size = New Size(77, 23)
+        cbxOpenDojaHostScale.TabIndex = 9
+        ' 
+        ' Label20
+        ' 
+        Label20.Location = New Point(6, 48)
+        Label20.Name = "Label20"
+        Label20.Size = New Size(77, 23)
+        Label20.TabIndex = 12
+        Label20.Text = "Audio Type"
+        Label20.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' cbxOpenDojaAudioType
+        ' 
+        cbxOpenDojaAudioType.FormattingEnabled = True
+        cbxOpenDojaAudioType.Items.AddRange(New Object() {"Fuetrek", "MA3"})
+        cbxOpenDojaAudioType.Location = New Point(89, 48)
+        cbxOpenDojaAudioType.Name = "cbxOpenDojaAudioType"
+        cbxOpenDojaAudioType.Size = New Size(77, 23)
+        cbxOpenDojaAudioType.TabIndex = 11
+        ' 
+        ' chkbxOpenDojaLaunchGUI
+        ' 
+        chkbxOpenDojaLaunchGUI.AutoSize = True
+        chkbxOpenDojaLaunchGUI.FlatStyle = FlatStyle.Flat
+        chkbxOpenDojaLaunchGUI.Font = New Font("Segoe UI", 9F)
+        chkbxOpenDojaLaunchGUI.Location = New Point(190, 20)
+        chkbxOpenDojaLaunchGUI.Margin = New Padding(2)
+        chkbxOpenDojaLaunchGUI.Name = "chkbxOpenDojaLaunchGUI"
+        chkbxOpenDojaLaunchGUI.Size = New Size(84, 19)
+        chkbxOpenDojaLaunchGUI.TabIndex = 24
+        chkbxOpenDojaLaunchGUI.Text = "Launch GUI"
+        chkbxOpenDojaLaunchGUI.UseVisualStyleBackColor = True
+        ' 
+        ' Label21
+        ' 
+        Label21.Location = New Point(6, 77)
+        Label21.Name = "Label21"
+        Label21.Size = New Size(77, 23)
+        Label21.TabIndex = 26
+        Label21.Text = "Font Type"
+        Label21.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' cbxOpenDojaFontType
+        ' 
+        cbxOpenDojaFontType.FormattingEnabled = True
+        cbxOpenDojaFontType.Items.AddRange(New Object() {"Bitmap", "System"})
+        cbxOpenDojaFontType.Location = New Point(89, 77)
+        cbxOpenDojaFontType.Name = "cbxOpenDojaFontType"
+        cbxOpenDojaFontType.Size = New Size(77, 23)
+        cbxOpenDojaFontType.TabIndex = 25
+        ' 
         ' MainForm
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
@@ -1608,6 +1760,7 @@ Partial Class MainForm
         GroupBox10.ResumeLayout(False)
         cmsCharadenLV.ResumeLayout(False)
         tpConfig.ResumeLayout(False)
+        GroupBox12.ResumeLayout(False)
         GroupBox8.ResumeLayout(False)
         GroupBox7.ResumeLayout(False)
         GroupBox11.ResumeLayout(False)
@@ -1615,6 +1768,8 @@ Partial Class MainForm
         GroupBox6.ResumeLayout(False)
         GroupBox5.ResumeLayout(False)
         GroupBox5.PerformLayout()
+        GroupBox13.ResumeLayout(False)
+        GroupBox13.PerformLayout()
         gbxSJMELaunchOptions.ResumeLayout(False)
         GroupBox4.ResumeLayout(False)
         tpStats.ResumeLayout(False)
@@ -1680,8 +1835,6 @@ Partial Class MainForm
     Friend WithEvents chkbxHidePhoneUI As CheckBox
     Friend WithEvents GroupBox6 As GroupBox
     Friend WithEvents btnLaunchKey2Pad As Button
-    Friend WithEvents btnLoadShaderGlassConfig As Button
-    Friend WithEvents btnLaunchAppConfig As Button
     Friend WithEvents btnUpdateNetworkUID As Button
     Friend WithEvents MaterialTabSelector1 As ReaLTaiizor.Controls.MaterialTabSelector
     Friend WithEvents btnAddCustomApps As Button
@@ -1730,7 +1883,6 @@ Partial Class MainForm
     Friend WithEvents gbxSJMELaunchOptions As GroupBox
     Friend WithEvents Label9 As Label
     Friend WithEvents cbxSJMELaunchOption As ComboBox
-    Friend WithEvents lblSJMELaunchOptionsText As Label
     Friend WithEvents btnSJMEUpdate As Button
     Friend WithEvents Label10 As Label
     Friend WithEvents cbxSJMEScaling As ComboBox
@@ -1758,4 +1910,19 @@ Partial Class MainForm
     Friend WithEvents lblHelp_troubleshooting As Label
     Friend WithEvents chkbxDialpadRotated As CheckBox
     Friend WithEvents chkbxModifyJamFiles As CheckBox
+    Friend WithEvents GroupBox12 As GroupBox
+    Friend WithEvents cbxShaderGlass_Shader As ComboBox
+    Friend WithEvents Label17 As Label
+    Friend WithEvents chkboxEnforceHardwareRendering As CheckBox
+    Friend WithEvents Label18 As Label
+    Friend WithEvents cbxInternalRenderingResolution As ComboBox
+    Friend WithEvents chkbxEnableHighPerformanceEmulator As CheckBox
+    Friend WithEvents GroupBox13 As GroupBox
+    Friend WithEvents chkbxOpenDojaLaunchGUI As CheckBox
+    Friend WithEvents Label20 As Label
+    Friend WithEvents cbxOpenDojaAudioType As ComboBox
+    Friend WithEvents Label19 As Label
+    Friend WithEvents cbxOpenDojaHostScale As ComboBox
+    Friend WithEvents Label21 As Label
+    Friend WithEvents cbxOpenDojaFontType As ComboBox
 End Class

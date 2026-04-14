@@ -248,10 +248,17 @@ Public Class HomepageManager
             Dim assetUrls = ExtractAssetUrls(html, baseUri)
             ' Download assets and rewrite HTML references to local cached paths
             Dim map As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
-            For Each asset In assetUrls
-                Dim localRel As String = Await DownloadAssetIfAllowedAsync(asset, baseUri)
-                If Not String.IsNullOrEmpty(localRel) Then
-                    map(asset.AbsoluteUri) = localRel
+            Dim downloadTasks = assetUrls.Select(Function(asset)
+                                                     Return Task.Run(Async Function()
+                                                                         Dim localRel As String = Await DownloadAssetIfAllowedAsync(asset, baseUri)
+                                                                         Return (uri:=asset.AbsoluteUri, localRel:=localRel)
+                                                                     End Function)
+                                                 End Function).ToArray()
+
+            Dim results = Await Task.WhenAll(downloadTasks)
+            For Each result In results
+                If Not String.IsNullOrEmpty(result.localRel) Then
+                    map(result.uri) = result.localRel
                 End If
             Next
             Dim rewritten = RewriteHtmlReferences(html, baseUri, map)

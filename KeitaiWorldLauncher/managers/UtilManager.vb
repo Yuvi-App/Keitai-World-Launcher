@@ -3,6 +3,7 @@ Imports System.IO.Compression
 Imports System.Net
 Imports System.Net.Http
 Imports System.Reflection
+Imports System.Runtime.InteropServices
 Imports System.Security.Principal
 Imports System.Text
 Imports System.Text.RegularExpressions
@@ -15,6 +16,7 @@ Imports SharpDX.XInput
 Namespace My.Managers
     Public Class UtilManager
         Private Shared LaunchOverlay As Panel = Nothing
+        Private Shared LaunchOverlayLabel As Label = Nothing
         Dim gameManager As New GameManager()
         Private Shared _appliEditWarningShown As Boolean = False
 
@@ -89,6 +91,16 @@ Namespace My.Managers
                 My.logger.Logger.LogInfo("Missing JAVA 8")
                 MainForm.QuitApplication()
                 Return False
+            End If
+
+            ' Check for Java 21+
+            My.logger.Logger.LogInfo("Checking for Java 21+")
+            If Not Await DetectJava21PlusAsync() Then
+                Dim result = MessageBox.Show(owner:=SplashScreen, text:="Java 21+ is required for OpenDoja features." & Environment.NewLine & "Click OK to open the download page.", caption:="Java 21+ Required", buttons:=MessageBoxButtons.OKCancel, icon:=MessageBoxIcon.Warning)
+                My.logger.Logger.LogInfo("Missing Java 21+")
+                If result = DialogResult.OK Then
+                    Await OpenURLAsync("https://adoptium.net/temurin/releases/?os=windows&arch=x64&package=jdk&version=26&mode=filter")
+                End If
             End If
 
             ' Check for Visual C++ Runtimes
@@ -266,6 +278,48 @@ Namespace My.Managers
 
             Return True
         End Function
+        Public Shared Async Function DetectJava21PlusAsync() As Task(Of Boolean)
+            Dim javaHome As String = Await Task.Run(Function()
+                                                        ' Check JDK keys for version 21+
+                                                        Dim baseKeys As String() = {
+            "SOFTWARE\JavaSoft\JDK",
+            "SOFTWARE\WOW6432Node\JavaSoft\JDK"
+        }
+
+                                                        Dim bestVersion As Version = Nothing
+                                                        Dim bestPath As String = Nothing
+
+                                                        For Each basePath In baseKeys
+                                                            Using baseKey As RegistryKey = Registry.LocalMachine.OpenSubKey(basePath)
+                                                                If baseKey Is Nothing Then Continue For
+                                                                For Each subName In baseKey.GetSubKeyNames()
+                                                                    Dim ver As Version = Nothing
+                                                                    If Version.TryParse(subName, ver) AndAlso ver.Major >= 21 Then
+                                                                        Using subKey = baseKey.OpenSubKey(subName)
+                                                                            Dim home = subKey?.GetValue("JavaHome")?.ToString()
+                                                                            If home IsNot Nothing AndAlso (bestVersion Is Nothing OrElse ver > bestVersion) Then
+                                                                                bestVersion = ver
+                                                                                bestPath = home
+                                                                            End If
+                                                                        End Using
+                                                                    End If
+                                                                Next
+                                                            End Using
+                                                        Next
+
+                                                        Return bestPath
+                                                    End Function)
+
+            If Not String.IsNullOrEmpty(javaHome) Then
+                MainForm.Java21PlusBinFolderPath = Path.Combine(javaHome, "bin")
+                My.logger.Logger.LogInfo($"Found Java 21+ at: {javaHome}")
+                Return True
+            Else
+                MainForm.Java21PlusBinFolderPath = Nothing
+                My.logger.Logger.LogWarning("Java 21+ not found.")
+                Return False
+            End If
+        End Function
         Public Shared Async Function IsVCRuntime2022InstalledAsync() As Task(Of Boolean)
             Return Await Task.Run(Function()
                                       Dim vcPaths As String() = {
@@ -288,7 +342,7 @@ Namespace My.Managers
                                   End Function)
         End Function
         Public Shared Async Function IsDotNet8Installed() As Task(Of Boolean)
-            Dim minVersion As New Version(8, 0, 15)
+            Dim minVersion As New Version(8, 0, 0)
 
             Try
                 Dim startInfo As New ProcessStartInfo()
@@ -1220,6 +1274,76 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
+        Public Async Sub LaunchCustom_OpenDojaGameCommand(OpenDojaPath As String, OpenDojaEXELocation As String, GameJAM As String)
+            Try
+                logger.Logger.LogInfo("[Launch] Starting OpenDoja game launch sequence...")
+
+                ' Validate inputs
+                If String.IsNullOrWhiteSpace(OpenDojaPath) OrElse String.IsNullOrWhiteSpace(OpenDojaEXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
+                    Throw New ArgumentException("One or more required parameters are missing.")
+                End If
+
+                'Start overlay
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
+
+                ' Prepare all paths
+                Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
+                Dim appPath As String
+                Dim arguments As String
+
+                ' Make Full Paths
+                Dim Java32EXE As String = Path.Combine(MainForm.Java21PlusBinFolderPath, "java.exe")
+                Dim exePath As String = OpenDojaEXELocation.Trim
+                Dim jamPath As String = Path.Combine(baseDir, GameJAM).Trim()
+                Dim jarPath As String = Path.Combine(Path.GetDirectoryName(jamPath), Path.GetFileNameWithoutExtension(jamPath) & ".jar")
+
+                If jamPath.Length > 240 Then
+                    logger.Logger.LogWarning($"[Launch] JAD file path exceeds 240 characters: {jamPath}")
+                    MessageBox.Show("The file path length exceeds 240 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                ' Form arguments based on launch method
+                appPath = Java32EXE
+                arguments = $"{Path.GetFileName(exePath)} ""{jamPath}"""
+                logger.Logger.LogInfo($"[Launch] Launching OpenDoja directly without Locale Emulator: {arguments}")
+
+                ' Config updates / ' Extract AppName from JAM
+                Dim AppName As String
+                If GameJAM.EndsWith(".jam") Then
+                    AppName = ExtractAppNamefromJAM(jamPath)
+                    Await PrepareJamFileForLaunchAsync(jamPath, "opendoja", MainForm.NetworkUID, MainForm.chkbxModifyJamFiles.Checked, MainForm.chkboxNetworkModifyURLS.Checked)
+                End If
+
+                ' Launch OpenDoja JAVA with retry logic
+                Dim success = Await LaunchOpenDojaAppAsync(Java32EXE, OpenDojaEXELocation, jamPath)
+                If Not success Then
+                    HideLaunchOverlay()
+                    MessageBox.Show("Failed to launch OpenDoja after retrying.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End If
+
+                ' ShaderGlass launch if enabled
+                If MainForm.chkbxShaderGlass.Checked Then
+                    logger.Logger.LogInfo("[ShaderGlass] Not Supported for OpenDoja, Disabling")
+                    MainForm.chkbxShaderGlass.Checked = False
+                    MessageBox.Show("ShaderGlass is not supported with OpenDoja. Please manually resize the OpenDoja window by rightclicking on the window")
+                End If
+                If MainForm.chkbxEnableController.Checked = True Then
+                    Await LaunchControllerProfileAMGP()
+                End If
+                ProcessManager.StartMonitoring(jamPath)
+                HideLaunchOverlay()
+
+            Catch ex As ArgumentException
+                logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
+                MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
+                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
         Public Async Sub LaunchCustom_KEmulatorGameCommand(KEMUPATH As String, KEMUEXELocation As String, GameJAM As String)
             Try
                 logger.Logger.LogInfo("[Launch] Starting KEmulator game launch sequence...")
@@ -1324,6 +1448,10 @@ Namespace My.Managers
                     MessageBox.Show("The file path length exceeds 240 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
                 End If
 
+                ' If HardwareRendering Enabled
+                Dim useHardwareRendering As Boolean = MainForm.chkboxEnforceHardwareRendering.Checked
+
+
                 ' Form arguments based on launch method
                 If useLocaleEmulator Then
                     appPath = Path.Combine(baseDir, "data", "tools", "locale_emulator", "LEProc.exe").Trim()
@@ -1367,6 +1495,10 @@ Namespace My.Managers
                     .RedirectStandardOutput = True,
                     .WorkingDirectory = baseDir
                 }
+                Dim envVars As Dictionary(Of String, String) = Nothing
+                If MainForm.chkboxEnforceHardwareRendering.Checked Then
+
+                End If
 
                 ' Launch STAR with retry logic
                 Dim success As Boolean = Await LaunchEmulatorWithRetry(
@@ -1376,7 +1508,8 @@ Namespace My.Managers
                     baseDir,
                     Async Function()
                         Return Await WaitForProcessWindowAsync({"star"}, "WaitForSTARToStart")
-                    End Function
+                    End Function,
+                    environmentVars:=envVars
                 )
 
                 If Not success Then
@@ -1880,6 +2013,46 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
+        Public Async Function LaunchOpenDojaAppAsync(javapath As String, opendojaExePath As String, jamPath As String) As Task(Of Boolean)
+            Try
+                Dim arguments As String
+                If MainForm.chkbxOpenDojaLaunchGUI.Checked Then
+                    arguments = $"-jar ""{Path.GetFileName(opendojaExePath)}"""
+                Else
+                    Dim scalePercent As Integer = Integer.Parse(MainForm.cbxOpenDojaHostScale.SelectedItem.ToString().Replace("%", "").Trim())
+                    Dim scaleValue As String = (scalePercent \ 100).ToString()
+                    Dim synthValue As String = MainForm.cbxOpenDojaAudioType.SelectedItem.ToString().Trim()
+                    arguments = String.Join(" ",
+                        $"-Dopendoja.hostScale={scaleValue}",
+                        $"-Dopendoja.mldSynth={synthValue}",
+                        $"-Dopendoja.userId={MainForm.NetworkUID}",
+                        $"-Dopendoja.terminalId={MainForm.TerminalID}",
+                        $"-jar ""{Path.GetFileName(opendojaExePath)}""",
+                        $"--run-jam ""{jamPath}""")
+                End If
+
+                Dim psi As New ProcessStartInfo(javapath) With {
+                    .Arguments = arguments,
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True,
+                    .WorkingDirectory = Path.GetDirectoryName(opendojaExePath)
+                }
+
+                Dim process As Process = Process.Start(psi)
+
+                ' Optional delay to allow Java process to spawn
+                Await Task.Delay(500)
+
+                ' Check for any java process
+                Dim javaRunning As Boolean = Process.GetProcessesByName("java").Any()
+
+                Return javaRunning
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[JavaLaunch] Failed to start Java app: {ex.Message}")
+                Return False
+            End Try
+        End Function
         Public Async Function LaunchFreeJ2MEAppAsync(javapath As String, FreeJ2MEExePath As String, kjxjarPath As String) As Task(Of Boolean)
             Try
                 ' Proper quoting for cmd.exe
@@ -1914,7 +2087,8 @@ Namespace My.Managers
             workingDir As String,
             waitFunction As Func(Of Task(Of Boolean)),
             Optional initialDelayMs As Integer = 500,
-            Optional captureOutput As Boolean = True
+            Optional captureOutput As Boolean = True,
+            Optional environmentVars As Dictionary(Of String, String) = Nothing
         ) As Task(Of Boolean)
 
             Dim startInfo As New ProcessStartInfo With {
@@ -1927,6 +2101,13 @@ Namespace My.Managers
                 .RedirectStandardInput = Not captureOutput,
                 .WorkingDirectory = workingDir
             }
+
+            ' Apply any custom environment variables
+            If environmentVars IsNot Nothing Then
+                For Each kvp In environmentVars
+                    startInfo.Environment(kvp.Key) = kvp.Value
+                Next
+            End If
 
             For attempt = 1 To 2
                 Try
@@ -2002,7 +2183,6 @@ Namespace My.Managers
             Return False
         End Function
         Public Shared Sub ShowLaunchOverlay(parentForm As Form, Text As String)
-            Dim loadingLabel As Label = New Label
             If LaunchOverlay Is Nothing Then
                 LaunchOverlay = New Panel With {
                 .BackColor = Color.FromArgb(128, Color.LightGray),
@@ -2010,20 +2190,26 @@ Namespace My.Managers
                 .Cursor = Cursors.WaitCursor
             }
 
-                loadingLabel.Text = Text
-                loadingLabel.ForeColor = Color.Black
-                loadingLabel.Font = New Font("Segoe UI", 16, FontStyle.Bold)
-                loadingLabel.BackColor = Color.Transparent
-                loadingLabel.AutoSize = True
+                LaunchOverlayLabel = New Label With {
+                .ForeColor = Color.Black,
+                .Font = New Font("Segoe UI", 16, FontStyle.Bold),
+                .BackColor = Color.Transparent,
+                .AutoSize = True
+            }
 
                 ' Center the label after the overlay is added
-                LaunchOverlay.Controls.Add(loadingLabel)
+                LaunchOverlay.Controls.Add(LaunchOverlayLabel)
                 AddHandler LaunchOverlay.Resize, Sub()
-                                                     loadingLabel.Left = (LaunchOverlay.Width - loadingLabel.Width) \ 2
-                                                     loadingLabel.Top = (LaunchOverlay.Height - loadingLabel.Height) \ 2
+                                                     If LaunchOverlay IsNot Nothing AndAlso LaunchOverlayLabel IsNot Nothing Then
+                                                         LaunchOverlayLabel.Left = (LaunchOverlay.Width - LaunchOverlayLabel.Width) \ 2
+                                                         LaunchOverlayLabel.Top = (LaunchOverlay.Height - LaunchOverlayLabel.Height) \ 2
+                                                     End If
                                                  End Sub
-            Else
-                loadingLabel.Text = Text
+            End If
+            If LaunchOverlayLabel IsNot Nothing Then
+                LaunchOverlayLabel.Text = Text
+                LaunchOverlayLabel.Left = (LaunchOverlay.Width - LaunchOverlayLabel.Width) \ 2
+                LaunchOverlayLabel.Top = (LaunchOverlay.Height - LaunchOverlayLabel.Height) \ 2
             End If
 
             If Not parentForm.Controls.Contains(LaunchOverlay) Then
@@ -2032,7 +2218,6 @@ Namespace My.Managers
 
             LaunchOverlay.BringToFront()
             LaunchOverlay.Visible = True
-            Application.DoEvents()
         End Sub
         Public Shared Sub HideLaunchOverlay()
             If LaunchOverlay IsNot Nothing Then
@@ -2461,8 +2646,11 @@ Namespace My.Managers
             End If
         End Function
         Public Async Function UpdateSoundConf(emulatorLocation As String, soundType As String) As Task
-            Dim soundPath = Path.Combine(emulatorLocation, "lib", "SoundConf.properties")
+            If soundType = "903i-HP" Then
+                soundType = "903i"
+            End If
 
+            Dim soundPath = Path.Combine(emulatorLocation, "lib", "SoundConf.properties")
             If Not File.Exists(soundPath) Then
                 logger.Logger.LogError($"File not found: {soundPath}")
                 Return
@@ -2555,6 +2743,199 @@ Namespace My.Managers
                                       End Try
                                   End Function)
         End Function
+        Public Async Function EnableDisableHardwareRendering(STARLOCATION As String, DOJALOCATION As String, TOOLFOLDER As String, EnableDisable As Boolean) As Task
+            Await Task.Run(
+        Sub()
+            Dim HardwareRenderFolder As String = Path.Combine(TOOLFOLDER, "highperformancemodules", "hardware")
+
+            Dim STARBinFolder As String = Path.Combine(STARLOCATION, "bin")
+            Dim binLibEGL As String = Path.Combine(STARBinFolder, "libEGL.dll")
+            Dim binLibGLES As String = Path.Combine(STARBinFolder, "libGLES_CM_NoE.dll")
+            Dim binINI As String = Path.Combine(STARBinFolder, "gles_hw_accel.ini")
+            Dim binLibEGLOrig As String = Path.Combine(STARBinFolder, "libEGL_orig.dll")
+            Dim binLibGLESOrig As String = Path.Combine(STARBinFolder, "libGLES_CM_NoE_orig.dll")
+
+
+            Dim hardwareLibEGL As String = Path.Combine(HardwareRenderFolder, "libEGL.dll")
+            Dim hardwareLibGLES As String = Path.Combine(HardwareRenderFolder, "libGLES_CM_NoE.dll")
+            Dim hardwareini As String = Path.Combine(HardwareRenderFolder, "gles_hw_accel.ini")
+
+
+            If Not Directory.Exists(STARBinFolder) Then
+                Throw New DirectoryNotFoundException($"STAR bin folder not found: {STARBinFolder}")
+            End If
+
+            If EnableDisable Then
+                ' Enable hardware rendering
+
+                Try
+                    If Not Directory.Exists(HardwareRenderFolder) Then
+                        Throw New DirectoryNotFoundException($"Hardware rendering folder not found: {HardwareRenderFolder}")
+                    End If
+
+                    If Not File.Exists(hardwareLibEGL) OrElse Not File.Exists(hardwareLibGLES) Then
+                        Throw New FileNotFoundException("One or more hardware rendering DLLs are missing.")
+                    End If
+                Catch ex As Exception
+                    MessageBox.Show($"Cannot enable hardware rendering: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End Try
+
+                ' Rename original DLLs only if they exist and backups do not already exist
+                If File.Exists(binLibEGL) AndAlso Not File.Exists(binLibEGLOrig) Then
+                    File.Move(binLibEGL, binLibEGLOrig)
+                End If
+
+                If File.Exists(binLibGLES) AndAlso Not File.Exists(binLibGLESOrig) Then
+                    File.Move(binLibGLES, binLibGLESOrig)
+                End If
+
+                ' Remove current hardware DLLs if already present so copy succeeds cleanly
+                If File.Exists(binLibEGL) Then
+                    File.Delete(binLibEGL)
+                End If
+
+                If File.Exists(binLibGLES) Then
+                    File.Delete(binLibGLES)
+                End If
+
+                ' Copy hardware DLLs into bin
+                File.Copy(hardwareLibEGL, binLibEGL, True)
+                File.Copy(hardwareLibGLES, binLibGLES, True)
+                File.Copy(hardwareini, binINI, True)
+            Else
+                ' Disable hardware rendering / restore software rendering
+                ' Delete hardware DLLs currently in bin
+                If File.Exists(binLibEGL) Then
+                    File.Delete(binLibEGL)
+                End If
+
+                If File.Exists(binLibGLES) Then
+                    File.Delete(binLibGLES)
+                End If
+
+                If File.Exists(binINI) Then
+                    File.Delete(binINI)
+                End If
+
+                ' Restore originals if backups exist
+                If File.Exists(binLibEGLOrig) Then
+                    File.Move(binLibEGLOrig, binLibEGL)
+                End If
+
+                If File.Exists(binLibGLESOrig) Then
+                    File.Move(binLibGLESOrig, binLibGLES)
+                End If
+            End If
+        End Sub)
+        End Function
+        Public Async Function EnableDisableHP903iSound(STARLOCATION As String, DOJALOCATION As String, TOOLFOLDER As String, EnableDisable As Boolean) As Task
+            Dim SoundHPFolder As String = Path.Combine(TOOLFOLDER, "highperformancemodules", "sound")
+            Dim emulatorLocations() As String = {STARLOCATION, DOJALOCATION}
+
+            For Each emulatorLocation As String In emulatorLocations
+                Dim targetSoundFolder As String = Path.Combine(emulatorLocation, "bin", "soundlib", "lib002", "Lib")
+                Dim sourceDLL As String = Path.Combine(targetSoundFolder, "MFiSoundLibMFi5.dll")
+                Dim sourceORIGDLL As String = Path.Combine(targetSoundFolder, "MFiSoundLibMFi5_orig.dll")
+                Dim hpDLL As String = Path.Combine(SoundHPFolder, "MFiSoundLibMFi5.dll")
+
+                If EnableDisable Then
+                    ' Enable HP: back up original, then copy HP DLL in
+                    If File.Exists(sourceDLL) AndAlso Not File.Exists(sourceORIGDLL) Then
+                        File.Move(sourceDLL, sourceORIGDLL)
+                    End If
+
+                    If File.Exists(hpDLL) Then
+                        File.Copy(hpDLL, sourceDLL, True)
+                    End If
+                Else
+                    ' Disable HP: restore the original DLL
+                    If File.Exists(sourceORIGDLL) Then
+                        If File.Exists(sourceDLL) Then
+                            File.Delete(sourceDLL)
+                        End If
+                        File.Move(sourceORIGDLL, sourceDLL)
+                    End If
+                End If
+            Next
+        End Function
+        Public Async Function EnableDisableHighPerformanceEmulators(STARLOCATION As String, DOJALOCATION As String, TOOLFOLDER As String, EnableDisable As Boolean) As Task
+            Dim DojaBinFolder As String = Path.Combine(DOJALOCATION, "bin")
+            Dim StarBinFolder As String = Path.Combine(STARLOCATION, "bin")
+
+            'High Performance Files
+            Dim HPStarFile As String = Path.Combine(TOOLFOLDER, "highperformancemodules", "hardware", "star.exe")
+            Dim HPFullFile As String = Path.Combine(TOOLFOLDER, "highperformancemodules", "hardware", "full.exe")
+            Dim HPDojaFile As String = Path.Combine(TOOLFOLDER, "highperformancemodules", "hardware", "doja.exe")
+
+            'Current files in bin folders
+            Dim StarExe As String = Path.Combine(StarBinFolder, "star.exe")
+            Dim FullExe As String = Path.Combine(StarBinFolder, "full.exe")
+            Dim PerfDat As String = Path.Combine(StarBinFolder, "_performance.dat")
+            Dim DojaExe As String = Path.Combine(DojaBinFolder, "doja.exe")
+
+            'Renamed originals
+            Dim StarOrigExe As String = Path.Combine(StarBinFolder, "star_orig.exe")
+            Dim FullOrigExe As String = Path.Combine(StarBinFolder, "full_orig.exe")
+            Dim PerfOrigDat As String = Path.Combine(StarBinFolder, "_performance_orig.dat")
+            Dim DojaOrigExe As String = Path.Combine(DojaBinFolder, "doja_orig.exe")
+
+            Await Task.Run(
+        Sub()
+            If EnableDisable Then
+                ' --- ENABLE: back up originals, then copy HP files in ---
+
+                ' Rename originals in StarBinFolder
+                If File.Exists(StarExe) AndAlso Not File.Exists(StarOrigExe) Then
+                    File.Move(StarExe, StarOrigExe)
+                End If
+
+                If File.Exists(FullExe) AndAlso Not File.Exists(FullOrigExe) Then
+                    File.Move(FullExe, FullOrigExe)
+                End If
+
+                If File.Exists(PerfDat) AndAlso Not File.Exists(PerfOrigDat) Then
+                    File.Move(PerfDat, PerfOrigDat)
+                End If
+
+                ' Rename original in DojaBinFolder
+                If File.Exists(DojaExe) AndAlso Not File.Exists(DojaOrigExe) Then
+                    File.Move(DojaExe, DojaOrigExe)
+                End If
+
+                ' Copy high performance files in
+                File.Copy(HPStarFile, StarExe, overwrite:=True)
+                File.Copy(HPFullFile, FullExe, overwrite:=True)
+                File.Copy(HPDojaFile, DojaExe, overwrite:=True)
+
+            Else
+                ' --- DISABLE: remove HP files, restore originals ---
+
+                ' Delete the HP copies
+                If File.Exists(StarExe) Then File.Delete(StarExe)
+                If File.Exists(FullExe) Then File.Delete(FullExe)
+                If File.Exists(DojaExe) Then File.Delete(DojaExe)
+
+                ' Restore originals in StarBinFolder
+                If File.Exists(StarOrigExe) Then
+                    File.Move(StarOrigExe, StarExe)
+                End If
+
+                If File.Exists(FullOrigExe) Then
+                    File.Move(FullOrigExe, FullExe)
+                End If
+
+                If File.Exists(PerfOrigDat) Then
+                    File.Move(PerfOrigDat, PerfDat)
+                End If
+
+                ' Restore original in DojaBinFolder
+                If File.Exists(DojaOrigExe) Then
+                    File.Move(DojaOrigExe, DojaExe)
+                End If
+            End If
+        End Sub)
+        End Function
 
         'EZWeb Helper
         Private Shared Function ExtractKjxMetadata(kjxPath As String) As String()
@@ -2615,7 +2996,12 @@ Namespace My.Managers
             End If
 
             Try
-                Dim enc = Encoding.GetEncoding(932)
+                Dim enc As Encoding
+                If Path.GetExtension(jadFilePath).Equals(".jad", StringComparison.OrdinalIgnoreCase) Then
+                    enc = Encoding.UTF8
+                Else
+                    enc = Encoding.GetEncoding(932)
+                End If
                 Dim lines As String() = Await File.ReadAllLinesAsync(jadFilePath, enc)
                 Dim updatedLines As New List(Of String)
                 Dim updatedJarUrl As Boolean = False
@@ -2648,8 +3034,14 @@ Namespace My.Managers
             End Try
         End Function
         Public Async Function AddJADMIDletEntriesAsync(txtFilePath As String, uid As String, terminalId As String) As Task
-            Dim sjis As Encoding = Encoding.GetEncoding("Shift_JIS")
-            Dim lines As New List(Of String)(Await File.ReadAllLinesAsync(txtFilePath, sjis))
+            Dim enc As Encoding
+            If Path.GetExtension(txtFilePath).Equals(".jad", StringComparison.OrdinalIgnoreCase) Then
+                enc = Encoding.UTF8
+            Else
+                enc = Encoding.GetEncoding("Shift_JIS")
+            End If
+
+            Dim lines As New List(Of String)(Await File.ReadAllLinesAsync(txtFilePath, enc))
 
             Dim hasUID As Boolean = lines.Any(Function(l) l.StartsWith("MIDlet_UID:"))
             Dim hasUCODE As Boolean = lines.Any(Function(l) l.StartsWith("MIDlet_UCODE:"))
@@ -2663,7 +3055,7 @@ Namespace My.Managers
             End If
 
             If Not hasUID OrElse Not hasUCODE Then
-                Await File.WriteAllLinesAsync(txtFilePath, lines, sjis)
+                Await File.WriteAllLinesAsync(txtFilePath, lines, enc)
             End If
         End Function
 
@@ -2772,6 +3164,39 @@ Namespace My.Managers
                 MessageBox.Show("Failed to launch ShaderGlass: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Function
+        Public Function GetCurrentSetShader() As String
+            Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
+            Dim ShaderGlassProfile As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "keitai.sgp")
+            Dim shaderCategory As String = ""
+            Dim shaderName As String = ""
+            For Each line As String In IO.File.ReadAllLines(ShaderGlassProfile)
+                Dim trimmed = line.Trim()
+                If trimmed.StartsWith("ShaderCategory ") Then
+                    shaderCategory = trimmed.Substring("ShaderCategory ".Length).Trim(""""c)
+                ElseIf trimmed.StartsWith("ShaderName ") Then
+                    shaderName = trimmed.Substring("ShaderName ".Length).Trim(""""c)
+                End If
+            Next
+            Return $"{shaderCategory}//{shaderName}"
+        End Function
+        Public Sub SetCurrentShader(CombinedShader As String)
+            Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
+            Dim ShaderGlassProfile As String = Path.Combine(baseDir, "data", "tools", "shaderglass", "keitai.sgp")
+            Dim separatorIndex As Integer = CombinedShader.IndexOf("//")
+            If separatorIndex < 0 Then Return
+            Dim shaderCategory As String = CombinedShader.Substring(0, separatorIndex)
+            Dim shaderName As String = CombinedShader.Substring(separatorIndex + 2)
+            Dim lines() As String = IO.File.ReadAllLines(ShaderGlassProfile)
+            For i As Integer = 0 To lines.Length - 1
+                Dim trimmed = lines(i).Trim()
+                If trimmed.StartsWith("ShaderCategory ") Then
+                    lines(i) = $"ShaderCategory ""{shaderCategory}"""
+                ElseIf trimmed.StartsWith("ShaderName ") Then
+                    lines(i) = $"ShaderName ""{shaderName}"""
+                End If
+            Next
+            IO.File.WriteAllLines(ShaderGlassProfile, lines)
+        End Sub
         Public Async Function UpdateShaderGlassConfig(filePath As String, Optional captureWindowName As String = Nothing, Optional shaderName As String = Nothing, Optional scalingSelection As String = Nothing) As Task
 
             If Not File.Exists(filePath) Then

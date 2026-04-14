@@ -13,6 +13,8 @@
   <Setting name="AutoUpdateCharaDenList">true</Setting>
   <Setting name="UseShaderGlass">true</Setting>
   <Setting name="UseDialPad">true</Setting>
+  <Setting name="DojaStarHardwareRendering">false</Setting>
+  <Setting name="DojaStarHighPerformanceEXE">false</Setting>
   <Setting name="DOJAPath">c:\doja</Setting>
   <Setting name="DOJAEXEPath">doja.exe</Setting>
   <Setting name="DOJAHideUI">true</Setting>
@@ -35,4 +37,6 @@
   <Setting name="MachiCharaEXEPath">machicharaemu.exe</Setting>
   <Setting name="CharaDenPath">c:\charaden</Setting>
   <Setting name="CharaDenEXEPath">CharaDenemu.exe</Setting>
+  <Setting name="OpenDojaPath">c:\opendoja</Setting>
+  <Setting name="OpenDojaEXEPath">opendoja.jar</Setting>
 </Config>

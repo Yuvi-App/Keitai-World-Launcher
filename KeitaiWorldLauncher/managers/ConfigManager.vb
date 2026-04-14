@@ -21,6 +21,8 @@ Namespace My.Managers
         {"AutoUpdateCharaDenList", "true"},
         {"UseShaderGlass", "true"},
         {"UseDialPad", "true"},
+        {"DojaStarHardwareRendering", "false"},
+        {"DojaStarHighPerformanceEXE", "false"},
         {"DOJAPath", "c:\doja"},
         {"DOJAEXEPath", "doja.exe"},
         {"DOJAHideUI", "true"},
@@ -38,11 +40,13 @@ Namespace My.Managers
         {"EZWEBEZPLUSpath", "c:\EZWEBEZPLUS"},
         {"EZWEBEZPLUSEXEPath", "EZWEBEZPLUS.exe"},
         {"FlashPlayerPath", "c:\flashplayer"},
-        {"FlashPlayerEXEPath", "JSKY.exe"},
+        {"FlashPlayerEXEPath", "flashplayer.exe"},
         {"MachiCharaPath", "c:\machichara"},
         {"MachiCharaEXEPath", "machicharaemu.exe"},
         {"CharaDenPath", "c:\charaden"},
-        {"CharaDenEXEPath", "CharaDenemu.exe"}
+        {"CharaDenEXEPath", "CharaDenemu.exe"},
+        {"OpenDojaPath", "c:\opendoja"},
+        {"OpenDojaEXEPath", "opendoja.jar"}
     }
 
         ' Load configuration from XML
@@ -119,6 +123,12 @@ Namespace My.Managers
         End Sub
         Public Sub UpdateUseDialPadSetting(isChecked As Boolean)
             UpdateSetting("UseDialPad", isChecked.ToString().ToLower())
+        End Sub
+        Public Sub UpdateDojaStarHardwareRenderingSetting(isChecked As Boolean)
+            UpdateSetting("DojaStarHardwareRendering", isChecked.ToString().ToLower())
+        End Sub
+        Public Sub UpdateDojaStarHighPerformanceEXESetting(isChecked As Boolean)
+            UpdateSetting("DojaStarHighPerformanceEXE", isChecked.ToString().ToLower())
         End Sub
         Public Async Function UpdateFirstRunSettingAsync(value As String) As Task
             UpdateSetting("FirstRun", value)
