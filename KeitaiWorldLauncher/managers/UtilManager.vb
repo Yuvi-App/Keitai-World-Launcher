@@ -279,46 +279,118 @@ Namespace My.Managers
             Return True
         End Function
         Public Shared Async Function DetectJava21PlusAsync() As Task(Of Boolean)
-            Dim javaHome As String = Await Task.Run(Function()
-                                                        ' Check JDK keys for version 21+
-                                                        Dim baseKeys As String() = {
-            "SOFTWARE\JavaSoft\JDK",
-            "SOFTWARE\WOW6432Node\JavaSoft\JDK"
-        }
+            Dim result = Await Task.Run(
+        Function()
+            Dim bestVersion As Version = Nothing
+            Dim bestPath As String = Nothing
 
-                                                        Dim bestVersion As Version = Nothing
-                                                        Dim bestPath As String = Nothing
+            ' === Phase 1: Registry sweep across all known JDK vendors ===
+            Dim baseKeys As String() = {
+                "SOFTWARE\JavaSoft\JDK",
+                "SOFTWARE\WOW6432Node\JavaSoft\JDK",
+                "SOFTWARE\Eclipse Adoptium\JDK",
+                "SOFTWARE\WOW6432Node\Eclipse Adoptium\JDK",
+                "SOFTWARE\Eclipse Foundation\JDK",
+                "SOFTWARE\WOW6432Node\Eclipse Foundation\JDK",
+                "SOFTWARE\AdoptOpenJDK\JDK",
+                "SOFTWARE\WOW6432Node\AdoptOpenJDK\JDK",
+                "SOFTWARE\Microsoft\JDK",
+                "SOFTWARE\WOW6432Node\Microsoft\JDK",
+                "SOFTWARE\Amazon\JDK",
+                "SOFTWARE\WOW6432Node\Amazon\JDK"
+            }
 
-                                                        For Each basePath In baseKeys
-                                                            Using baseKey As RegistryKey = Registry.LocalMachine.OpenSubKey(basePath)
-                                                                If baseKey Is Nothing Then Continue For
-                                                                For Each subName In baseKey.GetSubKeyNames()
-                                                                    Dim ver As Version = Nothing
-                                                                    If Version.TryParse(subName, ver) AndAlso ver.Major >= 21 Then
-                                                                        Using subKey = baseKey.OpenSubKey(subName)
-                                                                            Dim home = subKey?.GetValue("JavaHome")?.ToString()
-                                                                            If home IsNot Nothing AndAlso (bestVersion Is Nothing OrElse ver > bestVersion) Then
-                                                                                bestVersion = ver
-                                                                                bestPath = home
-                                                                            End If
-                                                                        End Using
-                                                                    End If
-                                                                Next
-                                                            End Using
-                                                        Next
+            For Each basePath In baseKeys
+                Try
+                    Using baseKey As RegistryKey = Registry.LocalMachine.OpenSubKey(basePath)
+                        If baseKey Is Nothing Then Continue For
+                        For Each subName In baseKey.GetSubKeyNames()
+                            Dim ver As Version = Nothing
+                            If Version.TryParse(subName, ver) AndAlso ver.Major >= 21 Then
+                                Using subKey = baseKey.OpenSubKey(subName)
+                                    Dim home = subKey?.GetValue("JavaHome")?.ToString()
+                                    If home IsNot Nothing AndAlso
+                                       File.Exists(Path.Combine(home, "bin", "java.exe")) AndAlso
+                                       (bestVersion Is Nothing OrElse ver > bestVersion) Then
+                                        bestVersion = ver
+                                        bestPath = home
+                                    End If
+                                End Using
+                            End If
+                        Next
+                    End Using
+                Catch ex As System.Security.SecurityException
+                    ' Insufficient permissions to read this key, skip it
+                End Try
+            Next
 
-                                                        Return bestPath
-                                                    End Function)
+            ' === Phase 2: Filesystem scan of common install locations ===
+            If bestPath Is Nothing Then
+                Dim programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
+                Dim searchRoots As String() = {
+                    Path.Combine(programFiles, "Java"),
+                    Path.Combine(programFiles, "Eclipse Adoptium"),
+                    Path.Combine(programFiles, "Microsoft"),
+                    Path.Combine(programFiles, "Amazon Corretto"),
+                    Path.Combine(programFiles, "Zulu"),
+                    Path.Combine(programFiles, "BellSoft"),
+                    Path.Combine(programFiles, "Liberica")
+                }
 
-            If Not String.IsNullOrEmpty(javaHome) Then
-                MainForm.Java21PlusBinFolderPath = Path.Combine(javaHome, "bin")
-                My.logger.Logger.LogInfo($"Found Java 21+ at: {javaHome}")
+                For Each root In searchRoots
+                    Try
+                        If Not Directory.Exists(root) Then Continue For
+                        For Each jdkDir In Directory.GetDirectories(root)
+                            Dim javaExe = Path.Combine(jdkDir, "bin", "java.exe")
+                            If Not File.Exists(javaExe) Then Continue For
+
+                            Dim folderName = Path.GetFileName(jdkDir)
+                            Dim ver = TryParseJdkFolderVersion(folderName)
+                            If ver IsNot Nothing AndAlso ver.Major >= 21 AndAlso
+       (bestVersion Is Nothing OrElse ver > bestVersion) Then
+                                bestVersion = ver
+                                bestPath = jdkDir
+                            End If
+                        Next
+                    Catch ex As UnauthorizedAccessException
+                        ' Can't read this directory, skip it
+                    End Try
+                Next
+            End If
+
+            Return bestPath
+        End Function)
+
+            If Not String.IsNullOrEmpty(result) Then
+                MainForm.Java21PlusBinFolderPath = Path.Combine(result, "bin")
+                My.logger.Logger.LogInfo($"Found Java 21+ at: {result}")
                 Return True
             Else
                 MainForm.Java21PlusBinFolderPath = Nothing
                 My.logger.Logger.LogWarning("Java 21+ not found.")
                 Return False
             End If
+        End Function
+        Private Shared Function TryParseJdkFolderVersion(folderName As String) As Version
+            ' Handles: "jdk-21.0.2", "jdk-21", "21.0.2", "temurin-21.0.2+13", etc.
+            Dim cleaned = folderName
+            ' Strip common prefixes
+            For Each prefix In {"jdk-", "jdk", "jre-", "jre", "temurin-", "zulu-", "corretto-"}
+                If cleaned.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) Then
+                    cleaned = cleaned.Substring(prefix.Length)
+                    Exit For
+                End If
+            Next
+            ' Strip build metadata: "+13", "_392", etc.
+            Dim plusIdx = cleaned.IndexOfAny({"+"c, "_"c})
+            If plusIdx >= 0 Then cleaned = cleaned.Substring(0, plusIdx)
+
+            Dim ver As Version = Nothing
+            If Version.TryParse(cleaned, ver) Then Return ver
+            ' Handle single number like "21"
+            Dim major As Integer
+            If Integer.TryParse(cleaned, major) Then Return New Version(major, 0)
+            Return Nothing
         End Function
         Public Shared Async Function IsVCRuntime2022InstalledAsync() As Task(Of Boolean)
             Return Await Task.Run(Function()
@@ -2533,11 +2605,13 @@ Namespace My.Managers
                 If lines.Count <> before Then modified = True
 
                 ' Normalize spacing around equals signs
-                Dim kvPattern As New Regex("^(\S+)\s*=\s*(.*)$")
+                Dim kvPattern As New Regex("^([^=]+?)(\s*=\s*)(.*)$")
                 For i = 0 To lines.Count - 1
                     Dim m = kvPattern.Match(lines(i))
                     If m.Success Then
-                        Dim normalized = $"{m.Groups(1).Value} = {m.Groups(2).Value}"
+                        Dim key = m.Groups(1).Value.TrimEnd()
+                        Dim value = m.Groups(3).Value.TrimStart()
+                        Dim normalized = $"{key} = {value}"
                         If lines(i) <> normalized Then
                             lines(i) = normalized
                             modified = True
