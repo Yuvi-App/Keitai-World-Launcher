@@ -82,6 +82,14 @@ Public Class MainForm
     Public UseDialPad As Boolean
     Public DojaStarHardwareRendering As Boolean
     Public DojaStarHighPerformanceEXE As Boolean
+    Public DefaultDOJASDK As String
+    Public DefaultSTARSDK As String
+    Public DefaultJSKYSDK As String
+    Public DefaultSOFTBANKSDK As String
+    Public DefaultVODAFONESDK As String
+    Public DefaultAIREDGESDK As String
+    Public DefaultEZWEBEZPLUSSDK As String
+    Public DefaultFlashSDK As String
     Public NetworkUID As String
     Public TerminalID As String
     Public DOJApath As String
@@ -335,6 +343,13 @@ Public Class MainForm
         cbxEZWebEZPlusSDK.Items.Clear()
         cbxSoftbankSDK.Items.Clear()
     End Sub
+    Private Function GetConfiguredDefaultSdk(configuredValue As String, fallbackValue As String) As String
+        If String.IsNullOrWhiteSpace(configuredValue) Then
+            Return fallbackValue
+        End If
+
+        Return configuredValue.Trim()
+    End Function
     Private Async Function GetSDKsAsync() As Task
         Logger.LogInfo("Starting SDK discovery...")
 
@@ -347,14 +362,14 @@ Public Class MainForm
 
         ' SDK configuration: (ComboBox, DefaultValue, Prefixes)
         Dim sdkMappings As New List(Of (Combo As ComboBox, DefaultSdk As String, Prefixes As String())) From {
-        (cbxDojaSDK, "OpenDoja", {"idkdoja", "squirreljme", "kemnnx64", "freej2me", "opendoja"}),
-        (cbxStarSDK, "iDKStar2.0", {"idkstar", "freej2me", "opendoja"}),
-        (cbxJSKYSDK, "ReMEXA", {"jsky_", "kemnnx64", "remexa"}),
-        (cbxSoftbankSDK, "ReMEXA", {"kemnnx64", "freej2me", "remexa"}),
-        (cbxVodafoneSDK, "ReMEXA", {"kemnnx64", "remexa"}),
-        (cbxAirEdgeSDK, "freej2me", {"kemnnx64", "freej2me"}),
-        (cbxEZWebEZPlusSDK, "freej2me", {"freej2me"}),
-        (cbxFlashSDK, "FlashPlayer", {"flash"})
+        (cbxDojaSDK, GetConfiguredDefaultSdk(DefaultDOJASDK, "OpenDoja"), {"idkdoja", "squirreljme", "kemnnx64", "freej2me", "opendoja"}),
+        (cbxStarSDK, GetConfiguredDefaultSdk(DefaultSTARSDK, "iDKStar2.0"), {"idkstar", "freej2me", "opendoja"}),
+        (cbxJSKYSDK, GetConfiguredDefaultSdk(DefaultJSKYSDK, "ReMEXA"), {"jsky_", "kemnnx64", "remexa"}),
+        (cbxSoftbankSDK, GetConfiguredDefaultSdk(DefaultSOFTBANKSDK, "ReMEXA"), {"kemnnx64", "freej2me", "remexa"}),
+        (cbxVodafoneSDK, GetConfiguredDefaultSdk(DefaultVODAFONESDK, "ReMEXA"), {"kemnnx64", "remexa"}),
+        (cbxAirEdgeSDK, GetConfiguredDefaultSdk(DefaultAIREDGESDK, "freej2me"), {"kemnnx64", "freej2me"}),
+        (cbxEZWebEZPlusSDK, GetConfiguredDefaultSdk(DefaultEZWEBEZPLUSSDK, "freej2me"), {"freej2me"}),
+        (cbxFlashSDK, GetConfiguredDefaultSdk(DefaultFlashSDK, "FlashPlayer"), {"flash"})
     }
 
         ' Get SDK folders on background thread

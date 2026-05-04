@@ -23,6 +23,14 @@ Namespace My.Managers
         {"UseDialPad", "true"},
         {"DojaStarHardwareRendering", "false"},
         {"DojaStarHighPerformanceEXE", "false"},
+        {"DefaultDOJASDK", "OpenDoja"},
+        {"DefaultSTARSDK", "iDKStar2.0"},
+        {"DefaultJSKYSDK", "ReMEXA"},
+        {"DefaultSOFTBANKSDK", "ReMEXA"},
+        {"DefaultVODAFONESDK", "ReMEXA"},
+        {"DefaultAIREDGESDK", "freej2me"},
+        {"DefaultEZWEBEZPLUSSDK", "freej2me"},
+        {"DefaultFlashSDK", "FlashPlayer"},
         {"DOJAPath", "c:\doja"},
         {"DOJAEXEPath", "doja.exe"},
         {"DOJAHideUI", "true"},
@@ -66,6 +74,11 @@ Namespace My.Managers
                                                   config(name) = value ' Update from the file
                                               End If
                                           Next
+
+                                          Dim missingDefaultsAdded = EnsureDefaultSettings(doc)
+                                          If missingDefaultsAdded Then
+                                              doc.Save(ConfigFilePath)
+                                          End If
                                       Else
                                           ' Config file doesn't exist, save the default config
                                           SaveConfig(DefaultConfig)
@@ -76,6 +89,25 @@ Namespace My.Managers
 
                                       Return config
                                   End Function)
+        End Function
+
+        Private Function EnsureDefaultSettings(doc As XmlDocument) As Boolean
+            Dim root As XmlNode = doc.SelectSingleNode("/Config")
+            If root Is Nothing Then Return False
+
+            Dim changed As Boolean = False
+            For Each kvp In DefaultConfig
+                Dim settingNode As XmlNode = doc.SelectSingleNode($"//Setting[@name='{kvp.Key}']")
+                If settingNode Is Nothing Then
+                    Dim setting As XmlElement = doc.CreateElement("Setting")
+                    setting.SetAttribute("name", kvp.Key)
+                    setting.InnerText = kvp.Value
+                    root.AppendChild(setting)
+                    changed = True
+                End If
+            Next
+
+            Return changed
         End Function
 
         ' Save configuration to XML

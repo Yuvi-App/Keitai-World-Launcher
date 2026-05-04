@@ -15,6 +15,14 @@
   <Setting name="UseDialPad">true</Setting>
   <Setting name="DojaStarHardwareRendering">false</Setting>
   <Setting name="DojaStarHighPerformanceEXE">false</Setting>
+  <Setting name="DefaultDOJASDK">OpenDoja</Setting>
+  <Setting name="DefaultSTARSDK">iDKStar2.0</Setting>
+  <Setting name="DefaultJSKYSDK">ReMEXA</Setting>
+  <Setting name="DefaultSOFTBANKSDK">ReMEXA</Setting>
+  <Setting name="DefaultVODAFONESDK">ReMEXA</Setting>
+  <Setting name="DefaultAIREDGESDK">freej2me</Setting>
+  <Setting name="DefaultEZWEBEZPLUSSDK">freej2me</Setting>
+  <Setting name="DefaultFlashSDK">FlashPlayer</Setting>
   <Setting name="DOJAPath">c:\doja</Setting>
   <Setting name="DOJAEXEPath">doja.exe</Setting>
   <Setting name="DOJAHideUI">true</Setting>
