@@ -171,6 +171,9 @@ Namespace My.Managers
         Public Sub UpdateDOJASoundSetting(SoundType As String)
             UpdateSetting("DOJASoundType", SoundType)
         End Sub
+        Public Sub UpdateDefaultSDKSetting(settingName As String, selectedSDK As String)
+            UpdateSetting(settingName, selectedSDK)
+        End Sub
 
         ' Update Network UID and Terminal ID settings
         Public Sub UpdateNetworkAndTerminalIDSetting(NewNetworkUID As String, NewTerminalID As String)

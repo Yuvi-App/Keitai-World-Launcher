@@ -117,7 +117,7 @@ Public Class MainForm
     Public OpenDojapath As String
     Public OpenDojaExe As String
     Public Java1_8BinFolderPath As String
-    Public Java21PlusBinFolderPath As String
+    Public Java22PlusBinFolderPath As String
 
     ' FORM Close/Load
     Private Sub MainForm_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
@@ -350,6 +350,13 @@ Public Class MainForm
 
         Return configuredValue.Trim()
     End Function
+    Private Sub SaveDefaultSdkSelection(settingName As String, selectedSDK As String)
+        If Not CompletedBootSequence OrElse String.IsNullOrWhiteSpace(selectedSDK) Then
+            Return
+        End If
+
+        configManager.UpdateDefaultSDKSetting(settingName, selectedSDK.Trim())
+    End Sub
     Private Async Function GetSDKsAsync() As Task
         Logger.LogInfo("Starting SDK discovery...")
 
@@ -1839,6 +1846,7 @@ Public Class MainForm
         End If
 
         Dim selectedSDK As String = cbxStarSDK.SelectedItem.ToString()
+        SaveDefaultSdkSelection("DefaultSTARSDK", selectedSDK)
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
 
         If sdkLower.StartsWith("idkstar") Then
@@ -1865,6 +1873,7 @@ Public Class MainForm
         End If
 
         Dim selectedSDK As String = cbxDojaSDK.SelectedItem.ToString()
+        SaveDefaultSdkSelection("DefaultDOJASDK", selectedSDK)
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
         DOJApath = Path.Combine(ToolsFolder, selectedSDK)
 
@@ -1910,6 +1919,7 @@ Public Class MainForm
         End If
 
         Dim selectedSDK As String = cbxSoftbankSDK.SelectedItem.ToString()
+        SaveDefaultSdkSelection("DefaultSOFTBANKSDK", selectedSDK)
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
         SOFTBANKpath = Path.Combine(ToolsFolder, selectedSDK)
 
@@ -1923,6 +1933,11 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("freej2me")
             End If
             SOFTBANKEXE = Path.Combine(SOFTBANKpath, "freej2me.jar")
+        ElseIf sdkLower.StartsWith("remexa") Then
+            If CompletedBootSequence = True Then
+                ShowEmulatorDisclaimer("remexa")
+            End If
+            SOFTBANKEXE = Path.Combine(SOFTBANKpath, "remexa.jar")
         End If
     End Sub
     Private Sub cbxJSKYSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxJSKYSDK.SelectedIndexChanged
@@ -1932,6 +1947,7 @@ Public Class MainForm
         End If
 
         Dim selectedSDK As String = cbxJSKYSDK.SelectedItem.ToString()
+        SaveDefaultSdkSelection("DefaultJSKYSDK", selectedSDK)
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
         JSKYpath = Path.Combine(ToolsFolder, selectedSDK)
 
@@ -1943,6 +1959,11 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("kemnnx64")
             End If
             JSKYEXE = Path.Combine(JSKYpath, "KEmulator.jar")
+        ElseIf sdkLower.StartsWith("remexa") Then
+            If CompletedBootSequence = True Then
+                ShowEmulatorDisclaimer("remexa")
+            End If
+            JSKYEXE = Path.Combine(JSKYpath, "remexa.jar")
         End If
     End Sub
     Private Sub cbxVODAFONESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxVodafoneSDK.SelectedIndexChanged
@@ -1952,6 +1973,7 @@ Public Class MainForm
         End If
 
         Dim selectedSDK As String = cbxVodafoneSDK.SelectedItem.ToString()
+        SaveDefaultSdkSelection("DefaultVODAFONESDK", selectedSDK)
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
         VODAFONEpath = Path.Combine(ToolsFolder, selectedSDK)
 
@@ -1960,6 +1982,11 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("kemnnx64")
             End If
             VODAFONEEXE = Path.Combine(VODAFONEpath, "KEmulator.jar")
+        ElseIf sdkLower.StartsWith("remexa") Then
+            If CompletedBootSequence = True Then
+                ShowEmulatorDisclaimer("remexa")
+            End If
+            VODAFONEEXE = Path.Combine(VODAFONEpath, "remexa.jar")
         End If
     End Sub
     Private Sub cbxAIREDGESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxAirEdgeSDK.SelectedIndexChanged
@@ -1969,6 +1996,7 @@ Public Class MainForm
         End If
 
         Dim selectedSDK As String = cbxAirEdgeSDK.SelectedItem.ToString()
+        SaveDefaultSdkSelection("DefaultAIREDGESDK", selectedSDK)
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
         AIREDGEpath = Path.Combine(ToolsFolder, selectedSDK)
 
@@ -1991,6 +2019,7 @@ Public Class MainForm
         End If
 
         Dim selectedSDK As String = cbxEZWebEZPlusSDK.SelectedItem.ToString()
+        SaveDefaultSdkSelection("DefaultEZWEBEZPLUSSDK", selectedSDK)
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
         EZWEBEZPLUSpath = Path.Combine(ToolsFolder, selectedSDK)
 
@@ -2000,6 +2029,17 @@ Public Class MainForm
             End If
             EZWEBEZPLUSEXE = Path.Combine(EZWEBEZPLUSpath, "freej2me.jar")
         End If
+    End Sub
+    Private Sub cbxFlashSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxFlashSDK.SelectedIndexChanged
+        If cbxFlashSDK.SelectedItem Is Nothing Then
+            MessageBox.Show("Please Select a Flash SDK before launching.")
+            Return
+        End If
+
+        Dim selectedSDK As String = cbxFlashSDK.SelectedItem.ToString()
+        SaveDefaultSdkSelection("DefaultFlashSDK", selectedSDK)
+        FlashPlayerpath = Path.Combine(ToolsFolder, selectedSDK)
+        FlashPlayerEXE = Path.Combine(FlashPlayerpath, "FlashPlayer.exe")
     End Sub
     Private Async Sub cbxGameControllers_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxGameControllers.SelectedIndexChanged
         Dim selectedName = cbxGameControllers.SelectedItem?.ToString()
@@ -2450,20 +2490,44 @@ Public Class MainForm
                     Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "jsky"
-                    Logger.LogInfo("Launching game using JSKY emulator.")
                     Dim lowerJSKYPath = JSKYpath.ToLowerInvariant()
 
                     If lowerJSKYPath.Contains("jsky_") Then
+                        Logger.LogInfo("Launching game using JSKY emulator.")
                         utilManager.LaunchCustomJSKYGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
                     ElseIf lowerJSKYPath.Contains("kemnnx64") Then
+                        Logger.LogInfo("Launching game using Kemulator emulator.")
                         utilManager.LaunchCustom_KEmulatorGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerJSKYPath.Contains("remexa") Then
+                        Logger.LogInfo("Launching game using remexa emulator.")
+                        utilManager.LaunchCustom_REMEXAGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: JSKYPath={JSKYpath}, JSKYEXE={JSKYEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "vodafone"
-                    Logger.LogInfo("Launching game using VODAFONE emulator.")
-                    utilManager.LaunchCustom_KEmulatorGameCommand(VODAFONEpath, VODAFONEEXE, CurrentSelectedGameJAM)
+                    Dim lowerVODAFONEPath = VODAFONEpath.ToLowerInvariant()
+                    If lowerVODAFONEPath.Contains("kemnnx64") Then
+                        Logger.LogInfo("Launching game using KEMULATOR emulator.")
+                        utilManager.LaunchCustom_KEmulatorGameCommand(VODAFONEpath, VODAFONEEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerVODAFONEPath.Contains("remexa") Then
+                        Logger.LogInfo("Launching game using ReMEXA emulator.")
+                        utilManager.LaunchCustom_REMEXAGameCommand(VODAFONEpath, VODAFONEEXE, CurrentSelectedGameJAM)
+                    End If
                     Logger.LogInfo($"Launched with: VODAFONEPath={VODAFONEpath}, VODAFONEEXE={VODAFONEEXE}, GamePath={CurrentSelectedGameJAM}")
+
+                Case "softbank"
+                    Dim lowerSOFTBANKPath = SOFTBANKpath.ToLowerInvariant()
+                    If lowerSOFTBANKPath.Contains("kemnnx64") Then
+                        Logger.LogInfo("Launching game using KEMULATOR emulator.")
+                        utilManager.LaunchCustom_KEmulatorGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerSOFTBANKPath.Contains("freej2me") Then
+                        Logger.LogInfo("Launching game using FreeJ2ME emulator.")
+                        utilManager.LaunchCustom_FreeJ2MEGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
+                    ElseIf lowerSOFTBANKPath.Contains("remexa") Then
+                        Logger.LogInfo("Launching game using remexa emulator.")
+                        utilManager.LaunchCustom_REMEXAGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
+                    End If
+                    Logger.LogInfo($"Launched with: SOFTBANKPath={SOFTBANKpath}, SOFTBANKEXE={SOFTBANKEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "airedge"
                     Dim lowerAIREDGEPath = AIREDGEpath.ToLowerInvariant()
@@ -2475,17 +2539,6 @@ Public Class MainForm
                         utilManager.LaunchCustom_FreeJ2MEGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: AIREDGEPath={AIREDGEpath}, AIREDGEEXE={AIREDGEEXE}, GamePath={CurrentSelectedGameJAM}")
-
-                Case "softbank"
-                    Dim lowerSOFTBANKPath = SOFTBANKpath.ToLowerInvariant()
-                    If lowerSOFTBANKPath.Contains("kemnnx64") Then
-                        Logger.LogInfo("Launching game using KEMULATOR emulator.")
-                        utilManager.LaunchCustom_KEmulatorGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
-                    ElseIf lowerSOFTBANKPath.Contains("freej2me") Then
-                        Logger.LogInfo("Launching game using FreeJ2ME emulator.")
-                        utilManager.LaunchCustom_FreeJ2MEGameCommand(SOFTBANKpath, SOFTBANKEXE, CurrentSelectedGameJAM)
-                    End If
-                    Logger.LogInfo($"Launched with: SOFTBANKPath={SOFTBANKpath}, SOFTBANKEXE={SOFTBANKEXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "ezplus"
                     Dim lowerEZPLUSPath = EZWEBEZPLUSpath.ToLowerInvariant()

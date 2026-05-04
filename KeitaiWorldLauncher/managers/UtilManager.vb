@@ -362,11 +362,11 @@ Namespace My.Managers
         End Function)
 
             If Not String.IsNullOrEmpty(result) Then
-                MainForm.Java21PlusBinFolderPath = Path.Combine(result, "bin")
+                MainForm.Java22PlusBinFolderPath = Path.Combine(result, "bin")
                 My.logger.Logger.LogInfo($"Found Java 22+ at: {result}")
                 Return True
             Else
-                MainForm.Java21PlusBinFolderPath = Nothing
+                MainForm.Java22PlusBinFolderPath = Nothing
                 My.logger.Logger.LogWarning("Java 22+ not found.")
                 Return False
             End If
@@ -1365,7 +1365,7 @@ Namespace My.Managers
                 Dim arguments As String
 
                 ' Make Full Paths
-                Dim Java32EXE As String = Path.Combine(MainForm.Java21PlusBinFolderPath, "java.exe")
+                Dim Java32EXE As String = Path.Combine(MainForm.Java22PlusBinFolderPath, "java.exe")
                 Dim exePath As String = OpenDojaEXELocation.Trim
                 Dim jamPath As String = Path.Combine(baseDir, GameJAM).Trim()
                 Dim jarPath As String = Path.Combine(Path.GetDirectoryName(jamPath), Path.GetFileNameWithoutExtension(jamPath) & ".jar")
@@ -1407,6 +1407,78 @@ Namespace My.Managers
                 ProcessManager.StartMonitoring(jamPath)
                 HideLaunchOverlay()
 
+            Catch ex As ArgumentException
+                logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
+                MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
+                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Sub
+        Public Async Sub LaunchCustom_REMEXAGameCommand(REMEXAPATH As String, REMEXAEXELocation As String, GameJAM As String)
+            Try
+                logger.Logger.LogInfo("[Launch] Starting ReMEXA game launch sequence...")
+
+                ' Validate inputs
+                If String.IsNullOrWhiteSpace(REMEXAPATH) OrElse String.IsNullOrWhiteSpace(REMEXAEXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
+                    Throw New ArgumentException("One or more required parameters are missing.")
+                End If
+
+                'Start overlay
+                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
+
+                ' Prepare all paths
+                Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
+                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
+                Dim appPath As String
+                Dim arguments As String
+
+                ' Make Full Paths
+                Dim Java32EXE As String = Path.Combine(MainForm.Java22PlusBinFolderPath, "java.exe")
+                Dim exePath As String = REMEXAEXELocation.Trim
+                Dim jadjamPath As String = Path.Combine(baseDir, GameJAM).Trim()
+                Dim jarPath As String = Path.Combine(Path.GetDirectoryName(jadjamPath), Path.GetFileNameWithoutExtension(jadjamPath) & ".jar")
+
+                If jadjamPath.Length > 240 Then
+                    logger.Logger.LogWarning($"[Launch] JAD file path exceeds 240 characters: {jadjamPath}")
+                    MessageBox.Show("The file path length exceeds 240 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                End If
+
+                ' Form arguments based on launch method
+                appPath = Java32EXE
+                arguments = $"{Path.GetFileName(exePath)} ""{jadjamPath}"""
+                logger.Logger.LogInfo($"[Launch] Launching ReMEXA directly without Locale Emulator: {arguments}")
+
+                ' Config updates / ' Extract AppName from JAM
+                Dim AppName As String
+                If GameJAM.EndsWith(".jad") Then
+                    AppName = GetMidletNameFromJad(jadjamPath)
+                    Await UpdateJADJarURLAsync(jadjamPath)
+                    Await AddJADMIDletEntriesAsync(jadjamPath, MainForm.NetworkUID, MainForm.TerminalID)
+                ElseIf GameJAM.EndsWith(".jam") Then
+                    AppName = ExtractAppNamefromJAM(jadjamPath)
+                End If
+
+                ' Launch REMEXA JAVA with retry logic
+                Dim success = Await LaunchREMEXAAppAsync(Java32EXE, REMEXAEXELocation, jadjamPath)
+                If Not success Then
+                    HideLaunchOverlay()
+                    MessageBox.Show("Failed to launch REMEXA after retrying.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End If
+
+                ' ShaderGlass launch if enabled
+                If MainForm.chkbxShaderGlass.Checked Then
+                    logger.Logger.LogInfo("[ShaderGlass] Not Supported for KEmulator, Disabling")
+                    MainForm.chkbxShaderGlass.Checked = False
+                    MessageBox.Show("ShaderGlass is not supported with REMEXA. Please manually resize the REMEXA window by dragging it larger.")
+                End If
+                If MainForm.chkbxEnableController.Checked = True Then
+                    Await LaunchControllerProfileAMGP()
+                End If
+                ProcessManager.StartMonitoring(jadjamPath)
+                HideLaunchOverlay()
             Catch ex As ArgumentException
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
                 MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
@@ -2049,6 +2121,42 @@ Namespace My.Managers
 
                 ' Optional delay to allow Java process to spawn
                 Await Task.Delay(1000)
+
+                ' Check for any java process
+                Dim javaRunning As Boolean = Process.GetProcessesByName("java").Any()
+
+                Return javaRunning
+
+            Catch ex As Exception
+                logger.Logger.LogError($"[JavaLaunch] Failed to start Java app: {ex.Message}")
+                Return False
+            End Try
+        End Function
+        Public Async Function LaunchREMEXAAppAsync(javapath As String, REMEXAExePath As String, jamPath As String) As Task(Of Boolean)
+            Try
+                Dim arguments As String
+                If MainForm.chkbxOpenDojaLaunchGUI.Checked Then
+                    arguments = $"-jar ""{Path.GetFileName(REMEXAExePath)}"""
+                Else
+                    Dim scalePercent As Integer = Integer.Parse(MainForm.cbxOpenDojaHostScale.SelectedItem.ToString().Replace("%", "").Trim())
+                    Dim scaleValue As String = (scalePercent \ 100).ToString()
+                    Dim synthValue As String = MainForm.cbxOpenDojaAudioType.SelectedItem.ToString().Trim()
+                    arguments = String.Join(" ",
+                        $"-jar ""{Path.GetFileName(REMEXAExePath)}""",
+                        $"--run-jad ""{jamPath}""")
+                End If
+
+                Dim psi As New ProcessStartInfo(javapath) With {
+                    .Arguments = arguments,
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True,
+                    .WorkingDirectory = Path.GetDirectoryName(REMEXAExePath)
+                }
+
+                Dim process As Process = Process.Start(psi)
+
+                ' Optional delay to allow Java process to spawn
+                Await Task.Delay(500)
 
                 ' Check for any java process
                 Dim javaRunning As Boolean = Process.GetProcessesByName("java").Any()
