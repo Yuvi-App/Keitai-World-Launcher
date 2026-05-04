@@ -94,10 +94,10 @@ Namespace My.Managers
             End If
 
             ' Check for Java 21+
-            My.logger.Logger.LogInfo("Checking for Java 21+")
-            If Not Await DetectJava21PlusAsync() Then
-                Dim result = MessageBox.Show(owner:=SplashScreen, text:="Java 21+ is required for OpenDoja features." & Environment.NewLine & "Click OK to open the download page.", caption:="Java 21+ Required", buttons:=MessageBoxButtons.OKCancel, icon:=MessageBoxIcon.Warning)
-                My.logger.Logger.LogInfo("Missing Java 21+")
+            My.logger.Logger.LogInfo("Checking for Java 22+")
+            If Not Await DetectJava22PlusAsync() Then
+                Dim result = MessageBox.Show(owner:=SplashScreen, text:="Java 22+ is required for OpenDoja features." & Environment.NewLine & "Click OK to open the download page.", caption:="Java 22+ Required", buttons:=MessageBoxButtons.OKCancel, icon:=MessageBoxIcon.Warning)
+                My.logger.Logger.LogInfo("Missing Java 22+")
                 If result = DialogResult.OK Then
                     Await OpenURLAsync("https://adoptium.net/temurin/releases/?os=windows&arch=x64&package=jdk&version=26&mode=filter")
                 End If
@@ -278,7 +278,7 @@ Namespace My.Managers
 
             Return True
         End Function
-        Public Shared Async Function DetectJava21PlusAsync() As Task(Of Boolean)
+        Public Shared Async Function DetectJava22PlusAsync() As Task(Of Boolean)
             Dim result = Await Task.Run(
         Function()
             Dim bestVersion As Version = Nothing
@@ -306,7 +306,7 @@ Namespace My.Managers
                         If baseKey Is Nothing Then Continue For
                         For Each subName In baseKey.GetSubKeyNames()
                             Dim ver As Version = Nothing
-                            If Version.TryParse(subName, ver) AndAlso ver.Major >= 21 Then
+                            If Version.TryParse(subName, ver) AndAlso ver.Major >= 22 Then
                                 Using subKey = baseKey.OpenSubKey(subName)
                                     Dim home = subKey?.GetValue("JavaHome")?.ToString()
                                     If home IsNot Nothing AndAlso
@@ -363,11 +363,11 @@ Namespace My.Managers
 
             If Not String.IsNullOrEmpty(result) Then
                 MainForm.Java21PlusBinFolderPath = Path.Combine(result, "bin")
-                My.logger.Logger.LogInfo($"Found Java 21+ at: {result}")
+                My.logger.Logger.LogInfo($"Found Java 22+ at: {result}")
                 Return True
             Else
                 MainForm.Java21PlusBinFolderPath = Nothing
-                My.logger.Logger.LogWarning("Java 21+ not found.")
+                My.logger.Logger.LogWarning("Java 22+ not found.")
                 Return False
             End If
         End Function

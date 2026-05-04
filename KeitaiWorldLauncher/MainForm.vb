@@ -205,12 +205,12 @@ Public Class MainForm
 
         'We need to check for java every run, since these get used for all emu's
         Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
-        Dim java21Ready = Await UtilManager.DetectJava21PlusAsync()
-        If Not javaReady AndAlso Not java21Ready Then
+        Dim java22Ready = Await UtilManager.DetectJava22PlusAsync()
+        If Not javaReady AndAlso Not java22Ready Then
             MainForm.QuitApplication()
             Return
         End If
-        Logger.LogInfo($"Using JDK: {UsingJDK1_8}, Java 21+: {java21Ready}")
+        Logger.LogInfo($"Using JDK: {UsingJDK1_8}, Java 22+: {java22Ready}")
 
         'Needs Internet If none we skip and use local file
         Logger.LogInfo("Checking internet connectivity...")
@@ -347,11 +347,11 @@ Public Class MainForm
 
         ' SDK configuration: (ComboBox, DefaultValue, Prefixes)
         Dim sdkMappings As New List(Of (Combo As ComboBox, DefaultSdk As String, Prefixes As String())) From {
-        (cbxDojaSDK, "iDKDoJa5.1", {"idkdoja", "squirreljme", "kemnnx64", "freej2me", "opendoja"}),
-        (cbxStarSDK, "iDKStar2.0", {"idkstar", "freej2me"}),
-        (cbxJSKYSDK, "kemnnx64", {"jsky_", "kemnnx64"}),
-        (cbxSoftbankSDK, "kemnnx64", {"kemnnx64", "freej2me"}),
-        (cbxVodafoneSDK, "kemnnx64", {"kemnnx64"}),
+        (cbxDojaSDK, "OpenDoja", {"idkdoja", "squirreljme", "kemnnx64", "freej2me", "opendoja"}),
+        (cbxStarSDK, "iDKStar2.0", {"idkstar", "freej2me", "opendoja"}),
+        (cbxJSKYSDK, "ReMEXA", {"jsky_", "kemnnx64", "remexa"}),
+        (cbxSoftbankSDK, "ReMEXA", {"kemnnx64", "freej2me", "remexa"}),
+        (cbxVodafoneSDK, "ReMEXA", {"kemnnx64", "remexa"}),
         (cbxAirEdgeSDK, "freej2me", {"kemnnx64", "freej2me"}),
         (cbxEZWebEZPlusSDK, "freej2me", {"freej2me"}),
         (cbxFlashSDK, "FlashPlayer", {"flash"})
@@ -387,8 +387,13 @@ Public Class MainForm
         Dim missingDefaults As New List(Of String)
 
         For Each mapping In sdkMappings
-            If mapping.Combo.Items.Contains(mapping.DefaultSdk) Then
-                mapping.Combo.SelectedItem = mapping.DefaultSdk
+            Dim matchingDefault = mapping.Combo.Items.
+                Cast(Of Object)().
+                Select(Function(item) item.ToString()).
+                FirstOrDefault(Function(item) String.Equals(item, mapping.DefaultSdk, StringComparison.OrdinalIgnoreCase))
+
+            If matchingDefault IsNot Nothing Then
+                mapping.Combo.SelectedItem = matchingDefault
                 Logger.LogInfo($"Set default SDK '{mapping.DefaultSdk}' for {mapping.Combo.Name}")
             Else
                 missingDefaults.Add(mapping.DefaultSdk)
@@ -1830,6 +1835,12 @@ Public Class MainForm
             End If
             STARpath = Path.Combine(ToolsFolder, selectedSDK)
             STAREXE = Path.Combine(STARpath, "freej2me.jar")
+        ElseIf sdkLower.StartsWith("opendoja") Then
+            If CompletedBootSequence = True Then
+                ShowEmulatorDisclaimer("opendoja")
+            End If
+            STARpath = Path.Combine(ToolsFolder, selectedSDK)
+            STAREXE = Path.Combine(DOJApath, "opendoja-release.jar")
         End If
     End Sub
     Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxDojaSDK.SelectedIndexChanged
@@ -2417,6 +2428,9 @@ Public Class MainForm
                     ElseIf lowerStarPath.Contains("freej2me") Then
                         Logger.LogInfo("Launching game using FreeJ2ME emulator.")
                         utilManager.LaunchCustom_FreeJ2MEGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
+                    ElseIf lowerStarPath.Contains("opendoja") Then
+                        Logger.LogInfo("Launching game using opendoja emulator.")
+                        utilManager.LaunchCustom_OpenDojaGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
 
