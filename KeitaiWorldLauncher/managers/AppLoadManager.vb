@@ -55,6 +55,8 @@ Namespace My.Managers
                 MainForm.CharaDenExe = cfg("CharaDenEXEPath")
                 MainForm.OpenDojapath = cfg("OpenDojaPath")
                 MainForm.OpenDojaExe = cfg("OpenDojaEXEPath")
+                MainForm.ReMEXApath = cfg("ReMEXAPath")
+                MainForm.ReMEXAExe = cfg("ReMEXAEXEPath")
             Catch ex As Exception
                 MessageBox.Show("There was an error loading the appconfig.xml values. Please get a new appconfig and try again.")
             End Try

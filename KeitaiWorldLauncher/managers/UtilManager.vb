@@ -94,10 +94,10 @@ Namespace My.Managers
             End If
 
             ' Check for Java 21+
-            My.logger.Logger.LogInfo("Checking for Java 22+")
-            If Not Await DetectJava22PlusAsync() Then
-                Dim result = MessageBox.Show(owner:=SplashScreen, text:="Java 22+ is required for OpenDoja features." & Environment.NewLine & "Click OK to open the download page.", caption:="Java 22+ Required", buttons:=MessageBoxButtons.OKCancel, icon:=MessageBoxIcon.Warning)
-                My.logger.Logger.LogInfo("Missing Java 22+")
+            My.logger.Logger.LogInfo("Checking for Java 24+")
+            If Not Await DetectJava24PlusAsync() Then
+                Dim result = MessageBox.Show(owner:=SplashScreen, text:="Java 24+ is required for OpenDoja features." & Environment.NewLine & "Click OK to open the download page.", caption:="Java 24+ Required", buttons:=MessageBoxButtons.OKCancel, icon:=MessageBoxIcon.Warning)
+                My.logger.Logger.LogInfo("Missing Java 24+")
                 If result = DialogResult.OK Then
                     Await OpenURLAsync("https://adoptium.net/temurin/releases/?os=windows&arch=x64&package=jdk&version=26&mode=filter")
                 End If
@@ -278,7 +278,7 @@ Namespace My.Managers
 
             Return True
         End Function
-        Public Shared Async Function DetectJava22PlusAsync() As Task(Of Boolean)
+        Public Shared Async Function DetectJava24PlusAsync() As Task(Of Boolean)
             Dim result = Await Task.Run(
         Function()
             Dim bestVersion As Version = Nothing
@@ -306,7 +306,7 @@ Namespace My.Managers
                         If baseKey Is Nothing Then Continue For
                         For Each subName In baseKey.GetSubKeyNames()
                             Dim ver As Version = Nothing
-                            If Version.TryParse(subName, ver) AndAlso ver.Major >= 22 Then
+                            If Version.TryParse(subName, ver) AndAlso ver.Major >= 24 Then
                                 Using subKey = baseKey.OpenSubKey(subName)
                                     Dim home = subKey?.GetValue("JavaHome")?.ToString()
                                     If home IsNot Nothing AndAlso
@@ -346,7 +346,7 @@ Namespace My.Managers
 
                             Dim folderName = Path.GetFileName(jdkDir)
                             Dim ver = TryParseJdkFolderVersion(folderName)
-                            If ver IsNot Nothing AndAlso ver.Major >= 21 AndAlso
+                            If ver IsNot Nothing AndAlso ver.Major >= 24 AndAlso
        (bestVersion Is Nothing OrElse ver > bestVersion) Then
                                 bestVersion = ver
                                 bestPath = jdkDir
@@ -362,12 +362,12 @@ Namespace My.Managers
         End Function)
 
             If Not String.IsNullOrEmpty(result) Then
-                MainForm.Java22PlusBinFolderPath = Path.Combine(result, "bin")
-                My.logger.Logger.LogInfo($"Found Java 22+ at: {result}")
+                MainForm.Java24PlusBinFolderPath = Path.Combine(result, "bin")
+                My.logger.Logger.LogInfo($"Found Java 24+ at: {result}")
                 Return True
             Else
-                MainForm.Java22PlusBinFolderPath = Nothing
-                My.logger.Logger.LogWarning("Java 22+ not found.")
+                MainForm.Java24PlusBinFolderPath = Nothing
+                My.logger.Logger.LogWarning("Java 24+ not found.")
                 Return False
             End If
         End Function
@@ -1365,7 +1365,7 @@ Namespace My.Managers
                 Dim arguments As String
 
                 ' Make Full Paths
-                Dim Java32EXE As String = Path.Combine(MainForm.Java22PlusBinFolderPath, "java.exe")
+                Dim Java32EXE As String = Path.Combine(MainForm.Java24PlusBinFolderPath, "java.exe")
                 Dim exePath As String = OpenDojaEXELocation.Trim
                 Dim jamPath As String = Path.Combine(baseDir, GameJAM).Trim()
                 Dim jarPath As String = Path.Combine(Path.GetDirectoryName(jamPath), Path.GetFileNameWithoutExtension(jamPath) & ".jar")
@@ -1435,7 +1435,7 @@ Namespace My.Managers
                 Dim arguments As String
 
                 ' Make Full Paths
-                Dim Java32EXE As String = Path.Combine(MainForm.Java22PlusBinFolderPath, "java.exe")
+                Dim Java32EXE As String = Path.Combine(MainForm.Java24PlusBinFolderPath, "java.exe")
                 Dim exePath As String = REMEXAEXELocation.Trim
                 Dim jadjamPath As String = Path.Combine(baseDir, GameJAM).Trim()
                 Dim jarPath As String = Path.Combine(Path.GetDirectoryName(jadjamPath), Path.GetFileNameWithoutExtension(jadjamPath) & ".jar")

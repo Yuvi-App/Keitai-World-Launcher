@@ -116,8 +116,10 @@ Public Class MainForm
     Public CharaDenExe As String
     Public OpenDojapath As String
     Public OpenDojaExe As String
+    Public ReMEXApath As String
+    Public ReMEXAExe As String
     Public Java1_8BinFolderPath As String
-    Public Java22PlusBinFolderPath As String
+    Public Java24PlusBinFolderPath As String
 
     ' FORM Close/Load
     Private Sub MainForm_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
@@ -213,12 +215,12 @@ Public Class MainForm
 
         'We need to check for java every run, since these get used for all emu's
         Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
-        Dim java22Ready = Await UtilManager.DetectJava22PlusAsync()
-        If Not javaReady AndAlso Not java22Ready Then
+        Dim java24Ready = Await utilManager.DetectJava24PlusAsync()
+        If Not javaReady AndAlso Not java24Ready Then
             MainForm.QuitApplication()
             Return
         End If
-        Logger.LogInfo($"Using JDK: {UsingJDK1_8}, Java 22+: {java22Ready}")
+        Logger.LogInfo($"Using JDK: {UsingJDK1_8}, Java 24+: {java24Ready}")
 
         'Needs Internet If none we skip and use local file
         Logger.LogInfo("Checking internet connectivity...")
@@ -1937,7 +1939,7 @@ Public Class MainForm
             If CompletedBootSequence = True Then
                 ShowEmulatorDisclaimer("remexa")
             End If
-            SOFTBANKEXE = Path.Combine(SOFTBANKpath, "remexa.jar")
+            SOFTBANKEXE = Path.Combine(SOFTBANKpath, "ReMEXA-Release.jar")
         End If
     End Sub
     Private Sub cbxJSKYSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxJSKYSDK.SelectedIndexChanged
@@ -1963,7 +1965,7 @@ Public Class MainForm
             If CompletedBootSequence = True Then
                 ShowEmulatorDisclaimer("remexa")
             End If
-            JSKYEXE = Path.Combine(JSKYpath, "remexa.jar")
+            JSKYEXE = Path.Combine(JSKYpath, "ReMEXA-Release.jar")
         End If
     End Sub
     Private Sub cbxVODAFONESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxVodafoneSDK.SelectedIndexChanged
@@ -1986,7 +1988,7 @@ Public Class MainForm
             If CompletedBootSequence = True Then
                 ShowEmulatorDisclaimer("remexa")
             End If
-            VODAFONEEXE = Path.Combine(VODAFONEpath, "remexa.jar")
+            VODAFONEEXE = Path.Combine(VODAFONEpath, "ReMEXA-Release.jar")
         End If
     End Sub
     Private Sub cbxAIREDGESDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxAirEdgeSDK.SelectedIndexChanged
@@ -3071,5 +3073,22 @@ Public Class MainForm
         ElseIf MaterialTabControl1.SelectedTab Is tpConfig Then
             FillCurrenttUIDLabel()
         End If
+    End Sub
+
+    Private Sub btnReMEXALaunchGUI_Click(sender As Object, e As EventArgs) Handles btnReMEXALaunchGUI.Click
+        Try
+            Dim arguments = $"-jar ""{Path.GetFileName(ReMEXAExe)}"""
+            Dim JavaEXE As String = Path.Combine(Java24PlusBinFolderPath, "java.exe")
+            Dim psi As New ProcessStartInfo(JavaEXE) With {
+                .Arguments = arguments,
+                .UseShellExecute = False,
+                .CreateNoWindow = True,
+                .WorkingDirectory = Path.GetDirectoryName(ReMEXAExe)
+            }
+
+            Dim process As Process = Process.Start(psi)
+        Catch ex As Exception
+            Logger.LogError($"[JavaLaunch] Failed to start Java app: {ex.Message}")
+        End Try
     End Sub
 End Class

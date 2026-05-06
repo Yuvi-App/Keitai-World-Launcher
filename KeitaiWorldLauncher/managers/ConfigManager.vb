@@ -54,7 +54,9 @@ Namespace My.Managers
         {"CharaDenPath", "c:\charaden"},
         {"CharaDenEXEPath", "CharaDenemu.exe"},
         {"OpenDojaPath", "c:\opendoja"},
-        {"OpenDojaEXEPath", "opendoja.jar"}
+        {"OpenDojaEXEPath", "opendoja.jar"},
+        {"ReMEXAPath", "c:\ReMEXA"},
+        {"ReMEXAEXEPath", "ReMEXA.jar"}
     }
 
         ' Load configuration from XML

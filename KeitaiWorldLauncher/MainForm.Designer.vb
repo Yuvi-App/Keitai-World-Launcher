@@ -129,6 +129,13 @@ Partial Class MainForm
         btnLaunchKey2Pad = New Button()
         GroupBox5 = New GroupBox()
         GroupBox13 = New GroupBox()
+        Label21 = New Label()
+        cbxOpenDojaFontType = New ComboBox()
+        chkbxOpenDojaLaunchGUI = New CheckBox()
+        Label20 = New Label()
+        cbxOpenDojaAudioType = New ComboBox()
+        Label19 = New Label()
+        cbxOpenDojaHostScale = New ComboBox()
         chkbxEnableHighPerformanceEmulator = New CheckBox()
         Label18 = New Label()
         cbxInternalRenderingResolution = New ComboBox()
@@ -166,13 +173,9 @@ Partial Class MainForm
         GroupBox9 = New GroupBox()
         lvwPlaytimes = New ListView()
         MaterialTabSelector1 = New ReaLTaiizor.Controls.MaterialTabSelector()
-        Label19 = New Label()
-        cbxOpenDojaHostScale = New ComboBox()
-        Label20 = New Label()
-        cbxOpenDojaAudioType = New ComboBox()
-        chkbxOpenDojaLaunchGUI = New CheckBox()
-        Label21 = New Label()
-        cbxOpenDojaFontType = New ComboBox()
+        GroupBox14 = New GroupBox()
+        Label22 = New Label()
+        btnReMEXALaunchGUI = New Button()
         cmsGameLV.SuspendLayout()
         GroupBox2.SuspendLayout()
         cmsMachiCharaLV.SuspendLayout()
@@ -199,6 +202,7 @@ Partial Class MainForm
         GroupBox4.SuspendLayout()
         tpStats.SuspendLayout()
         GroupBox9.SuspendLayout()
+        GroupBox14.SuspendLayout()
         SuspendLayout()
         ' 
         ' ImageListGames
@@ -924,6 +928,7 @@ Partial Class MainForm
         ' 
         ' tpConfig
         ' 
+        tpConfig.Controls.Add(GroupBox14)
         tpConfig.Controls.Add(GroupBox12)
         tpConfig.Controls.Add(GroupBox8)
         tpConfig.Controls.Add(GroupBox7)
@@ -946,7 +951,7 @@ Partial Class MainForm
         GroupBox12.Controls.Add(Label17)
         GroupBox12.Location = New Point(245, 497)
         GroupBox12.Name = "GroupBox12"
-        GroupBox12.Size = New Size(315, 65)
+        GroupBox12.Size = New Size(315, 78)
         GroupBox12.TabIndex = 22
         GroupBox12.TabStop = False
         GroupBox12.Text = "ShaderGlass Options"
@@ -972,9 +977,9 @@ Partial Class MainForm
         ' GroupBox8
         ' 
         GroupBox8.Controls.Add(lblHelp_troubleshooting)
-        GroupBox8.Location = New Point(566, 205)
+        GroupBox8.Location = New Point(566, 350)
         GroupBox8.Name = "GroupBox8"
-        GroupBox8.Size = New Size(458, 373)
+        GroupBox8.Size = New Size(458, 228)
         GroupBox8.TabIndex = 22
         GroupBox8.TabStop = False
         GroupBox8.Text = "Troubleshooting"
@@ -984,7 +989,7 @@ Partial Class MainForm
         lblHelp_troubleshooting.Dock = DockStyle.Fill
         lblHelp_troubleshooting.Location = New Point(3, 19)
         lblHelp_troubleshooting.Name = "lblHelp_troubleshooting"
-        lblHelp_troubleshooting.Size = New Size(452, 351)
+        lblHelp_troubleshooting.Size = New Size(452, 206)
         lblHelp_troubleshooting.TabIndex = 0
         lblHelp_troubleshooting.Text = "Label8"
         ' 
@@ -1204,6 +1209,73 @@ Partial Class MainForm
         GroupBox13.TabIndex = 23
         GroupBox13.TabStop = False
         GroupBox13.Text = "OpenDoja Options"
+        ' 
+        ' Label21
+        ' 
+        Label21.Location = New Point(6, 77)
+        Label21.Name = "Label21"
+        Label21.Size = New Size(77, 23)
+        Label21.TabIndex = 26
+        Label21.Text = "Font Type"
+        Label21.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' cbxOpenDojaFontType
+        ' 
+        cbxOpenDojaFontType.FormattingEnabled = True
+        cbxOpenDojaFontType.Items.AddRange(New Object() {"Bitmap", "System"})
+        cbxOpenDojaFontType.Location = New Point(89, 77)
+        cbxOpenDojaFontType.Name = "cbxOpenDojaFontType"
+        cbxOpenDojaFontType.Size = New Size(77, 23)
+        cbxOpenDojaFontType.TabIndex = 25
+        ' 
+        ' chkbxOpenDojaLaunchGUI
+        ' 
+        chkbxOpenDojaLaunchGUI.AutoSize = True
+        chkbxOpenDojaLaunchGUI.FlatStyle = FlatStyle.Flat
+        chkbxOpenDojaLaunchGUI.Font = New Font("Segoe UI", 9F)
+        chkbxOpenDojaLaunchGUI.Location = New Point(190, 20)
+        chkbxOpenDojaLaunchGUI.Margin = New Padding(2)
+        chkbxOpenDojaLaunchGUI.Name = "chkbxOpenDojaLaunchGUI"
+        chkbxOpenDojaLaunchGUI.Size = New Size(84, 19)
+        chkbxOpenDojaLaunchGUI.TabIndex = 24
+        chkbxOpenDojaLaunchGUI.Text = "Launch GUI"
+        chkbxOpenDojaLaunchGUI.UseVisualStyleBackColor = True
+        ' 
+        ' Label20
+        ' 
+        Label20.Location = New Point(6, 48)
+        Label20.Name = "Label20"
+        Label20.Size = New Size(77, 23)
+        Label20.TabIndex = 12
+        Label20.Text = "Audio Type"
+        Label20.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' cbxOpenDojaAudioType
+        ' 
+        cbxOpenDojaAudioType.FormattingEnabled = True
+        cbxOpenDojaAudioType.Items.AddRange(New Object() {"Fuetrek", "MA3"})
+        cbxOpenDojaAudioType.Location = New Point(89, 48)
+        cbxOpenDojaAudioType.Name = "cbxOpenDojaAudioType"
+        cbxOpenDojaAudioType.Size = New Size(77, 23)
+        cbxOpenDojaAudioType.TabIndex = 11
+        ' 
+        ' Label19
+        ' 
+        Label19.Location = New Point(6, 19)
+        Label19.Name = "Label19"
+        Label19.Size = New Size(77, 23)
+        Label19.TabIndex = 10
+        Label19.Text = "Host Scale"
+        Label19.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' cbxOpenDojaHostScale
+        ' 
+        cbxOpenDojaHostScale.FormattingEnabled = True
+        cbxOpenDojaHostScale.Items.AddRange(New Object() {"100%", "200%", "300%", "400%"})
+        cbxOpenDojaHostScale.Location = New Point(89, 19)
+        cbxOpenDojaHostScale.Name = "cbxOpenDojaHostScale"
+        cbxOpenDojaHostScale.Size = New Size(77, 23)
+        cbxOpenDojaHostScale.TabIndex = 9
         ' 
         ' chkbxEnableHighPerformanceEmulator
         ' 
@@ -1659,72 +1731,33 @@ Partial Class MainForm
         MaterialTabSelector1.TabIndex = 9
         MaterialTabSelector1.Text = "MaterialTabSelector1"
         ' 
-        ' Label19
+        ' GroupBox14
         ' 
-        Label19.Location = New Point(6, 19)
-        Label19.Name = "Label19"
-        Label19.Size = New Size(77, 23)
-        Label19.TabIndex = 10
-        Label19.Text = "Host Scale"
-        Label19.TextAlign = ContentAlignment.MiddleLeft
+        GroupBox14.Controls.Add(btnReMEXALaunchGUI)
+        GroupBox14.Controls.Add(Label22)
+        GroupBox14.Location = New Point(566, 205)
+        GroupBox14.Name = "GroupBox14"
+        GroupBox14.Size = New Size(458, 139)
+        GroupBox14.TabIndex = 23
+        GroupBox14.TabStop = False
+        GroupBox14.Text = "ReMEXA Options"
         ' 
-        ' cbxOpenDojaHostScale
+        ' Label22
         ' 
-        cbxOpenDojaHostScale.FormattingEnabled = True
-        cbxOpenDojaHostScale.Items.AddRange(New Object() {"100%", "200%", "300%", "400%"})
-        cbxOpenDojaHostScale.Location = New Point(89, 19)
-        cbxOpenDojaHostScale.Name = "cbxOpenDojaHostScale"
-        cbxOpenDojaHostScale.Size = New Size(77, 23)
-        cbxOpenDojaHostScale.TabIndex = 9
+        Label22.Location = New Point(6, 24)
+        Label22.Name = "Label22"
+        Label22.Size = New Size(446, 31)
+        Label22.TabIndex = 0
+        Label22.Text = "Launch the ReMEXA gui to configure options for now while they are built into KWL"
         ' 
-        ' Label20
+        ' btnReMEXALaunchGUI
         ' 
-        Label20.Location = New Point(6, 48)
-        Label20.Name = "Label20"
-        Label20.Size = New Size(77, 23)
-        Label20.TabIndex = 12
-        Label20.Text = "Audio Type"
-        Label20.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' cbxOpenDojaAudioType
-        ' 
-        cbxOpenDojaAudioType.FormattingEnabled = True
-        cbxOpenDojaAudioType.Items.AddRange(New Object() {"Fuetrek", "MA3"})
-        cbxOpenDojaAudioType.Location = New Point(89, 48)
-        cbxOpenDojaAudioType.Name = "cbxOpenDojaAudioType"
-        cbxOpenDojaAudioType.Size = New Size(77, 23)
-        cbxOpenDojaAudioType.TabIndex = 11
-        ' 
-        ' chkbxOpenDojaLaunchGUI
-        ' 
-        chkbxOpenDojaLaunchGUI.AutoSize = True
-        chkbxOpenDojaLaunchGUI.FlatStyle = FlatStyle.Flat
-        chkbxOpenDojaLaunchGUI.Font = New Font("Segoe UI", 9F)
-        chkbxOpenDojaLaunchGUI.Location = New Point(190, 20)
-        chkbxOpenDojaLaunchGUI.Margin = New Padding(2)
-        chkbxOpenDojaLaunchGUI.Name = "chkbxOpenDojaLaunchGUI"
-        chkbxOpenDojaLaunchGUI.Size = New Size(84, 19)
-        chkbxOpenDojaLaunchGUI.TabIndex = 24
-        chkbxOpenDojaLaunchGUI.Text = "Launch GUI"
-        chkbxOpenDojaLaunchGUI.UseVisualStyleBackColor = True
-        ' 
-        ' Label21
-        ' 
-        Label21.Location = New Point(6, 77)
-        Label21.Name = "Label21"
-        Label21.Size = New Size(77, 23)
-        Label21.TabIndex = 26
-        Label21.Text = "Font Type"
-        Label21.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' cbxOpenDojaFontType
-        ' 
-        cbxOpenDojaFontType.FormattingEnabled = True
-        cbxOpenDojaFontType.Items.AddRange(New Object() {"Bitmap", "System"})
-        cbxOpenDojaFontType.Location = New Point(89, 77)
-        cbxOpenDojaFontType.Name = "cbxOpenDojaFontType"
-        cbxOpenDojaFontType.Size = New Size(77, 23)
-        cbxOpenDojaFontType.TabIndex = 25
+        btnReMEXALaunchGUI.Location = New Point(6, 62)
+        btnReMEXALaunchGUI.Name = "btnReMEXALaunchGUI"
+        btnReMEXALaunchGUI.Size = New Size(112, 32)
+        btnReMEXALaunchGUI.TabIndex = 1
+        btnReMEXALaunchGUI.Text = "Launch GUI"
+        btnReMEXALaunchGUI.UseVisualStyleBackColor = True
         ' 
         ' MainForm
         ' 
@@ -1774,6 +1807,7 @@ Partial Class MainForm
         GroupBox4.ResumeLayout(False)
         tpStats.ResumeLayout(False)
         GroupBox9.ResumeLayout(False)
+        GroupBox14.ResumeLayout(False)
         ResumeLayout(False)
     End Sub
     Friend WithEvents OpenFileDialog1 As OpenFileDialog
@@ -1925,4 +1959,7 @@ Partial Class MainForm
     Friend WithEvents cbxOpenDojaHostScale As ComboBox
     Friend WithEvents Label21 As Label
     Friend WithEvents cbxOpenDojaFontType As ComboBox
+    Friend WithEvents GroupBox14 As GroupBox
+    Friend WithEvents btnReMEXALaunchGUI As Button
+    Friend WithEvents Label22 As Label
 End Class

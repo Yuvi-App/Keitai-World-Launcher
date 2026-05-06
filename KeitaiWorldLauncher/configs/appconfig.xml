@@ -47,4 +47,6 @@
   <Setting name="CharaDenEXEPath">CharaDenemu.exe</Setting>
   <Setting name="OpenDojaPath">c:\opendoja</Setting>
   <Setting name="OpenDojaEXEPath">opendoja.jar</Setting>
+  <Setting name="ReMEXAPath">c:\ReMEXA</Setting>
+  <Setting name="ReMEXAEXEPath">ReMEXA.jar</Setting>
 </Config>
