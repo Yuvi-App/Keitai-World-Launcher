@@ -1,4 +1,5 @@
 ﻿Imports System.IO
+Imports System.ComponentModel
 Imports System.IO.Compression
 Imports System.Net
 Imports System.Net.Http
@@ -17,6 +18,7 @@ Namespace My.Managers
     Public Class UtilManager
         Private Shared LaunchOverlay As Panel = Nothing
         Private Shared LaunchOverlayLabel As Label = Nothing
+        Private Const Java24DownloadUrl As String = "https://adoptium.net/temurin/releases/"
         Dim gameManager As New GameManager()
         Private Shared _appliEditWarningShown As Boolean = False
 
@@ -93,14 +95,11 @@ Namespace My.Managers
                 Return False
             End If
 
-            ' Check for Java 21+
+            ' Check for Java 24+
             My.logger.Logger.LogInfo("Checking for Java 24+")
-            If Not Await DetectJava24PlusAsync() Then
-                Dim result = MessageBox.Show(owner:=SplashScreen, text:="Java 24+ is required for OpenDoja features." & Environment.NewLine & "Click OK to open the download page.", caption:="Java 24+ Required", buttons:=MessageBoxButtons.OKCancel, icon:=MessageBoxIcon.Warning)
-                My.logger.Logger.LogInfo("Missing Java 24+")
-                If result = DialogResult.OK Then
-                    Await OpenURLAsync("https://adoptium.net/temurin/releases/?os=windows&arch=x64&package=jdk&version=26&mode=filter")
-                End If
+            If Not Await EnsureJava24PlusIsConfiguredAsync(SplashScreen) Then
+                MainForm.QuitApplication()
+                Return False
             End If
 
             ' Check for Visual C++ Runtimes
@@ -278,13 +277,80 @@ Namespace My.Managers
 
             Return True
         End Function
+        Public Shared Async Function EnsureJava24PlusIsConfiguredAsync(owner As IWin32Window) As Task(Of Boolean)
+            If Await DetectJava24PlusAsync() Then
+                Return True
+            End If
+
+            Dim result = MessageBox.Show(owner:=owner,
+                                         text:="Java 24+ is required to launch Java-based emulators such as OpenDoja and ReMEXA. Please be sure to download and install the .msi version." & Environment.NewLine &
+                                               "Click OK to open the download page.",
+                                         caption:="Java 24+ Required",
+                                         buttons:=MessageBoxButtons.OKCancel,
+                                         icon:=MessageBoxIcon.Warning)
+            My.logger.Logger.LogInfo("Missing Java 24+")
+
+            If result = DialogResult.OK Then
+                Await OpenURLAsync(Java24DownloadUrl)
+            End If
+
+            Return False
+        End Function
+
         Public Shared Async Function DetectJava24PlusAsync() As Task(Of Boolean)
             Dim result = Await Task.Run(
         Function()
             Dim bestVersion As Version = Nothing
             Dim bestPath As String = Nothing
 
-            ' === Phase 1: Registry sweep across all known JDK vendors ===
+            Dim considerJavaHome =
+                Sub(home As String, fallbackVersion As Version)
+                    If String.IsNullOrWhiteSpace(home) Then Return
+
+                    Dim javaExe = Path.Combine(home, "bin", "java.exe")
+                    If Not File.Exists(javaExe) Then Return
+
+                    Dim detectedVersion = GetJavaVersionFromExecutable(javaExe)
+                    Dim candidateVersion = If(detectedVersion IsNot Nothing, detectedVersion, fallbackVersion)
+                    If candidateVersion Is Nothing OrElse candidateVersion.Major < 24 Then Return
+
+                    If bestVersion Is Nothing OrElse candidateVersion > bestVersion Then
+                        bestVersion = candidateVersion
+                        bestPath = home
+                    End If
+                End Sub
+
+            ' === Phase 1: Environment variables and PATH ===
+            For Each envName In {"JAVA_HOME", "JDK_HOME"}
+                Try
+                    considerJavaHome(Environment.GetEnvironmentVariable(envName, EnvironmentVariableTarget.Process), Nothing)
+                    considerJavaHome(Environment.GetEnvironmentVariable(envName, EnvironmentVariableTarget.User), Nothing)
+                    considerJavaHome(Environment.GetEnvironmentVariable(envName, EnvironmentVariableTarget.Machine), Nothing)
+                Catch ex As System.Security.SecurityException
+                    ' Insufficient permissions to read this environment variable scope, skip it
+                End Try
+            Next
+
+            Dim pathValue = Environment.GetEnvironmentVariable("PATH")
+            If Not String.IsNullOrWhiteSpace(pathValue) Then
+                For Each pathDir In pathValue.Split(Path.PathSeparator)
+                    Try
+                        If String.IsNullOrWhiteSpace(pathDir) Then Continue For
+                        Dim javaExe = Path.Combine(pathDir.Trim(), "java.exe")
+                        If Not File.Exists(javaExe) Then Continue For
+
+                        Dim javaHome = Directory.GetParent(Path.GetDirectoryName(javaExe))?.FullName
+                        considerJavaHome(javaHome, Nothing)
+                    Catch ex As Exception When TypeOf ex Is ArgumentException OrElse
+                                               TypeOf ex Is IOException OrElse
+                                               TypeOf ex Is UnauthorizedAccessException OrElse
+                                               TypeOf ex Is System.Security.SecurityException
+                        ' Ignore invalid or inaccessible PATH entries
+                    End Try
+                Next
+            End If
+
+            ' === Phase 2: Registry sweep across all known JDK vendors ===
             Dim baseKeys As String() = {
                 "SOFTWARE\JavaSoft\JDK",
                 "SOFTWARE\WOW6432Node\JavaSoft\JDK",
@@ -305,18 +371,11 @@ Namespace My.Managers
                     Using baseKey As RegistryKey = Registry.LocalMachine.OpenSubKey(basePath)
                         If baseKey Is Nothing Then Continue For
                         For Each subName In baseKey.GetSubKeyNames()
-                            Dim ver As Version = Nothing
-                            If Version.TryParse(subName, ver) AndAlso ver.Major >= 24 Then
-                                Using subKey = baseKey.OpenSubKey(subName)
-                                    Dim home = subKey?.GetValue("JavaHome")?.ToString()
-                                    If home IsNot Nothing AndAlso
-                                       File.Exists(Path.Combine(home, "bin", "java.exe")) AndAlso
-                                       (bestVersion Is Nothing OrElse ver > bestVersion) Then
-                                        bestVersion = ver
-                                        bestPath = home
-                                    End If
-                                End Using
-                            End If
+                            Dim ver = TryParseJdkFolderVersion(subName)
+                            Using subKey = baseKey.OpenSubKey(subName)
+                                Dim home = subKey?.GetValue("JavaHome")?.ToString()
+                                considerJavaHome(home, ver)
+                            End Using
                         Next
                     End Using
                 Catch ex As System.Security.SecurityException
@@ -324,9 +383,10 @@ Namespace My.Managers
                 End Try
             Next
 
-            ' === Phase 2: Filesystem scan of common install locations ===
+            ' === Phase 3: Filesystem scan of common install locations ===
             If bestPath Is Nothing Then
                 Dim programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)
+                Dim programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
                 Dim searchRoots As String() = {
                     Path.Combine(programFiles, "Java"),
                     Path.Combine(programFiles, "Eclipse Adoptium"),
@@ -334,7 +394,11 @@ Namespace My.Managers
                     Path.Combine(programFiles, "Amazon Corretto"),
                     Path.Combine(programFiles, "Zulu"),
                     Path.Combine(programFiles, "BellSoft"),
-                    Path.Combine(programFiles, "Liberica")
+                    Path.Combine(programFiles, "Liberica"),
+                    Path.Combine(programFiles, "IBM"),
+                    Path.Combine(programFiles, "Semeru"),
+                    Path.Combine(programFiles, "GraalVM"),
+                    Path.Combine(programFilesX86, "Java")
                 }
 
                 For Each root In searchRoots
@@ -346,11 +410,7 @@ Namespace My.Managers
 
                             Dim folderName = Path.GetFileName(jdkDir)
                             Dim ver = TryParseJdkFolderVersion(folderName)
-                            If ver IsNot Nothing AndAlso ver.Major >= 24 AndAlso
-       (bestVersion Is Nothing OrElse ver > bestVersion) Then
-                                bestVersion = ver
-                                bestPath = jdkDir
-                            End If
+                            considerJavaHome(jdkDir, ver)
                         Next
                     Catch ex As UnauthorizedAccessException
                         ' Can't read this directory, skip it
@@ -363,7 +423,7 @@ Namespace My.Managers
 
             If Not String.IsNullOrEmpty(result) Then
                 MainForm.Java24PlusBinFolderPath = Path.Combine(result, "bin")
-                My.logger.Logger.LogInfo($"Found Java 24+ at: {result}")
+                My.logger.Logger.LogInfo("Found Java 24+ at: " & result)
                 Return True
             Else
                 MainForm.Java24PlusBinFolderPath = Nothing
@@ -372,7 +432,7 @@ Namespace My.Managers
             End If
         End Function
         Private Shared Function TryParseJdkFolderVersion(folderName As String) As Version
-            ' Handles: "jdk-21.0.2", "jdk-21", "21.0.2", "temurin-21.0.2+13", etc.
+            ' Handles: "jdk-24.0.2", "jdk-24", "24.0.2", "temurin-24.0.2+13", etc.
             Dim cleaned = folderName
             ' Strip common prefixes
             For Each prefix In {"jdk-", "jdk", "jre-", "jre", "temurin-", "zulu-", "corretto-"}
@@ -385,12 +445,56 @@ Namespace My.Managers
             Dim plusIdx = cleaned.IndexOfAny({"+"c, "_"c})
             If plusIdx >= 0 Then cleaned = cleaned.Substring(0, plusIdx)
 
+            Dim match = Regex.Match(cleaned, "(?<major>\d+)(?:\.(?<minor>\d+))?(?:\.(?<build>\d+))?")
+            If match.Success Then
+                Dim parsedMajor = Integer.Parse(match.Groups("major").Value)
+                Dim parsedMinor = If(match.Groups("minor").Success, Integer.Parse(match.Groups("minor").Value), 0)
+                Dim parsedBuild = If(match.Groups("build").Success, Integer.Parse(match.Groups("build").Value), 0)
+                Return New Version(parsedMajor, parsedMinor, parsedBuild)
+            End If
+
             Dim ver As Version = Nothing
             If Version.TryParse(cleaned, ver) Then Return ver
             ' Handle single number like "21"
             Dim major As Integer
             If Integer.TryParse(cleaned, major) Then Return New Version(major, 0)
             Return Nothing
+        End Function
+        Private Shared Function GetJavaVersionFromExecutable(javaExe As String) As Version
+            Try
+                Dim startInfo As New ProcessStartInfo(javaExe) With {
+                    .Arguments = "-version",
+                    .UseShellExecute = False,
+                    .RedirectStandardError = True,
+                    .RedirectStandardOutput = True,
+                    .CreateNoWindow = True
+                }
+
+                Using proc As Process = Process.Start(startInfo)
+                    If proc Is Nothing Then Return Nothing
+
+                    Dim output = proc.StandardOutput.ReadToEnd() & Environment.NewLine & proc.StandardError.ReadToEnd()
+                    proc.WaitForExit(3000)
+
+                    Dim match = Regex.Match(output, "(?:java|openjdk)\s+version\s+""(?<major>\d+)(?:\.(?<minor>\d+))?", RegexOptions.IgnoreCase)
+                    If Not match.Success Then
+                        match = Regex.Match(output, "version\s+""?(?<major>\d+)(?:\.(?<minor>\d+))?", RegexOptions.IgnoreCase)
+                    End If
+
+                    If Not match.Success Then Return Nothing
+
+                    Dim major = Integer.Parse(match.Groups("major").Value)
+                    Dim minor = If(match.Groups("minor").Success, Integer.Parse(match.Groups("minor").Value), 0)
+                    If major = 1 AndAlso minor > 0 Then major = minor
+
+                    Return New Version(major, 0)
+                End Using
+            Catch ex As Exception When TypeOf ex Is Win32Exception OrElse
+                                       TypeOf ex Is InvalidOperationException OrElse
+                                       TypeOf ex Is IOException OrElse
+                                       TypeOf ex Is UnauthorizedAccessException
+                Return Nothing
+            End Try
         End Function
         Public Shared Async Function IsVCRuntime2022InstalledAsync() As Task(Of Boolean)
             Return Await Task.Run(Function()
@@ -1408,10 +1512,12 @@ Namespace My.Managers
                 HideLaunchOverlay()
 
             Catch ex As ArgumentException
+                HideLaunchOverlay()
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
                 MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
 
             Catch ex As Exception
+                HideLaunchOverlay()
                 logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
@@ -1480,10 +1586,12 @@ Namespace My.Managers
                 ProcessManager.StartMonitoring(jadjamPath)
                 HideLaunchOverlay()
             Catch ex As ArgumentException
+                HideLaunchOverlay()
                 logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
                 MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
 
             Catch ex As Exception
+                HideLaunchOverlay()
                 logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try

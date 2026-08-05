@@ -79,26 +79,102 @@ Namespace My.Managers
                 Dim sdFolder = $"SVC0000{Path.GetFileName(jamLocation)}"
                 Dim destinationPath As String = ""
 
-                Select Case game.Emulator.ToLower()
+                Select Case game.Emulator.ToLowerInvariant()
                     Case "doja"
                         destinationPath = $"{MainForm.DOJApath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
                     Case "star"
                         destinationPath = $"{MainForm.STARpath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
-                    Case "jsky"
-                        logger.Logger.LogWarning("[Download] JSKY SD Card URL Detected but we are not handling this yet.")
-                        Return
+                    Case "jsky", "vodafone", "softbank"
+                        destinationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReMEXA", "storage", "mc")
                     Case Else
                         logger.Logger.LogWarning($"[Download] Unknown emulator {game.Emulator} type when handling SD Card data.")
                         Return
                 End Select
 
-                ZipFile.ExtractToDirectory(sdDownloadPath, destinationPath, Encoding.GetEncoding(932), True)
+                Dim entryNameEncoding = DetectZipEntryNameEncoding(sdDownloadPath)
+                logger.Logger.LogInfo($"[Download] Extracting SD Card data using {entryNameEncoding.WebName} filename encoding.")
+                ZipFile.ExtractToDirectory(sdDownloadPath, destinationPath, entryNameEncoding, True)
                 logger.Logger.LogInfo($"[Download] SD Card data extracted to: {destinationPath}")
                 File.Delete(sdDownloadPath)
                 logger.Logger.LogInfo($"[Download] SD Card zip file deleted: {sdDownloadPath}")
             Catch ex As Exception
                 logger.Logger.LogError($"[Download] Failed to handle SD Card data:{vbCrLf}{ex}")
                 MessageBox.Show($"Failed to handle SD Card data:{vbCrLf}{ex}", "SD Card Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            End Try
+        End Function
+
+        Private Shared Function DetectZipEntryNameEncoding(zipPath As String) As Encoding
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
+
+            Const centralDirectoryHeaderSignature As UInteger = &H2014B50UI
+            Const centralDirectoryHeaderLength As Integer = 46
+            Const utf8EntryNameFlag As UShort = &H800US
+
+            Dim zipBytes = File.ReadAllBytes(zipPath)
+            Dim entryCount As Integer = 0
+            Dim utf8FlaggedEntryCount As Integer = 0
+            Dim nonAsciiEntryCount As Integer = 0
+            Dim validUtf8NonAsciiEntryCount As Integer = 0
+            Dim index As Integer = 0
+
+            While index <= zipBytes.Length - centralDirectoryHeaderLength
+                If BitConverter.ToUInt32(zipBytes, index) <> centralDirectoryHeaderSignature Then
+                    index += 1
+                    Continue While
+                End If
+
+                entryCount += 1
+
+                Dim flags = BitConverter.ToUInt16(zipBytes, index + 8)
+                If (flags And utf8EntryNameFlag) <> 0 Then
+                    utf8FlaggedEntryCount += 1
+                End If
+
+                Dim fileNameLength = BitConverter.ToUInt16(zipBytes, index + 28)
+                Dim extraFieldLength = BitConverter.ToUInt16(zipBytes, index + 30)
+                Dim fileCommentLength = BitConverter.ToUInt16(zipBytes, index + 32)
+                Dim fileNameBytes(fileNameLength - 1) As Byte
+                Array.Copy(zipBytes, index + centralDirectoryHeaderLength, fileNameBytes, 0, fileNameLength)
+
+                If Not IsAscii(fileNameBytes) Then
+                    nonAsciiEntryCount += 1
+
+                    If IsValidUtf8(fileNameBytes) Then
+                        validUtf8NonAsciiEntryCount += 1
+                    End If
+                End If
+
+                index += centralDirectoryHeaderLength + fileNameLength + extraFieldLength + fileCommentLength
+            End While
+
+            If entryCount > 0 AndAlso utf8FlaggedEntryCount > 0 Then
+                Return Encoding.UTF8
+            End If
+
+            If nonAsciiEntryCount > 0 AndAlso validUtf8NonAsciiEntryCount = nonAsciiEntryCount Then
+                Return Encoding.UTF8
+            End If
+
+            Return Encoding.GetEncoding(932)
+        End Function
+
+        Private Shared Function IsAscii(bytes As Byte()) As Boolean
+            For Each value In bytes
+                If value >= &H80 Then
+                    Return False
+                End If
+            Next
+
+            Return True
+        End Function
+
+        Private Shared Function IsValidUtf8(bytes As Byte()) As Boolean
+            Try
+                Dim strictUtf8Encoding As New UTF8Encoding(False, True)
+                strictUtf8Encoding.GetString(bytes)
+                Return True
+            Catch ex As DecoderFallbackException
+                Return False
             End Try
         End Function
 

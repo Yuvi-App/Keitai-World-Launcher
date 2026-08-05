@@ -203,6 +203,8 @@ Public Class MainForm
             If AllGood = True Then
                 Logger.LogInfo("PreReq All Good")
                 Await configManager.UpdateFirstRunSettingAsync("false")
+            Else
+                Return
             End If
         ElseIf FirstRun = False Then
             Logger.LogInfo("Starting app Normally")
@@ -215,8 +217,8 @@ Public Class MainForm
 
         'We need to check for java every run, since these get used for all emu's
         Dim javaReady = Await UtilManager.EnsureJava1_8IsConfiguredAsync()
-        Dim java24Ready = Await utilManager.DetectJava24PlusAsync()
-        If Not javaReady AndAlso Not java24Ready Then
+        Dim java24Ready = Await UtilManager.EnsureJava24PlusIsConfiguredAsync(SplashScreen)
+        If Not javaReady OrElse Not java24Ready Then
             MainForm.QuitApplication()
             Return
         End If
@@ -3075,7 +3077,7 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Sub btnReMEXALaunchGUI_Click(sender As Object, e As EventArgs) Handles btnReMEXALaunchGUI.Click
+    Private Async Sub btnReMEXALaunchGUI_Click(sender As Object, e As EventArgs) Handles btnReMEXALaunchGUI.Click
         Try
             Dim arguments = $"-jar ""{Path.GetFileName(ReMEXAExe)}"""
             Dim JavaEXE As String = Path.Combine(Java24PlusBinFolderPath, "java.exe")
