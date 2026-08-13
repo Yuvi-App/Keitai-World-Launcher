@@ -13,6 +13,29 @@ Namespace My.Managers
         Public Async Function FF7_DOCLE_SetupAsync(DojaPath As String, GamePath As String) As Task(Of Boolean)
             logger.Logger.LogInfo("Starting FF7_DOCLE Helper Function")
 
+            If MainForm.cbxDojaSDK.SelectedItem.ToString().ToLowerInvariant() = "opendoja" Then
+                Dim result = MessageBox.Show(
+                    "Dirge of Cerberus is not fully supported by OpenDoja, and you may experience issues if you continue." &
+                    Environment.NewLine & Environment.NewLine &
+                    "It is recommended that you select ""iDKDOJA5.1"" in the Config tab and redownload the game." &
+                    Environment.NewLine & Environment.NewLine &
+                    "Do you want to continue anyway?",
+                    "Compatibility Warning",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2
+                )
+
+                If result = DialogResult.No Then
+                    Return False
+                End If
+            End If
+
+            'Exit early if this is the full version of the game, as the GIFs are not needed
+            If Not GamePath.ToLowerInvariant().Contains("trial version") Then
+                Return True
+            End If
+
             Dim MultimediaFolder As String = Path.Combine(DojaPath, "lib", "multimedia")
             Dim myPictureFolder As String = Path.Combine(MultimediaFolder, "mypicture")
             Dim gifSourceFolder As String = Path.Combine(GamePath, "DoCLE Gifs")

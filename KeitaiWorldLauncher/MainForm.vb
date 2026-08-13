@@ -2448,7 +2448,9 @@ Public Class MainForm
             ' Check for Helper Scripts
             If selectedGame.ENTitle.Contains("Dirge of Cerberus") Then
                 Logger.LogInfo("Setting up FF7 Doja Helper Script...")
-                Await gameManager.FF7_DOCLE_SetupAsync(DOJApath, GameDirectory)
+                If Await gameManager.FF7_DOCLE_SetupAsync(DOJApath, GameDirectory) = False Then
+                    Exit Sub
+                End If
             End If
 
             ' Start Launching Game
