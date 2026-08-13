@@ -322,6 +322,7 @@ Public Class MainForm
         cbxOpenDojaAudioType.SelectedIndex = 0
         cbxOpenDojaFontType.SelectedIndex = 0
         cbxOpenDojaHostScale.SelectedIndex = 1
+        cbxOpenDojaLaunchType.SelectedIndex = 0
 
         ' Preload Appli Tab
         MaterialTabControl1.SelectedIndex = 1

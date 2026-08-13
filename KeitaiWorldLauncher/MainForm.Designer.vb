@@ -104,6 +104,9 @@ Partial Class MainForm
         DeleteCMS_CharaDen = New ToolStripMenuItem()
         lblCharadenTotalCount = New Label()
         tpConfig = New TabPage()
+        GroupBox14 = New GroupBox()
+        btnReMEXALaunchGUI = New Button()
+        Label22 = New Label()
         GroupBox12 = New GroupBox()
         cbxShaderGlass_Shader = New ComboBox()
         Label17 = New Label()
@@ -173,9 +176,8 @@ Partial Class MainForm
         GroupBox9 = New GroupBox()
         lvwPlaytimes = New ListView()
         MaterialTabSelector1 = New ReaLTaiizor.Controls.MaterialTabSelector()
-        GroupBox14 = New GroupBox()
-        Label22 = New Label()
-        btnReMEXALaunchGUI = New Button()
+        Label23 = New Label()
+        cbxOpenDojaLaunchType = New ComboBox()
         cmsGameLV.SuspendLayout()
         GroupBox2.SuspendLayout()
         cmsMachiCharaLV.SuspendLayout()
@@ -191,6 +193,7 @@ Partial Class MainForm
         GroupBox10.SuspendLayout()
         cmsCharadenLV.SuspendLayout()
         tpConfig.SuspendLayout()
+        GroupBox14.SuspendLayout()
         GroupBox12.SuspendLayout()
         GroupBox8.SuspendLayout()
         GroupBox7.SuspendLayout()
@@ -202,7 +205,6 @@ Partial Class MainForm
         GroupBox4.SuspendLayout()
         tpStats.SuspendLayout()
         GroupBox9.SuspendLayout()
-        GroupBox14.SuspendLayout()
         SuspendLayout()
         ' 
         ' ImageListGames
@@ -945,6 +947,34 @@ Partial Class MainForm
         tpConfig.Text = "Config"
         tpConfig.UseVisualStyleBackColor = True
         ' 
+        ' GroupBox14
+        ' 
+        GroupBox14.Controls.Add(btnReMEXALaunchGUI)
+        GroupBox14.Controls.Add(Label22)
+        GroupBox14.Location = New Point(566, 205)
+        GroupBox14.Name = "GroupBox14"
+        GroupBox14.Size = New Size(458, 139)
+        GroupBox14.TabIndex = 23
+        GroupBox14.TabStop = False
+        GroupBox14.Text = "ReMEXA Options"
+        ' 
+        ' btnReMEXALaunchGUI
+        ' 
+        btnReMEXALaunchGUI.Location = New Point(6, 62)
+        btnReMEXALaunchGUI.Name = "btnReMEXALaunchGUI"
+        btnReMEXALaunchGUI.Size = New Size(112, 32)
+        btnReMEXALaunchGUI.TabIndex = 1
+        btnReMEXALaunchGUI.Text = "Launch GUI"
+        btnReMEXALaunchGUI.UseVisualStyleBackColor = True
+        ' 
+        ' Label22
+        ' 
+        Label22.Location = New Point(6, 24)
+        Label22.Name = "Label22"
+        Label22.Size = New Size(446, 31)
+        Label22.TabIndex = 0
+        Label22.Text = "Launch the ReMEXA gui to configure options for now while they are built into KWL"
+        ' 
         ' GroupBox12
         ' 
         GroupBox12.Controls.Add(cbxShaderGlass_Shader)
@@ -1196,6 +1226,8 @@ Partial Class MainForm
         ' 
         ' GroupBox13
         ' 
+        GroupBox13.Controls.Add(Label23)
+        GroupBox13.Controls.Add(cbxOpenDojaLaunchType)
         GroupBox13.Controls.Add(Label21)
         GroupBox13.Controls.Add(cbxOpenDojaFontType)
         GroupBox13.Controls.Add(chkbxOpenDojaLaunchGUI)
@@ -1731,33 +1763,23 @@ Partial Class MainForm
         MaterialTabSelector1.TabIndex = 9
         MaterialTabSelector1.Text = "MaterialTabSelector1"
         ' 
-        ' GroupBox14
+        ' Label23
         ' 
-        GroupBox14.Controls.Add(btnReMEXALaunchGUI)
-        GroupBox14.Controls.Add(Label22)
-        GroupBox14.Location = New Point(566, 205)
-        GroupBox14.Name = "GroupBox14"
-        GroupBox14.Size = New Size(458, 139)
-        GroupBox14.TabIndex = 23
-        GroupBox14.TabStop = False
-        GroupBox14.Text = "ReMEXA Options"
+        Label23.Location = New Point(185, 49)
+        Label23.Name = "Label23"
+        Label23.Size = New Size(77, 23)
+        Label23.TabIndex = 28
+        Label23.Text = "Launch Type"
+        Label23.TextAlign = ContentAlignment.MiddleLeft
         ' 
-        ' Label22
+        ' cbxOpenDojaLaunchType
         ' 
-        Label22.Location = New Point(6, 24)
-        Label22.Name = "Label22"
-        Label22.Size = New Size(446, 31)
-        Label22.TabIndex = 0
-        Label22.Text = "Launch the ReMEXA gui to configure options for now while they are built into KWL"
-        ' 
-        ' btnReMEXALaunchGUI
-        ' 
-        btnReMEXALaunchGUI.Location = New Point(6, 62)
-        btnReMEXALaunchGUI.Name = "btnReMEXALaunchGUI"
-        btnReMEXALaunchGUI.Size = New Size(112, 32)
-        btnReMEXALaunchGUI.TabIndex = 1
-        btnReMEXALaunchGUI.Text = "Launch GUI"
-        btnReMEXALaunchGUI.UseVisualStyleBackColor = True
+        cbxOpenDojaLaunchType.FormattingEnabled = True
+        cbxOpenDojaLaunchType.Items.AddRange(New Object() {"Normal", "Standby"})
+        cbxOpenDojaLaunchType.Location = New Point(185, 75)
+        cbxOpenDojaLaunchType.Name = "cbxOpenDojaLaunchType"
+        cbxOpenDojaLaunchType.Size = New Size(77, 23)
+        cbxOpenDojaLaunchType.TabIndex = 27
         ' 
         ' MainForm
         ' 
@@ -1793,6 +1815,7 @@ Partial Class MainForm
         GroupBox10.ResumeLayout(False)
         cmsCharadenLV.ResumeLayout(False)
         tpConfig.ResumeLayout(False)
+        GroupBox14.ResumeLayout(False)
         GroupBox12.ResumeLayout(False)
         GroupBox8.ResumeLayout(False)
         GroupBox7.ResumeLayout(False)
@@ -1807,7 +1830,6 @@ Partial Class MainForm
         GroupBox4.ResumeLayout(False)
         tpStats.ResumeLayout(False)
         GroupBox9.ResumeLayout(False)
-        GroupBox14.ResumeLayout(False)
         ResumeLayout(False)
     End Sub
     Friend WithEvents OpenFileDialog1 As OpenFileDialog
@@ -1962,4 +1984,6 @@ Partial Class MainForm
     Friend WithEvents GroupBox14 As GroupBox
     Friend WithEvents btnReMEXALaunchGUI As Button
     Friend WithEvents Label22 As Label
+    Friend WithEvents Label23 As Label
+    Friend WithEvents cbxOpenDojaLaunchType As ComboBox
 End Class
