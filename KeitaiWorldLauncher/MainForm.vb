@@ -46,7 +46,6 @@ Public Class MainForm
     Private _isProgrammaticVariantSelection As Boolean = False
     Public Shared UsingJDK1_8 As Boolean = False
     Private WithEvents searchDebounceTimer As New Timer With {.Interval = 400}
-    Private _controlsImage As Image = Nothing
 
     'Directory Var
     Public DownloadsFolder As String = "data\downloads"
@@ -452,10 +451,13 @@ Public Class MainForm
     Private Sub ShowEmulatorDisclaimer(emulatorName As String)
         If Not CompletedBootSequence Then Return
         Logger.LogWarning($"[{emulatorName}] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
-        MessageBox.Show(
-        $"DISCLAIMER: {emulatorName} support is still in active development." & vbCrLf &
-        "You may encounter unexpected errors, UI glitches, or slowdowns" & vbCrLf &
-        "when launching or interacting with the emulator. Use at your own risk.")
+        UIDialogManager.ShowNotice(
+            Me,
+            $"{emulatorName} support",
+            $"{emulatorName} support is still in active development." & vbCrLf & vbCrLf &
+            "You may encounter unexpected errors, interface issues, or performance slowdowns while using this emulator.",
+            "I understand",
+            CompactDialogTone.Warning)
     End Sub
     Private Async Sub InitializeHomepageInBackground()
         Try
@@ -1561,67 +1563,12 @@ Public Class MainForm
         ResizeActivityColumns()
     End Sub
     Private Sub ShowCopyableDialogBox(Title As String, Text As String, CopyableText As String)
-        ' Create a new MaterialForm
-        Dim aboutForm As New ReaLTaiizor.Forms.MaterialForm With {
-        .Text = Title,
-        .Size = New Size(600, 350),
-        .StartPosition = FormStartPosition.CenterScreen,
-        .Sizable = False,
-        .FormBorderStyle = FormBorderStyle.FixedDialog,
-        .MaximizeBox = False,
-        .MinimizeBox = False
-    }
-
-        ' Padding constants
-        Dim margin As Integer = 20
-        Dim spacing As Integer = 10
-
-        ' Create label for top description
-        Dim lblTop As New Label With {
-        .Text = Text,
-        .Left = margin,
-        .Top = margin + 60, ' Allow some room from MaterialForm header
-        .Width = aboutForm.ClientSize.Width - (margin * 2),
-        .Height = 50,
-        .Font = New Font("Segoe UI", 10, FontStyle.Regular),
-        .ForeColor = Color.Black
-    }
-
-        ' Create TextBox for copyable content
-        Dim txtcopyable As New TextBox With {
-        .Text = CopyableText,
-        .Multiline = True,
-        .ReadOnly = True,
-        .Left = margin,
-        .Top = lblTop.Bottom + spacing,
-        .Width = aboutForm.ClientSize.Width - (margin * 2),
-        .Height = 140,
-        .Font = New Font("Segoe UI", 10, FontStyle.Regular),
-        .ScrollBars = ScrollBars.Vertical
-    }
-
-        ' Select all on click for convenience
-        AddHandler txtcopyable.Click, Sub() txtcopyable.SelectAll()
-
-        ' Create Close button
-        Dim btnClose As New MaterialButton With {
-        .Text = "Close",
-        .Width = 100,
-        .Height = 36,
-        .Left = (aboutForm.ClientSize.Width - 100) \ 2,
-        .Top = txtcopyable.Bottom + spacing + 10,
-        .HighEmphasis = True,
-        .Type = MaterialButton.MaterialButtonType.Contained
-    }
-        AddHandler btnClose.Click, Sub() aboutForm.Close()
-
-        ' Add controls in proper Z-order
-        aboutForm.Controls.Add(lblTop)
-        aboutForm.Controls.Add(txtcopyable)
-        aboutForm.Controls.Add(btnClose)
-
-        ' Show dialog
-        aboutForm.ShowDialog()
+        UIDialogManager.ShowDetailsNotice(
+            Me,
+            Title,
+            Text & Environment.NewLine & Environment.NewLine & CopyableText,
+            "Close",
+            CompactDialogTone.Information)
     End Sub
     Private Sub StartAHKScript()
         Dim AHKFolder As String = Path.Combine(ToolsFolder, "autohotkey")
@@ -2646,91 +2593,20 @@ Public Class MainForm
         End If
     End Sub
     Private Sub btnUpdateNetworkUID_Click(sender As Object, e As EventArgs) Handles btnUpdateNetworkUID.Click
-        Dim promptForm As New ReaLTaiizor.Forms.MaterialForm With {
-            .Text = "Enter Network UID & Terminal ID",
-            .Size = New Size(540, 400),
-            .FormBorderStyle = FormBorderStyle.FixedDialog,
-            .StartPosition = FormStartPosition.CenterScreen,
-            .Sizable = False
-        }
+        Dim newNetworkUID = NetworkUID
+        Dim newTerminalID = TerminalID
+        If UIDialogManager.ShowNetworkIdentityDialog(
+            Me,
+            NetworkUID,
+            TerminalID,
+            newNetworkUID,
+            newTerminalID) <> DialogResult.OK Then Return
 
-        Dim lblInstructions As New Label With {
-            .Text = "How to get your Network UID:" & Environment.NewLine &
-                    "1. Join the Keitai Wiki Discord." & Environment.NewLine &
-                    "2. Navigate to the #Butler-sheep channel." & Environment.NewLine &
-                    "3. Select 'Get-UID'" & Environment.NewLine,
-            .AutoSize = False,
-            .Left = 20,
-            .Top = 80,
-            .Width = 490,
-            .Height = 120
-        }
-
-        ' Network UID
-        Dim txtNetworkUID As New ReaLTaiizor.Controls.MaterialTextBoxEdit With {
-            .Left = 20,
-            .Top = lblInstructions.Top + lblInstructions.Height + 10,
-            .Size = New Size(490, 40),
-            .Text = NetworkUID,
-            .MaxLength = 50,
-            .UseSystemPasswordChar = False,
-            .Hint = "Enter your Network UID (e.g. NULLGWDOCOMO)..."
-        }
-
-        ' Terminal ID
-        Dim txtTerminalID As New ReaLTaiizor.Controls.MaterialTextBoxEdit With {
-            .Left = 20,
-            .Top = txtNetworkUID.Top + txtNetworkUID.Height + 15,
-            .Size = New Size(490, 40),
-            .Text = TerminalID,
-            .MaxLength = 50,
-            .UseSystemPasswordChar = False,
-            .Hint = "Enter your Terminal ID (TID)..."
-        }
-
-        Dim btnOk As New ReaLTaiizor.Controls.MaterialButton With {
-            .Text = "OK",
-            .DialogResult = DialogResult.OK,
-            .Left = 290,
-            .Top = txtTerminalID.Top + txtTerminalID.Height + 25,
-            .Width = 100,
-            .HighEmphasis = True,
-            .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Contained
-        }
-
-        Dim btnCancel As New ReaLTaiizor.Controls.MaterialButton With {
-            .Text = "CANCEL",
-            .DialogResult = DialogResult.Cancel,
-            .Left = 400,
-            .Top = txtTerminalID.Top + txtTerminalID.Height + 25,
-            .Width = 100,
-            .HighEmphasis = False,
-            .Type = ReaLTaiizor.Controls.MaterialButton.MaterialButtonType.Text
-        }
-
-        promptForm.Controls.Add(lblInstructions)
-        promptForm.Controls.Add(txtNetworkUID)
-        promptForm.Controls.Add(txtTerminalID)
-        promptForm.Controls.Add(btnOk)
-        promptForm.Controls.Add(btnCancel)
-
-        promptForm.AcceptButton = btnOk
-        promptForm.CancelButton = btnCancel
-
-        If promptForm.ShowDialog() = DialogResult.OK Then
-            Dim newNetworkUID As String = txtNetworkUID.Text.Trim().ToUpper()
-            Dim newTerminalID As String = txtTerminalID.Text.Trim().ToUpper()
-
-            If Not String.IsNullOrWhiteSpace(newNetworkUID) AndAlso Not String.IsNullOrWhiteSpace(newTerminalID) Then
-                configManager.UpdateNetworkAndTerminalIDSetting(newNetworkUID, newTerminalID)
-                NetworkUID = newNetworkUID
-                TerminalID = newTerminalID
-                'Update display
-                FillCurrenttUIDLabel()
-                'Update EXE's
-                UtilManager.PatchTerminalAndUidInExe(DOJAEXE, 2291784, TerminalID, NetworkUID)
-            End If
-        End If
+        configManager.UpdateNetworkAndTerminalIDSetting(newNetworkUID, newTerminalID)
+        NetworkUID = newNetworkUID
+        TerminalID = newTerminalID
+        FillCurrenttUIDLabel()
+        UtilManager.PatchTerminalAndUidInExe(DOJAEXE, 2291784, TerminalID, NetworkUID)
     End Sub
     Private Sub FillCurrenttUIDLabel()
         txtCurrentUID.Text = $"{NetworkUID}"
@@ -2747,60 +2623,17 @@ Public Class MainForm
         End If
     End Sub
     Private Async Sub btnAddCustomApps_Click(sender As Object, e As EventArgs) Handles btnAddCustomApps.Click
-        ' —— 1) Pick emulator via a MaterialForm + ComboBox + Recursive checkbox —— '
         Dim emus() As String = {"Doja", "Star", "JSky", "AirEdge", "Softbank", "Vodafone", "Flash", "EZPlus"}
+        Dim choice = UIDialogManager.ShowChoice(
+            Me,
+            "Add custom apps",
+            "Choose the emulator used by the apps you want to import.",
+            emus,
+            "Include apps in subfolders")
+        If Not choice.Accepted Then Return
 
-        Dim picker As New MaterialForm() With {
-        .Text = "Choose Emulator",
-        .Size = New Size(300, 260),
-        .FormBorderStyle = FormBorderStyle.FixedDialog,
-        .StartPosition = FormStartPosition.CenterParent,
-        .MaximizeBox = False,
-        .MinimizeBox = False,
-        .KeyPreview = True
-    }
-
-        Dim cmb As New MaterialComboBox() With {
-        .DataSource = emus,
-        .DropDownStyle = ComboBoxStyle.DropDownList,
-        .Location = New Point(35, 80),
-        .Width = 240
-    }
-
-        Dim chkRecursive As New MaterialCheckBox() With {
-        .Text = "Recursive",
-        .Location = New Point(35, 130),
-        .Width = 240
-    }
-
-        Dim btnOK As New MaterialButton() With {
-        .Text = "OK",
-        .Location = New Point(35, 175),
-        .Width = 90
-    }
-        Dim btnCancel As New MaterialButton() With {
-        .Text = "Cancel",
-        .Location = New Point(155, 175),
-        .Width = 90
-    }
-
-        AddHandler btnOK.Click, Sub()
-                                    picker.DialogResult = DialogResult.OK
-                                    picker.Close()
-                                End Sub
-        AddHandler btnCancel.Click, Sub()
-                                        picker.DialogResult = DialogResult.Cancel
-                                        picker.Close()
-                                    End Sub
-
-        picker.Controls.AddRange(New Control() {cmb, chkRecursive, btnOK, btnCancel})
-
-        If picker.ShowDialog(Me) <> DialogResult.OK Then
-            Exit Sub
-        End If
-
-        Dim selectedEmulator = cmb.SelectedItem.ToString().ToLower()
-        Dim isRecursive = chkRecursive.Checked
+        Dim selectedEmulator = choice.SelectedValue.ToLowerInvariant()
+        Dim isRecursive = choice.OptionChecked
         Dim searchOpt = If(isRecursive, SearchOption.AllDirectories, SearchOption.TopDirectoryOnly)
 
         ' —— 2) Determine extensions —— '
@@ -2823,11 +2656,13 @@ Public Class MainForm
         End Select
 
         ' —— 3) Pick folder & scan —— '
-        If MessageBox.Show(
-        $"Select the folder with your games.{vbCrLf}Ensure {String.Join("/", requiredExts)} share the same base name.",
-        "Add Custom Games", MessageBoxButtons.OKCancel) = DialogResult.Cancel Then
-            Exit Sub
-        End If
+        If UIDialogManager.ShowConfirmation(
+            Me,
+            "Choose import folder",
+            $"Select the folder containing your apps. Files using {String.Join("/", requiredExts)} must share the same base name.",
+            "Choose folder",
+            "Cancel",
+            CompactDialogTone.Information) <> DialogResult.Yes Then Return
 
         Using dlg As New FolderBrowserDialog() With {.Description = $"Locate *{requiredExts(0)} files"}
             If dlg.ShowDialog() <> DialogResult.OK Then Exit Sub
@@ -2882,8 +2717,13 @@ Public Class MainForm
             Dim msg = ""
             If validBases.Any() Then msg &= "Will add:" & vbCrLf & String.Join(vbCrLf, validBases) & vbCrLf & vbCrLf
             If skipped.Any() Then msg &= "Skipping (exists):" & vbCrLf & String.Join(vbCrLf, skipped) & vbCrLf & vbCrLf
-            msg &= "Proceed?"
-            If MessageBox.Show(msg, "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.No Then Exit Sub
+            If UIDialogManager.ShowDetailsConfirmation(
+                Me,
+                "Review custom app import",
+                msg,
+                "Import apps",
+                "Cancel",
+                CompactDialogTone.Information) <> DialogResult.Yes Then Exit Sub
 
             ' —— 5) Copy files —— '
             Dim done = New List(Of String)()
@@ -3003,85 +2843,24 @@ Public Class MainForm
         Process.Start(psi)
     End Sub
     Private Sub btnControls_Click(sender As Object, e As EventArgs) Handles btnControls.Click
-        ' Create a new MaterialForm
-        Dim keybindForm As New MaterialForm With {
-        .Text = "Keybinds",
-        .Size = New Size(900, 500),
-        .StartPosition = FormStartPosition.CenterScreen,
-        .Sizable = False,
-        .FormBorderStyle = FormBorderStyle.FixedDialog,
-        .MaximizeBox = False,
-        .MinimizeBox = False
-    }
-
-        ' Keybinds content
         Dim keybindText =
-        "Doja & Star Keybinds:" & Environment.NewLine &
-        "--------------------------" & Environment.NewLine &
-        "Phone Button        Keyboard" & Environment.NewLine &
-        "--------------------------" & Environment.NewLine &
-        "UP                 → Up Arrow" & Environment.NewLine &
-        "DOWN               → Down Arrow" & Environment.NewLine &
-        "LEFT               → Left Arrow" & Environment.NewLine &
-        "RIGHT              → Right Arrow" & Environment.NewLine &
-        "Top Left Button    → A" & Environment.NewLine &
-        "Top Center Button   → D" & Environment.NewLine &
-        "Top Right Button   → S" & Environment.NewLine &
-        "Center Button      → Enter" & Environment.NewLine &
-        "123456789*#        → 123456789*#"
-
-        ' Add a label to display the keybinds
-        Dim lblKeybinds As New Label With {
-        .Text = keybindText,
-        .AutoSize = False,
-        .Left = 20,
-        .Top = 80,
-        .Width = 360,
-        .Height = 300,
-        .Font = New Font("Consolas", 10, FontStyle.Regular),
-        .ForeColor = Color.Black
-    }
-
-        ' Load the image if it exists
+            "DOJA & STAR KEYBINDS" & Environment.NewLine & Environment.NewLine &
+            "PHONE BUTTON        KEYBOARD" & Environment.NewLine &
+            "--------------------------------" & Environment.NewLine &
+            "UP                  Up Arrow" & Environment.NewLine &
+            "DOWN                Down Arrow" & Environment.NewLine &
+            "LEFT                Left Arrow" & Environment.NewLine &
+            "RIGHT               Right Arrow" & Environment.NewLine &
+            "Top Left Button     A" & Environment.NewLine &
+            "Top Center Button   D" & Environment.NewLine &
+            "Top Right Button    S" & Environment.NewLine &
+            "Center Button       Enter" & Environment.NewLine &
+            "123456789*#         123456789*#"
         Dim imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", "doja", "doja_controls.png")
-        Dim picControls As New PictureBox With {
-        .Left = 400,
-        .Top = 80,
-        .Size = New Size(360, 300),
-        .SizeMode = PictureBoxSizeMode.AutoSize,
-        .Visible = File.Exists(imagePath)
-    }
-
-        If picControls.Visible Then
-            If _controlsImage Is Nothing Then
-                Using fs As New FileStream(imagePath, FileMode.Open, FileAccess.Read)
-                    _controlsImage = Image.FromStream(fs)
-                End Using
-            End If
-            picControls.Image = _controlsImage
-        Else
+        If Not File.Exists(imagePath) Then
             Logger.LogInfo("Image not found for Keybind Form: " & imagePath)
         End If
-
-        ' Add a close button
-        Dim btnClose As New MaterialButton With {
-        .Text = "Close",
-        .Width = 100,
-        .Height = 36,
-        .Left = keybindForm.ClientSize.Width - 120,
-        .Top = keybindForm.ClientSize.Height - 60,
-        .HighEmphasis = True,
-        .Type = MaterialButton.MaterialButtonType.Contained
-    }
-        AddHandler btnClose.Click, Sub() keybindForm.Close()
-
-        ' Add controls to the form
-        keybindForm.Controls.Add(lblKeybinds)
-        keybindForm.Controls.Add(picControls)
-        keybindForm.Controls.Add(btnClose)
-
-        ' Show the form
-        keybindForm.ShowDialog()
+        UIDialogManager.ShowKeybindGuide(Me, keybindText, imagePath)
     End Sub
 
     'TabPage Changes
