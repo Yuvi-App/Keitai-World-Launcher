@@ -812,7 +812,7 @@ Namespace My.Managers
                 ' Update the GroupBox title if we have a game name
                 If TypeOf container.Parent Is GroupBox Then
                     Dim gbx = DirectCast(container.Parent, GroupBox)
-                    gbx.Text = If(String.IsNullOrWhiteSpace(gameTitle), "Appli Info", $"Appli Info - {gameTitle}")
+                    gbx.Text = If(String.IsNullOrWhiteSpace(gameTitle), "App details", $"App details — {gameTitle}")
                 End If
 
                 ' SWF files have no metadata to show
@@ -869,8 +869,8 @@ Namespace My.Managers
                 prop.SetValue(lv, True)
 
                 ' Two columns
-                lv.Columns.Add("Property", 140, HorizontalAlignment.Left)
-                lv.Columns.Add("Value", container.ClientSize.Width - 160, HorizontalAlignment.Left)
+                lv.Columns.Add("Detail", 164, HorizontalAlignment.Left)
+                lv.Columns.Add("Value", Math.Max(240, container.ClientSize.Width - 184), HorizontalAlignment.Left)
 
                 ' Build the context menu
                 Dim cms As New ContextMenuStrip()
@@ -906,7 +906,7 @@ Namespace My.Managers
                                                If Not _appliEditWarningShown Then
                                                    Dim accepted As Boolean = False
                                                    Dim warningForm As New ReaLTaiizor.Forms.MaterialForm() With {
-                                                       .Text = "Appli Info Editor",
+                                                       .Text = "App metadata editor",
                                                        .Size = New Size(480, 230),
                                                        .StartPosition = FormStartPosition.CenterParent,
                                                        .FormBorderStyle = FormBorderStyle.FixedDialog,
@@ -915,7 +915,7 @@ Namespace My.Managers
                                                        .MinimizeBox = False
                                                    }
                                                    Dim lblWarning As New Label() With {
-                                                       .Text = "Modifying Appli Info values can break games or cause" & vbCrLf &
+                                                       .Text = "Modifying app metadata can break games or cause" & vbCrLf &
                                                                "unexpected behavior." & vbCrLf & vbCrLf &
                                                                "Please do not modify this unless you know what you are doing.",
                                                        .Font = New Font("Segoe UI", 10),
@@ -956,7 +956,8 @@ Namespace My.Managers
                                                    _appliEditWarningShown = True
                                                End If
                                                Dim selectedRow = lv.SelectedItems(0)
-                                               Dim propertyName = selectedRow.Text
+                                               Dim propertyName = TryCast(selectedRow.Tag, String)
+                                               If String.IsNullOrWhiteSpace(propertyName) Then propertyName = selectedRow.Text
                                                Dim currentValue = selectedRow.SubItems(1).Text
                                                Dim fileInfo = DirectCast(lv.Tag, Dictionary(Of String, Object))
                                                Dim filePath = fileInfo("FilePath").ToString()
@@ -1007,7 +1008,9 @@ Namespace My.Managers
                     Dim key As String = parts(0).Trim()
                     Dim value As String = parts(1).Trim()
 
-                    Dim item As New ListViewItem(key)
+                    Dim item As New ListViewItem(GetFriendlyMetadataLabel(key)) With {
+                        .Tag = key
+                    }
                     item.SubItems.Add(value)
                     lv.Items.Add(item)
                 Next
@@ -1021,6 +1024,47 @@ Namespace My.Managers
                 container.ResumeLayout(True)
             End Try
         End Sub
+
+        Private Shared Function GetFriendlyMetadataLabel(key As String) As String
+            Select Case key.Trim().ToLowerInvariant()
+                Case "appname", "midlet-name"
+                    Return "App name"
+                Case "appversion", "appver", "midlet-version"
+                    Return "Version"
+                Case "appvendor", "midlet-vendor"
+                    Return "Publisher"
+                Case "appclass", "midlet-1"
+                    Return "Launch class"
+                Case "appparam"
+                    Return "Launch parameters"
+                Case "appsize", "midlet-jar-size"
+                    Return "Download size"
+                Case "packageurl", "midlet-jar-url"
+                    Return "Package URL"
+                Case "appicon", "midlet-icon"
+                    Return "App icon"
+                Case "sp-size", "spsize"
+                    Return "Storage size"
+                Case "usenetwork"
+                    Return "Network access"
+                Case "usetelephony"
+                    Return "Phone access"
+                Case "usebrowser"
+                    Return "Browser access"
+                Case "usemail"
+                    Return "Mail access"
+                Case "apptrace"
+                    Return "Debug tracing"
+                Case "launchat"
+                    Return "Launch behavior"
+            End Select
+
+            Dim spaced = Regex.Replace(key.Trim(), "(?<=[a-z0-9])(?=[A-Z])", " ")
+            spaced = spaced.Replace("_", " ")
+            If spaced.Length = 0 Then Return key
+            Return Char.ToUpperInvariant(spaced(0)) & spaced.Substring(1)
+        End Function
+
         Private Shared Function ShowEditDialog(propertyName As String, currentValue As String) As String
             Dim frm As New ReaLTaiizor.Forms.MaterialForm() With {
         .Text = $"Edit Property",

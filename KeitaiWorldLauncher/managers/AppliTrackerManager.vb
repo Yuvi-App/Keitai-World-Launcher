@@ -9,6 +9,7 @@ Namespace My.Managers
         Shared trackedAppliName As String
         Shared trackedAppliPath As String
         Shared filePath As String = "configs/playtimes.txt"
+        Shared isTracking As Boolean
 
         Public Shared Function LoadPlaytimes(filePath As String) As List(Of PlaytimeEntry)
             Dim entries As New List(Of PlaytimeEntry)
@@ -16,16 +17,27 @@ Namespace My.Managers
 
             For Each line In File.ReadLines(filePath)
                 Dim parts = line.Split("|"c)
-                If parts.Length >= 2 Then
-                    Dim playTime As TimeSpan = TimeSpan.Zero
-                    If TimeSpan.TryParse(parts(1), playTime) Then
-                        entries.Add(New PlaytimeEntry With {
-                    .AppName = parts(0),
-                    .PlayTime = playTime,
-                    .Sessions = If(parts.Length >= 3, Integer.Parse(parts(2)), 1)
-                })
+                If parts.Length < 2 Then Continue For
+
+                Dim appName = parts(0).Trim()
+                If String.IsNullOrWhiteSpace(appName) Then Continue For
+
+                Dim playTime As TimeSpan = TimeSpan.Zero
+                If Not TimeSpan.TryParse(parts(1), playTime) OrElse playTime < TimeSpan.Zero Then Continue For
+
+                Dim sessions = 1
+                If parts.Length >= 3 Then
+                    Dim parsedSessions As Integer
+                    If Integer.TryParse(parts(2), parsedSessions) AndAlso parsedSessions > 0 Then
+                        sessions = parsedSessions
                     End If
                 End If
+
+                entries.Add(New PlaytimeEntry With {
+                    .AppName = appName,
+                    .PlayTime = playTime,
+                    .Sessions = sessions
+                })
             Next
             Return entries
         End Function
@@ -34,11 +46,20 @@ Namespace My.Managers
             trackedAppliPath = AppliPath
             trackedAppliName = Path.GetFileNameWithoutExtension(AppliPath)
             trackerStartTime = DateTime.Now
+            isTracking = Not String.IsNullOrWhiteSpace(trackedAppliName)
         End Sub
 
         Public Async Function StopTrackingAppliAsync() As Task
+            If Not isTracking OrElse String.IsNullOrWhiteSpace(trackedAppliName) Then Return
+
+            isTracking = False
             Dim trackedTime As TimeSpan = DateTime.Now - trackerStartTime
-            Await SavePlaytimeAsync(trackedAppliName, trackedTime)
+            Dim completedAppliName = trackedAppliName
+            trackedAppliName = Nothing
+            trackedAppliPath = Nothing
+            If trackedTime <= TimeSpan.Zero Then Return
+
+            Await SavePlaytimeAsync(completedAppliName, trackedTime)
         End Function
 
         Private Async Function SavePlaytimeAsync(appliName As String, sessionTime As TimeSpan) As Task

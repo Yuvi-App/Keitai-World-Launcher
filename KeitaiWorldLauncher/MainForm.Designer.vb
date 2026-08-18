@@ -428,7 +428,7 @@ Partial Class MainForm
         GroupBox2.Size = New Size(399, 568)
         GroupBox2.TabIndex = 1
         GroupBox2.TabStop = False
-        GroupBox2.Text = "Available Machi Chara"
+        GroupBox2.Text = "Machi-Chara"
         ' 
         ' ListViewMachiChara
         ' 
@@ -502,7 +502,7 @@ Partial Class MainForm
         GroupBox1.Size = New Size(465, 567)
         GroupBox1.TabIndex = 0
         GroupBox1.TabStop = False
-        GroupBox1.Text = "Available Appli"
+        GroupBox1.Text = "Apps"
         ' 
         ' Panel1
         ' 
@@ -608,7 +608,7 @@ Partial Class MainForm
         gbxGameInfo.Size = New Size(553, 420)
         gbxGameInfo.TabIndex = 1
         gbxGameInfo.TabStop = False
-        gbxGameInfo.Text = "Appli Info"
+        gbxGameInfo.Text = "App details"
         ' 
         ' panelDynamic
         ' 
@@ -639,7 +639,7 @@ Partial Class MainForm
         btnLaunchGame.Name = "btnLaunchGame"
         btnLaunchGame.Size = New Size(75, 75)
         btnLaunchGame.TabIndex = 1
-        btnLaunchGame.Text = "Launch ▶"
+        btnLaunchGame.Text = "Play"
         btnLaunchGame.UseVisualStyleBackColor = True
         ' 
         ' MaterialTabControl1
@@ -650,6 +650,7 @@ Partial Class MainForm
         MaterialTabControl1.Controls.Add(tpCharaDen)
         MaterialTabControl1.Controls.Add(tpConfig)
         MaterialTabControl1.Controls.Add(tpStats)
+        MaterialTabControl1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         MaterialTabControl1.Depth = 0
         MaterialTabControl1.Font = New Font("Segoe UI", 9F)
         MaterialTabControl1.Location = New Point(0, 95)
@@ -658,7 +659,7 @@ Partial Class MainForm
         MaterialTabControl1.Multiline = True
         MaterialTabControl1.Name = "MaterialTabControl1"
         MaterialTabControl1.SelectedIndex = 0
-        MaterialTabControl1.Size = New Size(1041, 609)
+        MaterialTabControl1.Size = New Size(1281, 699)
         MaterialTabControl1.TabIndex = 6
         ' 
         ' tpHomepage
@@ -680,7 +681,7 @@ Partial Class MainForm
         tpAppli.Padding = New Padding(3)
         tpAppli.Size = New Size(1033, 581)
         tpAppli.TabIndex = 0
-        tpAppli.Text = "Appli"
+        tpAppli.Text = "Library"
         tpAppli.UseVisualStyleBackColor = True
         ' 
         ' GroupBox3
@@ -701,7 +702,7 @@ Partial Class MainForm
         GroupBox3.Size = New Size(552, 142)
         GroupBox3.TabIndex = 2
         GroupBox3.TabStop = False
-        GroupBox3.Text = "Launch Settings"
+        GroupBox3.Text = "Play options"
         ' 
         ' chkbxDialpadRotated
         ' 
@@ -824,7 +825,7 @@ Partial Class MainForm
         tpMachiChara.Padding = New Padding(3)
         tpMachiChara.Size = New Size(1033, 581)
         tpMachiChara.TabIndex = 1
-        tpMachiChara.Text = "MachiChara"
+        tpMachiChara.Text = "Machi-Chara"
         tpMachiChara.UseVisualStyleBackColor = True
         ' 
         ' chkboxMachiCharaLocalEmulator
@@ -944,7 +945,7 @@ Partial Class MainForm
         tpConfig.Name = "tpConfig"
         tpConfig.Size = New Size(1033, 581)
         tpConfig.TabIndex = 2
-        tpConfig.Text = "Config"
+        tpConfig.Text = "Settings"
         tpConfig.UseVisualStyleBackColor = True
         ' 
         ' GroupBox14
@@ -1058,7 +1059,7 @@ Partial Class MainForm
         btnControls.Name = "btnControls"
         btnControls.Size = New Size(101, 48)
         btnControls.TabIndex = 19
-        btnControls.Text = "Keybinds Controls"
+        btnControls.Text = "Keyboard && Controller Guide"
         btnControls.UseVisualStyleBackColor = True
         ' 
         ' GroupBox11
@@ -1117,7 +1118,7 @@ Partial Class MainForm
         chkboxNetworkModifyURLS.Name = "chkboxNetworkModifyURLS"
         chkboxNetworkModifyURLS.Size = New Size(245, 19)
         chkboxNetworkModifyURLS.TabIndex = 7
-        chkboxNetworkModifyURLS.Text = "Modify URL's for supported online games."
+        chkboxNetworkModifyURLS.Text = "Modify URLs for supported online games."
         chkboxNetworkModifyURLS.UseVisualStyleBackColor = True
         ' 
         ' lblInvalidUID
@@ -1355,7 +1356,7 @@ Partial Class MainForm
         chkboxEnforceHardwareRendering.Name = "chkboxEnforceHardwareRendering"
         chkboxEnforceHardwareRendering.Size = New Size(247, 19)
         chkboxEnforceHardwareRendering.TabIndex = 18
-        chkboxEnforceHardwareRendering.Text = "Enforce Hardware Rendering (exprimental)"
+        chkboxEnforceHardwareRendering.Text = "Enforce Hardware Rendering (experimental)"
         chkboxEnforceHardwareRendering.UseVisualStyleBackColor = True
         ' 
         ' chkbxModifyJamFiles
@@ -1385,7 +1386,7 @@ Partial Class MainForm
         gbxSJMELaunchOptions.Size = New Size(304, 114)
         gbxSJMELaunchOptions.TabIndex = 16
         gbxSJMELaunchOptions.TabStop = False
-        gbxSJMELaunchOptions.Text = "SqurrielJME Emulator Config"
+        gbxSJMELaunchOptions.Text = "SquirrelJME Emulator Config"
         ' 
         ' Label10
         ' 
@@ -1411,7 +1412,7 @@ Partial Class MainForm
         btnSJMEUpdate.Name = "btnSJMEUpdate"
         btnSJMEUpdate.Size = New Size(292, 33)
         btnSJMEUpdate.TabIndex = 6
-        btnSJMEUpdate.Text = "Update SqurrielJME"
+        btnSJMEUpdate.Text = "Update SquirrelJME"
         btnSJMEUpdate.UseVisualStyleBackColor = True
         ' 
         ' Label9
@@ -1637,7 +1638,7 @@ Partial Class MainForm
         Label6.Name = "Label6"
         Label6.Size = New Size(224, 46)
         Label6.TabIndex = 17
-        Label6.Text = "Please select the verion of SDK you wish to use to load appli with." & vbCrLf
+        Label6.Text = "Select the SDK version used to load apps." & vbCrLf
         Label6.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' cbxJSKYSDK
@@ -1719,7 +1720,7 @@ Partial Class MainForm
         tpStats.Name = "tpStats"
         tpStats.Size = New Size(1033, 581)
         tpStats.TabIndex = 4
-        tpStats.Text = "Stats"
+        tpStats.Text = "Activity"
         tpStats.UseVisualStyleBackColor = True
         ' 
         ' GroupBox9
@@ -1785,15 +1786,16 @@ Partial Class MainForm
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
         AutoScaleMode = AutoScaleMode.Dpi
-        ClientSize = New Size(1040, 710)
+        ClientSize = New Size(1280, 800)
         Controls.Add(MaterialTabSelector1)
         Controls.Add(MaterialTabControl1)
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Margin = New Padding(2)
-        MaximizeBox = False
+        MaximizeBox = True
+        MinimumSize = New Size(1100, 720)
         Name = "MainForm"
         Padding = New Padding(0, 63, 0, 0)
-        Sizable = False
+        Sizable = True
         StartPosition = FormStartPosition.CenterScreen
         Text = "Keitai World Launcher"
         cmsGameLV.ResumeLayout(False)

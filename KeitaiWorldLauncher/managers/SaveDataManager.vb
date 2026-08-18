@@ -7,7 +7,13 @@ Namespace My.Managers
         ''' <summary>
         ''' Backs up the file for the given game to the backup folder.
         ''' </summary>
-        Public Shared Async Function BackupSaveAsync(GameFolder As String, emulator As String) As Task
+        Public Shared Async Function BackupSaveAsync(
+            GameFolder As String,
+            emulator As String,
+            Optional owner As Form = Nothing,
+            Optional notifyUser As Boolean = True
+        ) As Task(Of Boolean)
+            Dim dialogs As New Global.KeitaiWorldLauncher.UIDialogManager()
             Try
                 ' Ensure the backup folder exists
                 If Not Directory.Exists(BackupFolder) Then
@@ -24,16 +30,25 @@ Namespace My.Managers
                     Case "jsky"
                         searchExtension = ".rms"
                     Case Else
-                        MessageBox.Show($"Unsupported emulator type for SaveDataBackup: {emulator}", "Backup Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                        Return
+                        If notifyUser Then
+                            dialogs.ShowError(owner, "Backup unavailable", $"Save backups are not supported for the {emulator} emulator yet.")
+                        End If
+                        Return False
                 End Select
 
                 ' Find all matching files inside GameFolder (recursively)
                 Dim saveFiles = Directory.GetFiles(GameFolder, $"*{searchExtension}", SearchOption.AllDirectories)
 
                 If saveFiles.Length = 0 Then
-                    MessageBox.Show($"No {searchExtension} save files found in {GameFolder}", "Backup Failed", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    Return
+                    If notifyUser Then
+                        dialogs.ShowNotice(
+                            owner,
+                            "No save data found",
+                            $"This app does not have any {searchExtension} save files to back up yet.",
+                            "OK",
+                            Global.KeitaiWorldLauncher.CompactDialogTone.Warning)
+                    End If
+                    Return False
                 End If
 
                 For Each saveFile In saveFiles
@@ -63,10 +78,16 @@ Namespace My.Managers
                         End Using
                     End Using
                 Next
-                MessageBox.Show($"Backup completed: {saveFiles.Length} file(s) backed up.", "Backup Successful", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                If notifyUser Then
+                    UtilManager.ShowSnackBar($"Backed up {saveFiles.Length} save file(s)")
+                End If
+                Return True
 
             Catch ex As Exception
-                MessageBox.Show($"Error during backup: {ex.Message}", "Backup Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                If notifyUser Then
+                    dialogs.ShowError(owner, "Backup failed", "The save data could not be backed up. Check the app files and try again.")
+                End If
+                Return False
             End Try
         End Function
     End Class

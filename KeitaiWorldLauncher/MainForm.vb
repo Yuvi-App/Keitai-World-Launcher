@@ -133,6 +133,9 @@ Public Class MainForm
         Me.Opacity = 0
         Application.EnableVisualStyles()
 
+        ' Build the compact, unified Library layout before loading data into it.
+        InitializeCompactLibrary()
+
         'Set Labels
         SetupLabelsinOptions()
 
@@ -331,6 +334,10 @@ Public Class MainForm
 
         ' Set we Completed Boot Sequence
         CompletedBootSequence = True
+
+        ' Material controls perform a final layout during startup; apply the
+        ' responsive bounds once more after all tabs and data are ready.
+        UpdateResponsiveShellLayout()
 
         ' Close the splash screen
         Await SplashScreen.CloseSplashAsync()
@@ -706,7 +713,7 @@ Public Class MainForm
             If dups.Any() Then
                 'Logger.LogInfo("Duplicate titles found:" & Environment.NewLine & String.Join(Environment.NewLine, dups))
             End If
-            lblTotalGameCount.Text = $"Total: {games.Count}"
+            lblTotalGameCount.Text = $"{games.Count:N0} items"
 
             ' Start Migration of Downloaded Folders if needed
             AppLoadManager.MigrateDownloadsByZipPlusEmulator(DownloadsFolder, games)
@@ -717,9 +724,11 @@ Public Class MainForm
             ListViewGames.Items.Clear()
             ListViewGamesVariants.Clear()
 
-            ' Adjust column width dynamically
+            ' Compact columns keep status understandable without relying on color.
             ListViewGames.Columns.Clear()
-            ListViewGames.Columns.Add("Title", ListViewGames.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
+            ListViewGames.Columns.Add("Title", 270, HorizontalAlignment.Left)
+            ListViewGames.Columns.Add("Status", 120, HorizontalAlignment.Left)
+            ListViewGames.Columns.Add("Platform", 78, HorizontalAlignment.Left)
 
             ' Setup Variants Columns:
             ListViewGamesVariants.View = View.Details
@@ -744,6 +753,11 @@ Public Class MainForm
                 .ImageKey = game.DownloadURL,
                 .Tag = game
                 }
+                Dim isInstalled = IsGameInstalled(game)
+                Dim gameKey = GetGameKey(game)
+                Dim isFavorited = favoritesManager.IsGameFavorited(gameKey)
+                Dim isCustom = game.DownloadURL.StartsWith("custom://", StringComparison.OrdinalIgnoreCase)
+                ApplyGameListItemStatus(item, game, isInstalled, isFavorited, isCustom)
                 ListViewGames.Items.Add(item)
             Next
 
@@ -768,7 +782,8 @@ Public Class MainForm
         ListViewMachiChara.View = View.Details
         ListViewMachiChara.FullRowSelect = True
         ListViewMachiChara.Columns.Clear()
-        ListViewMachiChara.Columns.Add("Title", ListViewMachiChara.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
+        ListViewMachiChara.Columns.Add("Title", 330, HorizontalAlignment.Left)
+        ListViewMachiChara.Columns.Add("Status", 100, HorizontalAlignment.Left)
         Try
             machicharas = machicharaListManager.LoadMachiChara()
             If machicharas IsNot Nothing Then
@@ -780,11 +795,9 @@ Public Class MainForm
 
                     'Check if Downloaded already
                     Dim CFDPath = Path.Combine(DownloadsFolder, mc.CFDName)
-                    If File.Exists(CFDPath) Then
-                        item.BackColor = Color.LightGreen
-                    End If
+                    ApplyCharacterListItemStatus(item, File.Exists(CFDPath))
                 Next
-                lblMachiCharaTotalCount.Text = $"Total: {ListViewMachiChara.Items.Count}"
+                lblMachiCharaTotalCount.Text = $"{ListViewMachiChara.Items.Count:N0} items"
                 Return True
             End If
         Catch ex As Exception
@@ -797,7 +810,8 @@ Public Class MainForm
         ListViewCharaDen.View = View.Details
         ListViewCharaDen.FullRowSelect = True
         ListViewCharaDen.Columns.Clear()
-        ListViewCharaDen.Columns.Add("Title", ListViewCharaDen.ClientSize.Width - SystemInformation.VerticalScrollBarWidth, HorizontalAlignment.Left)
+        ListViewCharaDen.Columns.Add("Title", 330, HorizontalAlignment.Left)
+        ListViewCharaDen.Columns.Add("Status", 100, HorizontalAlignment.Left)
         Try
             charadens = charadenListManager.LoadCharaden()
             If charadens IsNot Nothing Then
@@ -809,11 +823,9 @@ Public Class MainForm
 
                     'Check if Downloaded already
                     Dim AFDPath = Path.Combine(DownloadsFolder, cd.AFDName)
-                    If File.Exists(AFDPath) Then
-                        item.BackColor = Color.LightGreen
-                    End If
+                    ApplyCharacterListItemStatus(item, File.Exists(AFDPath))
                 Next
-                lblCharadenTotalCount.Text = $"Total: {ListViewCharaDen.Items.Count}"
+                lblCharadenTotalCount.Text = $"{ListViewCharaDen.Items.Count:N0} items"
                 Return True
             End If
         Catch ex As Exception
@@ -849,7 +861,9 @@ Public Class MainForm
                                                                             Dim emulatorType As String = game.Emulator.ToLower()
                                                                             Dim zipFileName As String = Path.GetFileNameWithoutExtension(game.ZIPName)
                                                                             Dim InstallKeyName As String = $"{Path.GetFileNameWithoutExtension(game.ZIPName)}_{game.Emulator}".ToLowerInvariant()
-                                                                            Dim matchesSearch As Boolean = gameTitle.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0
+                                                                            Dim matchesEnglishTitle = gameTitle.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0
+                                                                            Dim matchesJapaneseTitle = Not String.IsNullOrWhiteSpace(game.JPTitle) AndAlso game.JPTitle.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0
+                                                                            Dim matchesSearch As Boolean = matchesEnglishTitle OrElse matchesJapaneseTitle
                                                                             Dim isFavorited As Boolean = favoriteGames.Contains(InstallKeyName)
                                                                             Dim isCustom As Boolean = customGames.Contains(gameTitle)
                                                                             Dim isInstalled As Boolean = Not String.IsNullOrWhiteSpace(InstallKeyName) AndAlso installedGames.Contains(InstallKeyName)
@@ -868,17 +882,7 @@ Public Class MainForm
                                                                                     .Tag = game
                                                                                 }
 
-                                                                                If isInstalled AndAlso isFavorited Then
-                                                                                    item.BackColor = Color.LightSeaGreen
-                                                                                ElseIf isCustom Then
-                                                                                    item.BackColor = Color.LightSteelBlue
-                                                                                ElseIf isInstalled Then
-                                                                                    item.BackColor = Color.LightGreen
-                                                                                ElseIf isFavorited Then
-                                                                                    item.BackColor = Color.LightGoldenrodYellow
-                                                                                Else
-                                                                                    item.BackColor = Color.White
-                                                                                End If
+                                                                                ApplyGameListItemStatus(item, game, isInstalled, isFavorited, isCustom)
 
                                                                                 result.Add(item)
                                                                             End If
@@ -893,7 +897,7 @@ Public Class MainForm
         ListViewGames.BackColor = SystemColors.Window
 
         ListViewGames.Items.AddRange(filteredItems.ToArray())
-        lblFilteredGameCount.Text = $"Filtered: {filteredItems.Count}"
+        lblFilteredGameCount.Text = $"Showing {filteredItems.Count:N0}"
         ListViewGames.EndUpdate()
     End Function
     Private Async Function LoadGameVariantsAsync() As Task
@@ -906,6 +910,8 @@ Public Class MainForm
 
             If ListViewGames.SelectedItems.Count = 0 Then
                 lblTotalVariantCount.Text = "Variants: 0"
+                ListViewGamesVariants.Visible = False
+                RefreshCompactLibraryLayout()
                 Return
             End If
 
@@ -914,6 +920,8 @@ Public Class MainForm
 
             If selectedGame Is Nothing OrElse String.IsNullOrWhiteSpace(selectedGame.Variants) Then
                 lblTotalVariantCount.Text = "Variants: 0"
+                ListViewGamesVariants.Visible = False
+                RefreshCompactLibraryLayout()
                 Return
             End If
 
@@ -935,12 +943,14 @@ Public Class MainForm
             End If
 
             lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count}"
+            ListViewGamesVariants.Visible = ListViewGamesVariants.Items.Count > 1
+            RefreshCompactLibraryLayout()
         Finally
             _isProgrammaticVariantSelection = False
             ListViewGamesVariants.EndUpdate()
         End Try
     End Function
-    Private Async Function DownloadGames(ContextDownload As Boolean) As Task
+    Private Async Function DownloadGames(ContextDownload As Boolean, Optional allowDownloadPrompt As Boolean = True) As Task
         ' Ensure a game is selected
         If ListViewGames.SelectedItems.Count = 0 Then
             UIDialogManager.ShowMaterialError(Me, "Please select a game")
@@ -952,7 +962,7 @@ Public Class MainForm
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
         If selectedGame Is Nothing Then
-            MessageBox.Show("Selected game could not be found (missing Tag).", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            UIDialogManager.ShowError(Me, "App unavailable", "The selected app could not be loaded. Refresh the Library and try again.")
             Return
         End If
         Dim selectedGameVariant As String = String.Empty
@@ -1002,28 +1012,32 @@ Public Class MainForm
         If isOnline = False Then
             If File.Exists(CurrentSelectedGameJAM) Then
                 UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
-                ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
             Else
-                panelDynamic.Controls.Clear()
+                ShowSelectedGameSummary(selectedGame, False, True)
             End If
+            UpdateGameSelectionState(selectedGame)
             Exit Function
         End If
         Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
         If File.Exists(CurrentSelectedGameJAR) Then
             If ContextDownload Then
-                Dim result As DialogResult = MessageBox.Show(
-                    $"The game '{selectedGame.ENTitle}' is already downloaded. Would you like to download it again?{vbCrLf}{vbCrLf}" &
-                    "This could delete your save data, we will attempt to backup you're save, so please be careful.",
-                    "Download Game Again", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                Dim result = UIDialogManager.ShowConfirmation(
+                    Me,
+                    "Download again?",
+                    $"'{selectedGame.ENTitle}' is already installed.{vbCrLf}{vbCrLf}" &
+                    "Keitai World Launcher will back up its save data before replacing the app files.",
+                    "Redownload",
+                    "Cancel",
+                    CompactDialogTone.Warning)
                 Try
                     If result = DialogResult.Yes Then
                         Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
                         Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
-                        Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
+                        Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator, Me, False)
                         isGameDownloadInProgress = True
                         Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
                         Logger.LogInfo($"Starting redownload for {selectedGame.DownloadURL}")
-                        MessageBox.Show($"Completed redownload of '{selectedGame.ENTitle}'", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                        UtilManager.ShowSnackBar($"Redownloaded '{selectedGame.ENTitle}'")
                     End If
                     If File.Exists(CurrentSelectedGameJAM) Then
                         UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
@@ -1033,23 +1047,34 @@ Public Class MainForm
                     End If
                 Catch ex As Exception
                     Logger.LogError($"[UI] Error during game download: {ex.Message}")
-                    MessageBox.Show("An error occurred while downloading the game. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    UIDialogManager.ShowError(Me, "Download failed", "The app could not be downloaded. Check your connection and try again.")
                 Finally
                     isGameDownloadInProgress = False
                 End Try
             End If
             UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
+            UpdateGameSelectionState(selectedGame)
         Else
             If selectedGame.ZIPName = String.Empty OrElse selectedGame.ZIPName Is Nothing Then
                 Logger.LogError($"{selectedGame.ENTitle} has invalid gamelist values, unable to download.")
-                MessageBox.Show($"{selectedGame.ENTitle} has invalid gamelist values, unable to download.")
+                UIDialogManager.ShowError(Me, "Download unavailable", $"'{selectedGame.ENTitle}' does not have a valid download package.")
+                Return
+            End If
+
+            ' Browsing is passive. Only explicit Download actions may prompt.
+            If Not allowDownloadPrompt Then
+                ShowSelectedGameSummary(selectedGame, False, False)
+                UpdateGameSelectionState(selectedGame)
                 Return
             End If
 
             ' Game not downloaded - prompt user to download it
-            Dim result As DialogResult = MessageBox.Show(
-                $"Game '{selectedGame.ENTitle} ({selectedGame.ZIPName})' is not downloaded.{vbCrLf}Would you like to download it?",
-                "Download Game", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+            Dim result = UIDialogManager.ShowConfirmation(
+                Me,
+                "Download app?",
+                $"'{selectedGame.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?",
+                "Download",
+                "Cancel")
             If result = DialogResult.Yes Then
                 isGameDownloadInProgress = True
                 Try
@@ -1063,11 +1088,12 @@ Public Class MainForm
                     End If
                 Catch ex As Exception
                     Logger.LogError($"[UI] Error during game download: {ex.Message}")
-                    MessageBox.Show("An error occurred while downloading the game. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    UIDialogManager.ShowError(Me, "Download failed", "The app could not be downloaded. Check your connection and try again.")
                 Finally
                     isGameDownloadInProgress = False
                 End Try
             End If
+            UpdateGameSelectionState(selectedGame)
         End If
 
     End Function
@@ -1085,7 +1111,7 @@ Public Class MainForm
         )
         Catch ex As Exception
             Logger.LogError($"Failed to download or extract game '{selectedGame.ENTitle}': {ex.Message}")
-            MessageBox.Show($"An error occurred while downloading '{selectedGame.ENTitle}'. Please try again.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            UIDialogManager.ShowError(Me, "Download failed", $"'{selectedGame.ENTitle}' could not be downloaded or installed. Please try again.")
         End Try
     End Function
     Private Async Sub DownloadMachiChara(selectedMachiChara As MachiChara)
@@ -1100,7 +1126,12 @@ Public Class MainForm
             If File.Exists(localFilePath) Then
                 ' File already exists, nothing to do (or maybe inform the user)
             Else
-                Dim result = MessageBox.Show($"The Machi Chara '{selectedMachiChara.ENTitle} ({selectedMachiChara.CFDName})' is not downloaded. Would you like to download it?", "Download Machi Chara", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                Dim result = UIDialogManager.ShowConfirmation(
+                    Me,
+                    "Download Machi-Chara?",
+                    $"'{selectedMachiChara.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?",
+                    "Download",
+                    "Cancel")
                 If result = DialogResult.Yes Then
                     Logger.LogInfo($"Starting Download for {selectedMachiChara.DownloadURL}")
                     Dim downloader As New FileDownloader(pbGameDL)
@@ -1108,7 +1139,7 @@ Public Class MainForm
                     HighlightMachiChara()
                 End If
             End If
-            btnMachiCharaLaunch.Enabled = True
+            UpdateMachiCharaSelectionState(selectedMachiChara)
         End If
     End Sub
     Private Async Sub DownloadCharaDen(selectedCharaDen As CharaDen)
@@ -1123,7 +1154,12 @@ Public Class MainForm
             If File.Exists(localFilePath) Then
                 ' File already exists, nothing to do (or maybe inform the user)
             Else
-                Dim result = MessageBox.Show($"The Chara-den '{selectedCharaDen.ENTitle} ({selectedCharaDen.AFDName})' is not downloaded. Would you like to download it?", "Download Chara-den", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+                Dim result = UIDialogManager.ShowConfirmation(
+                    Me,
+                    "Download Chara-Den?",
+                    $"'{selectedCharaDen.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?",
+                    "Download",
+                    "Cancel")
                 If result = DialogResult.Yes Then
                     Logger.LogInfo($"Starting Download for {selectedCharaDen.DownloadURL}")
                     Dim downloader As New FileDownloader(pbGameDL)
@@ -1131,12 +1167,12 @@ Public Class MainForm
                     HighlightCharaDen()
                 End If
             End If
-            btnCharaDenLaunch.Enabled = True
+            UpdateCharaDenSelectionState(selectedCharaDen)
         End If
     End Sub
     Private Async Function DeleteGamesAsync() As Task
         If ListViewGames.SelectedItems.Count = 0 Then
-            MessageBox.Show("Please select at least one game to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            UIDialogManager.ShowNotice(Me, "Select an app", "Choose an installed app before using Delete.", "OK", CompactDialogTone.Warning)
             Return
         End If
 
@@ -1150,10 +1186,14 @@ Public Class MainForm
         Next
 
         Dim gameList = String.Join(Environment.NewLine, gamesToDelete.Select(Function(g) $"{g.ENTitle} ({g.ZIPName})"))
-        Dim result = MessageBox.Show(
-        $"The following games will be deleted:{Environment.NewLine}{Environment.NewLine}{gameList}{Environment.NewLine}{Environment.NewLine}Do you want to proceed?",
-        "Delete Games", MessageBoxButtons.YesNo, MessageBoxIcon.Question
-    )
+        Dim result = UIDialogManager.ShowConfirmation(
+            Me,
+            If(gamesToDelete.Count = 1, "Delete app?", "Delete apps?"),
+            $"The following installed files will be removed:{Environment.NewLine}{Environment.NewLine}{gameList}{Environment.NewLine}{Environment.NewLine}" &
+            "Save data inside the app folder will also be removed. Existing backups are kept.",
+            "Delete",
+            "Cancel",
+            CompactDialogTone.Danger)
         If result <> DialogResult.Yes Then Return
 
         UtilManager.ShowLaunchOverlay(Me, "Deleting...")
@@ -1256,26 +1296,17 @@ Public Class MainForm
 
             ' Show summary
             If deletedGames.Count > 0 Then
-                Dim message As String = $"Successfully deleted files for:{Environment.NewLine}{String.Join(Environment.NewLine, deletedGames)}"
-
-                If deletedCustomGames.Count > 0 Then
-                    message &= $"{Environment.NewLine}{Environment.NewLine}Custom games removed from library:{Environment.NewLine}{String.Join(Environment.NewLine, deletedCustomGames)}"
-                End If
-
-                Dim staticCount = deletedGames.Count - deletedCustomGames.Count
-                If staticCount > 0 Then
-                    message &= $"{Environment.NewLine}{Environment.NewLine}{staticCount} game(s) removed."
-                End If
-
-                MessageBox.Show(message, "Deletion Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                UtilManager.ShowSnackBar(If(deletedGames.Count = 1, "App deleted", $"Deleted {deletedGames.Count} apps"))
                 Await FilterAndHighlightGamesAsync()
             End If
 
             If failedGames.Count > 0 Then
-                MessageBox.Show(
-                $"Could not delete the following games:{Environment.NewLine}{String.Join(Environment.NewLine, failedGames)}",
-                "Deletion Errors", MessageBoxButtons.OK, MessageBoxIcon.Warning
-            )
+                UIDialogManager.ShowNotice(
+                    Me,
+                    "Some files could not be deleted",
+                    String.Join(Environment.NewLine, failedGames),
+                    "OK",
+                    CompactDialogTone.Warning)
             End If
 
         Finally
@@ -1384,16 +1415,8 @@ Public Class MainForm
             ' Favorited check (use same unique key!)
             Dim isFavorited As Boolean = favoritesManager.IsGameFavorited(gameKey)
 
-            ' Determine the appropriate highlighting
-            If isInstalled AndAlso isFavorited Then
-                item.BackColor = Color.LightSeaGreen
-            ElseIf isInstalled Then
-                item.BackColor = Color.LightGreen
-            ElseIf isFavorited Then
-                item.BackColor = Color.LightGoldenrodYellow
-            Else
-                item.BackColor = Color.White
-            End If
+            Dim isCustom = game.DownloadURL.StartsWith("custom://", StringComparison.OrdinalIgnoreCase)
+            ApplyGameListItemStatus(item, game, isInstalled, isFavorited, isCustom)
         Next
         ListViewGames.EndUpdate()
     End Sub
@@ -1435,37 +1458,10 @@ Public Class MainForm
     End Function
     Public Sub AdjustFormPadding()
         Try
-            ' Get the system DPI scaling factor
-            Dim g As Graphics = Me.CreateGraphics()
-            Dim dpiScale As Single = g.DpiX / 96.0F ' 96 DPI is default (100%)
-            g.Dispose()
-
-            ' Calculate adjusted top padding based on DPI
-            Dim adjustedPadding As Integer
-            If dpiScale = 1 Then
-                adjustedPadding = 63
-            ElseIf dpiScale = 1.25 Then
-                adjustedPadding = 63
-            ElseIf dpiScale = 1.5 Then
-                adjustedPadding = 63
-            ElseIf dpiScale = 1.75 Then
-                adjustedPadding = 63
-            ElseIf dpiScale = 2 Then
-                adjustedPadding = 63
-            End If
-
-            ' Apply padding to the form
-            Me.Padding = New Padding(0, adjustedPadding, 0, 3)
-
-            ' Adjust TabControl position
-            If MaterialTabControl1 IsNot Nothing Then
-                MaterialTabControl1.Top = MaterialTabSelector1.Top + 35
-                ' Now, adjust the form's client size so that MaterialTabControl1 has 3 pixels of space on the right and bottom.
-                Dim newClientWidth As Integer = MaterialTabControl1.Left + MaterialTabControl1.Width - 8
-                Dim newClientHeight As Integer = MaterialTabControl1.Top + MaterialTabControl1.Height - 30
-
-                Me.ClientSize = New Size(newClientWidth, newClientHeight)
-            End If
+            ' MaterialForm owns a 63 px title region. Keep the requested client
+            ' size and fit the tab content inside it instead of shrinking the form.
+            Me.Padding = New Padding(0, 63, 0, 3)
+            UpdateResponsiveShellLayout()
         Catch ex As Exception
             MessageBox.Show("Error adjusting form padding: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
@@ -1475,11 +1471,7 @@ Public Class MainForm
             Dim mc As MachiChara = CType(item.Tag, MachiChara)
             If mc IsNot Nothing Then
                 Dim cfdPath As String = Path.Combine(DownloadsFolder, mc.CFDName)
-                If File.Exists(cfdPath) Then
-                    item.BackColor = Color.LightGreen
-                Else
-                    item.BackColor = Color.White ' Optional: reset if not found
-                End If
+                ApplyCharacterListItemStatus(item, File.Exists(cfdPath))
             End If
         Next
     End Sub
@@ -1488,11 +1480,7 @@ Public Class MainForm
             Dim cd As CharaDen = CType(item.Tag, CharaDen)
             If cd IsNot Nothing Then
                 Dim afdPath As String = Path.Combine(DownloadsFolder, cd.AFDName)
-                If File.Exists(afdPath) Then
-                    item.BackColor = Color.LightGreen
-                Else
-                    item.BackColor = Color.White ' Optional: reset if not found
-                End If
+                ApplyCharacterListItemStatus(item, File.Exists(afdPath))
             End If
         Next
     End Sub
@@ -1548,43 +1536,29 @@ Public Class MainForm
     Private Sub LoadPlaytimesToListView()
         lvwPlaytimes.Items.Clear()
         lvwPlaytimes.Columns.Clear()
-        lvwPlaytimes.Columns.Add("Appli Name", CInt(lvwPlaytimes.Width * 0.68), HorizontalAlignment.Left)
-        lvwPlaytimes.Columns.Add("Play Time", CInt(lvwPlaytimes.Width * 0.2), HorizontalAlignment.Left)
-        lvwPlaytimes.Columns.Add("Sessions", CInt(lvwPlaytimes.Width * 0.1), HorizontalAlignment.Center)
+        lvwPlaytimes.Columns.Add("App", 420, HorizontalAlignment.Left)
+        lvwPlaytimes.Columns.Add("Total time", 180, HorizontalAlignment.Left)
+        lvwPlaytimes.Columns.Add("Sessions", 104, HorizontalAlignment.Center)
         lvwPlaytimes.Scrollable = True
         lvwPlaytimes.FullRowSelect = True
         lvwPlaytimes.View = View.Details
 
         Dim entries = AppliTrackerManager.LoadPlaytimes(PlaytimesTxtFile)
-        If entries.Count = 0 Then Exit Sub
+        UpdateActivitySummary(entries)
 
-        Dim totalTime As TimeSpan = TimeSpan.Zero
-        Dim totalSessions As Integer = 0
-
-        For Each entry In entries
-            totalTime = totalTime.Add(entry.PlayTime)
-            totalSessions += entry.Sessions
-
-            Dim formattedTime = $"{Math.Floor(entry.PlayTime.TotalHours)}h {entry.PlayTime.Minutes}m {entry.PlayTime.Seconds}s"
-            Dim item As New ListViewItem(entry.AppName)
+        Dim rowIndex = 0
+        For Each entry In entries.OrderByDescending(Function(item) item.PlayTime)
+            Dim formattedTime = FormatActivityDuration(entry.PlayTime)
+            Dim item As New ListViewItem(entry.AppName.Replace("_", " ")) With {
+                .Tag = entry.AppName
+            }
             item.SubItems.Add(formattedTime)
-            item.SubItems.Add(entry.Sessions.ToString())
+            item.SubItems.Add(entry.Sessions.ToString("N0"))
+            item.BackColor = If(rowIndex Mod 2 = 0, CompactUiTheme.Surface, Color.FromArgb(250, 251, 253))
             lvwPlaytimes.Items.Add(item)
+            rowIndex += 1
         Next
-
-        ' Divider + total row
-        Dim dividerItem As New ListViewItem(New String() {"", "", ""})
-        dividerItem.BackColor = Color.LightGray
-        lvwPlaytimes.Items.Add(dividerItem)
-
-        Dim totalFormatted = $"{Math.Floor(totalTime.TotalHours)}h {totalTime.Minutes}m {totalTime.Seconds}s"
-        Dim totalItem As New ListViewItem("TOTAL")
-        totalItem.SubItems.Add(totalFormatted)
-        totalItem.SubItems.Add(totalSessions.ToString())
-        totalItem.ForeColor = Color.White
-        totalItem.BackColor = ColorTranslator.FromHtml("#3f51b5")
-        totalItem.Font = New Font(lvwPlaytimes.Font.FontFamily, lvwPlaytimes.Font.Size, FontStyle.Bold)
-        lvwPlaytimes.Items.Add(totalItem)
+        ResizeActivityColumns()
     End Sub
     Private Sub ShowCopyableDialogBox(Title As String, Text As String, CopyableText As String)
         ' Create a new MaterialForm
@@ -1689,6 +1663,12 @@ Public Class MainForm
 
     ' LISTBOX/LISTVIEW CHANGES
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
+        If ListViewGames.SelectedItems.Count = 0 Then
+            selectionTimer.Stop()
+            ShowNoGameSelected()
+            Return
+        End If
+
         ' Restart the timer on selection change
         selectionTimer.Stop()
         selectionTimer.Start()
@@ -1708,24 +1688,31 @@ Public Class MainForm
 
         ' Perform actions once after all selections are done
         Await LoadGameVariantsAsync()
-        Await DownloadGames(False)
+        Await DownloadGames(False, False)
         EnableButtons(selectedGame)
+        UpdateGameSelectionState(selectedGame)
     End Sub
     Private Async Sub ListViewGamesVariants_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGamesVariants.SelectedIndexChanged
         If _isProgrammaticVariantSelection Then Return
-        Await DownloadGames(False)
+        Await DownloadGames(False, False)
     End Sub
     Private Sub lbxMachiCharaList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewMachiChara.SelectedIndexChanged
-        If ListViewMachiChara.SelectedItems.Count = 0 Then Return
+        If ListViewMachiChara.SelectedItems.Count = 0 Then
+            ShowNoMachiCharaSelected()
+            Return
+        End If
         Dim selectedItem = ListViewMachiChara.SelectedItems(0)
         Dim selectedMachiChara = CType(selectedItem.Tag, MachiChara)
-        DownloadMachiChara(selectedMachiChara)
+        UpdateMachiCharaSelectionState(selectedMachiChara)
     End Sub
     Private Sub lbxCharadenList_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewCharaDen.SelectedIndexChanged
-        If ListViewCharaDen.SelectedItems.Count = 0 Then Return
+        If ListViewCharaDen.SelectedItems.Count = 0 Then
+            ShowNoCharaDenSelected()
+            Return
+        End If
         Dim selectedItem = ListViewCharaDen.SelectedItems(0)
         Dim selectedCharaDen = CType(selectedItem.Tag, CharaDen)
-        DownloadCharaDen(selectedCharaDen)
+        UpdateCharaDenSelectionState(selectedCharaDen)
     End Sub
 
     ' CheckBox Changes
@@ -1883,7 +1870,7 @@ Public Class MainForm
         DOJApath = Path.Combine(ToolsFolder, selectedSDK)
 
         ' Default: Disable SJME options unless enabled later
-        gbxSJMELaunchOptions.Enabled = False
+        SetSjmeSettingsEnabled(False)
 
         If sdkLower.StartsWith("idkdoja") Then
             DOJAEXE = Path.Combine(DOJApath, "bin", "doja.exe")
@@ -1898,7 +1885,7 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("squirreljme")
             End If
             DOJAEXE = Path.Combine(DOJApath, "squirreljme.exe")
-            gbxSJMELaunchOptions.Enabled = True
+            SetSjmeSettingsEnabled(True)
 
         ElseIf sdkLower.StartsWith("kemnnx64") Then
             If CompletedBootSequence = True Then
@@ -2236,9 +2223,9 @@ Public Class MainForm
         Dim paths = pathResolver.Resolve(selectedGame, String.Empty, DownloadsFolder)
         Dim gameFolder As String = paths.GameBaseFolder
         If Directory.Exists(gameFolder) Then
-            Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator)
+            Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator, Me, True)
         Else
-            MessageBox.Show("Game folder not found. Is the game downloaded?", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            UIDialogManager.ShowNotice(Me, "App not installed", "Download the app before backing up its save data.", "OK", CompactDialogTone.Warning)
         End If
     End Sub
 
@@ -2342,7 +2329,7 @@ Public Class MainForm
     End Sub
 
     'Launch Apps Buttons
-    Private Async Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, ListViewGames.DoubleClick, cmsGameLV_Launch.Click
+    Private Async Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, cmsGameLV_Launch.Click
         Try
             Logger.LogInfo("Attempting To launch game...")
             If chkbxEnableController.Checked Then
@@ -2353,6 +2340,22 @@ Public Class MainForm
             If ListViewGames.SelectedItems.Count = 0 Then
                 Logger.LogWarning("Launch failed: No game selected.")
                 MessageBox.Show("Please select a game before launching.")
+                Return
+            End If
+
+            ' The primary Library action is context-aware: installed apps play,
+            ' while available apps enter the explicit download flow.
+            Dim primaryActionGame = TryCast(ListViewGames.SelectedItems(0).Tag, Game)
+            If primaryActionGame Is Nothing Then
+                Logger.LogError("Primary action failed: Game not found in the games list.")
+                Return
+            End If
+            If Not IsGameInstalled(primaryActionGame) Then
+                Await DownloadGames(True, True)
+                If ListViewGames.SelectedItems.Count > 0 Then
+                    UpdateGameSelectionState(TryCast(ListViewGames.SelectedItems(0).Tag, Game))
+                    RefreshGameHighlighting()
+                End If
                 Return
             End If
 
@@ -2582,6 +2585,11 @@ Public Class MainForm
 
         If selectedMachiChara IsNot Nothing Then
             CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
+            If Not File.Exists(CurrentSelectedMachiCharaCFD) Then
+                MessageBox.Show("Download this Machi-Chara before launching it.", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                UpdateMachiCharaSelectionState(selectedMachiChara)
+                Return
+            End If
             UtilManager.ShowSnackBar($"Launching '{CurrentSelectedMachiCharaCFD}'")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedMachiCharaCFD))
             utilManager.LaunchCustomMachiCharaCommand(MachiCharaExe, CurrentSelectedMachiCharaCFD)
@@ -2598,6 +2606,11 @@ Public Class MainForm
 
         If selectedCharaDen IsNot Nothing Then
             CurrentSelectedCharaDenAFD = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
+            If Not File.Exists(CurrentSelectedCharaDenAFD) Then
+                MessageBox.Show("Download this Chara-Den before launching it.", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                UpdateCharaDenSelectionState(selectedCharaDen)
+                Return
+            End If
             UtilManager.ShowSnackBar($"Launching '{CurrentSelectedCharaDenAFD}'")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedCharaDenAFD))
             utilManager.LaunchCustomCharaDenCommand(CharaDenExe, CurrentSelectedCharaDenAFD)

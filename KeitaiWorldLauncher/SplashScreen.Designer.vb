@@ -29,9 +29,10 @@ Partial Class SplashScreen
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(255), CByte(255), CByte(255))
-        ClientSize = New Size(650, 250)
+        ClientSize = New Size(520, 320)
         ForeColor = Color.White
         Name = "SplashScreen"
+        StartPosition = FormStartPosition.CenterScreen
         Text = "SplashScreen"
         TextAlign = ReaLTaiizor.Enum.Poison.FormTextAlignType.Center
         TopMost = True

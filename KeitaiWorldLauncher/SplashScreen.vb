@@ -62,6 +62,8 @@ Public Class SplashScreen
         If splashThread Is Nothing OrElse Not splashThread.IsAlive Then
             splashThread = New Thread(Sub()
                                           splashForm = New SplashScreen()
+                                          splashForm.Size = New Drawing.Size(520, 320)
+                                          splashForm.StartPosition = FormStartPosition.CenterScreen
                                           Application.Run(splashForm)
                                       End Sub)
             splashThread.SetApartmentState(Threading.ApartmentState.STA)
