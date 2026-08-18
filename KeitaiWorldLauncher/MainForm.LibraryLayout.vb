@@ -6,7 +6,12 @@ Partial Public Class MainForm
     Private _appLibraryGrid As TableLayoutPanel
     Private _machiLibraryGrid As TableLayoutPanel
     Private _charaLibraryGrid As TableLayoutPanel
+    Private _libraryRoot As TableLayoutPanel
     Private _libraryCategoryTabs As TabControl
+    Private _downloadQueueBorder As Panel
+    Private _downloadQueueTitle As Label
+    Private _downloadQueueStatus As Label
+    Private _downloadQueueCount As Label
 
     Private _gameActionBar As FlowLayoutPanel
     Private _btnGameActions As Button
@@ -1185,8 +1190,21 @@ Partial Public Class MainForm
         }
         _libraryCategoryTabs.TabPages.AddRange(New TabPage() {appsPage, machiPage, charaPage})
 
+        _libraryRoot = New TableLayoutPanel With {
+            .BackColor = CompactUiTheme.AppBackground,
+            .ColumnCount = 1,
+            .Dock = DockStyle.Fill,
+            .Margin = New Padding(0),
+            .Padding = New Padding(0),
+            .RowCount = 2
+        }
+        _libraryRoot.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        _libraryRoot.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        _libraryRoot.RowStyles.Add(New RowStyle(SizeType.Absolute, 0.0F))
+        _libraryRoot.Controls.Add(_libraryCategoryTabs, 0, 0)
+
         tpAppli.Controls.Clear()
-        tpAppli.Controls.Add(_libraryCategoryTabs)
+        tpAppli.Controls.Add(_libraryRoot)
 
         ' Keep the original controls and event wiring, but present the three
         ' content types as compact sub-tabs inside one top-level Library.
@@ -1239,15 +1257,8 @@ Partial Public Class MainForm
         GroupBox3.BringToFront()
         _appLibraryGrid.Controls.Add(rightPanel, 1, 0)
 
-        ' Keep progress outside panelDynamic so refreshing details cannot remove it.
-        panelDynamic.Controls.Remove(pbGameDL)
-        pbGameDL.Dock = DockStyle.Bottom
-        pbGameDL.Height = 8
-        pbGameDL.Margin = New Padding(0)
-        gbxGameInfo.Controls.Add(pbGameDL)
-        pbGameDL.BringToFront()
-
         BuildGameActionBar()
+        BuildDownloadQueueBar()
         RepositionCompactLaunchOptions()
 
         AddHandler GroupBox1.Resize, AddressOf GroupBox1_Resize
@@ -1257,6 +1268,112 @@ Partial Public Class MainForm
         cbxFilterType.AccessibleName = "Library filter"
         ListViewGames.MultiSelect = False
         ListViewGames.HideSelection = False
+    End Sub
+
+    Private Sub BuildDownloadQueueBar()
+        If _libraryRoot Is Nothing OrElse _downloadQueueBorder IsNot Nothing Then Return
+
+        _downloadQueueBorder = New Panel With {
+            .BackColor = CompactUiTheme.Border,
+            .Dock = DockStyle.Fill,
+            .Margin = New Padding(4, 6, 4, 4),
+            .Padding = New Padding(1)
+        }
+        Dim surface As New Panel With {
+            .BackColor = CompactUiTheme.Surface,
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(14, 8, 14, 7)
+        }
+        Dim accent As New Panel With {
+            .BackColor = CompactUiTheme.Primary,
+            .Dock = DockStyle.Left,
+            .Width = 4
+        }
+        Dim statusGlyph As New Label With {
+            .BackColor = Color.FromArgb(235, 239, 252),
+            .Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold),
+            .ForeColor = CompactUiTheme.Primary,
+            .Location = New Point(16, 10),
+            .Size = New Size(36, 36),
+            .Text = ChrW(&H2193),
+            .TextAlign = ContentAlignment.MiddleCenter
+        }
+        _downloadQueueTitle = New Label With {
+            .AutoEllipsis = True,
+            .Font = New Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+            .ForeColor = CompactUiTheme.TextPrimary,
+            .Location = New Point(66, 7),
+            .Size = New Size(520, 22),
+            .Text = "Preparing download",
+            .TextAlign = ContentAlignment.MiddleLeft
+        }
+        _downloadQueueStatus = New Label With {
+            .AutoEllipsis = True,
+            .Font = New Font("Segoe UI", 8.7F),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Location = New Point(66, 28),
+            .Size = New Size(620, 20),
+            .Text = "Starting...",
+            .TextAlign = ContentAlignment.MiddleLeft
+        }
+        _downloadQueueCount = New Label With {
+            .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
+            .Font = New Font("Segoe UI Semibold", 8.7F, FontStyle.Bold),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Size = New Size(130, 34),
+            .Text = "Current download",
+            .TextAlign = ContentAlignment.MiddleRight
+        }
+
+        If pbGameDL.Parent IsNot Nothing Then pbGameDL.Parent.Controls.Remove(pbGameDL)
+        pbGameDL.Anchor = AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Bottom
+        pbGameDL.Height = 5
+        pbGameDL.Minimum = 0
+        pbGameDL.Maximum = 100
+        pbGameDL.MarqueeAnimationSpeed = 24
+        pbGameDL.Style = ProgressBarStyle.Marquee
+        pbGameDL.Visible = True
+
+        surface.Controls.AddRange(New Control() {pbGameDL, _downloadQueueCount, _downloadQueueStatus, _downloadQueueTitle, statusGlyph, accent})
+        AddHandler surface.Resize,
+            Sub()
+                _downloadQueueCount.Location = New Point(Math.Max(690, surface.ClientSize.Width - _downloadQueueCount.Width - 12), 11)
+                Dim textRight = Math.Max(160, _downloadQueueCount.Left - 76)
+                _downloadQueueTitle.Width = Math.Max(100, textRight)
+                _downloadQueueStatus.Width = Math.Max(100, textRight)
+                pbGameDL.SetBounds(66, surface.ClientSize.Height - 10, Math.Max(100, surface.ClientSize.Width - 82), 5)
+            End Sub
+
+        _downloadQueueBorder.Controls.Add(surface)
+        _libraryRoot.Controls.Add(_downloadQueueBorder, 0, 1)
+        _downloadQueueBorder.Visible = False
+    End Sub
+
+    Private Sub UpdateDownloadQueuePanel(title As String, status As String, percentage As Integer, queuedCount As Integer)
+        If _downloadQueueBorder Is Nothing OrElse _libraryRoot Is Nothing Then Return
+
+        _downloadQueueTitle.Text = title
+        _downloadQueueStatus.Text = If(String.IsNullOrWhiteSpace(status), "Working...", status)
+        _downloadQueueCount.Text = If(queuedCount > 0, $"{queuedCount} queued", "Current download")
+        If percentage >= 0 Then
+            pbGameDL.Style = ProgressBarStyle.Continuous
+            pbGameDL.Value = Math.Max(pbGameDL.Minimum, Math.Min(pbGameDL.Maximum, percentage))
+        Else
+            pbGameDL.Style = ProgressBarStyle.Marquee
+            pbGameDL.MarqueeAnimationSpeed = 24
+        End If
+
+        _libraryRoot.RowStyles(1).Height = 74.0F
+        _downloadQueueBorder.Visible = True
+        _downloadQueueBorder.BringToFront()
+    End Sub
+
+    Private Sub HideDownloadQueuePanel()
+        If _downloadQueueBorder Is Nothing OrElse _libraryRoot Is Nothing Then Return
+        _downloadQueueBorder.Visible = False
+        _libraryRoot.RowStyles(1).Height = 0.0F
+        pbGameDL.Style = ProgressBarStyle.Continuous
+        pbGameDL.Value = 0
     End Sub
 
     Private Sub BuildGameActionBar()
@@ -1591,8 +1708,16 @@ Partial Public Class MainForm
     End Function
 
     Public Function IsGameInstalled(game As Game) As Boolean
-        Dim gameKey = GetGameKey(game)
-        Return Not String.IsNullOrWhiteSpace(gameKey) AndAlso Directory.Exists(Path.Combine(DownloadsFolder, gameKey))
+        If game Is Nothing OrElse String.IsNullOrWhiteSpace(game.ZIPName) Then Return False
+        Try
+            Dim paths = pathResolver.Resolve(game, String.Empty, DownloadsFolder)
+            Return Not String.IsNullOrWhiteSpace(paths.JAM) AndAlso
+                   Not String.IsNullOrWhiteSpace(paths.JAR) AndAlso
+                   File.Exists(paths.JAM) AndAlso
+                   File.Exists(paths.JAR)
+        Catch
+            Return False
+        End Try
     End Function
 
     Public Sub ApplyGameListItemStatus(
@@ -1606,18 +1731,31 @@ Partial Public Class MainForm
             item.SubItems.Add(String.Empty)
         End While
 
+        Dim downloadStatus = GetGameDownloadStatus(game)
         Dim states As New List(Of String)
-        If isInstalled Then states.Add("Installed")
-        If isFavorited Then states.Add("Favorite")
-        If isCustom Then states.Add("Custom")
-        If states.Count = 0 Then states.Add("Available")
+        If downloadStatus Is Nothing Then
+            If isInstalled Then states.Add("Installed")
+            If isFavorited Then states.Add("Favorite")
+            If isCustom Then states.Add("Custom")
+            If states.Count = 0 Then states.Add("Available")
+        ElseIf downloadStatus.State = LibraryDownloadState.Failed AndAlso isInstalled Then
+            states.Add("Installed + Update failed")
+        Else
+            states.Add(DownloadStateText(downloadStatus))
+        End If
 
         item.UseItemStyleForSubItems = False
         item.BackColor = Color.White
         item.ForeColor = CompactUiTheme.TextPrimary
         item.SubItems(0).BackColor = Color.White
         item.SubItems(1).Text = String.Join(" + ", states)
-        item.SubItems(1).ForeColor = If(isInstalled, CompactUiTheme.Success, CompactUiTheme.TextSecondary)
+        If downloadStatus IsNot Nothing AndAlso downloadStatus.State = LibraryDownloadState.Failed Then
+            item.SubItems(1).ForeColor = CompactUiTheme.Danger
+        ElseIf downloadStatus IsNot Nothing Then
+            item.SubItems(1).ForeColor = CompactUiTheme.Accent
+        Else
+            item.SubItems(1).ForeColor = If(isInstalled, CompactUiTheme.Success, CompactUiTheme.TextSecondary)
+        End If
         item.SubItems(1).BackColor = Color.White
         item.SubItems(2).Text = If(game?.Emulator, String.Empty)
         item.SubItems(2).ForeColor = CompactUiTheme.TextSecondary
@@ -1632,8 +1770,21 @@ Partial Public Class MainForm
         item.BackColor = Color.White
         item.ForeColor = CompactUiTheme.TextPrimary
         item.SubItems(0).BackColor = Color.White
-        item.SubItems(1).Text = If(isInstalled, "Installed", "Available")
-        item.SubItems(1).ForeColor = If(isInstalled, CompactUiTheme.Success, CompactUiTheme.TextSecondary)
+        Dim downloadStatus As LibraryDownloadStatus = Nothing
+        If TypeOf item.Tag Is MachiChara Then
+            downloadStatus = GetMachiDownloadStatus(DirectCast(item.Tag, MachiChara))
+        ElseIf TypeOf item.Tag Is CharaDen Then
+            downloadStatus = GetCharaDownloadStatus(DirectCast(item.Tag, CharaDen))
+        End If
+
+        item.SubItems(1).Text = If(downloadStatus Is Nothing, If(isInstalled, "Installed", "Available"), DownloadStateText(downloadStatus))
+        If downloadStatus IsNot Nothing AndAlso downloadStatus.State = LibraryDownloadState.Failed Then
+            item.SubItems(1).ForeColor = CompactUiTheme.Danger
+        ElseIf downloadStatus IsNot Nothing Then
+            item.SubItems(1).ForeColor = CompactUiTheme.Accent
+        Else
+            item.SubItems(1).ForeColor = If(isInstalled, CompactUiTheme.Success, CompactUiTheme.TextSecondary)
+        End If
         item.SubItems(1).BackColor = Color.White
     End Sub
 
@@ -1729,6 +1880,25 @@ Partial Public Class MainForm
         Dim gameKey = GetGameKey(game)
         Dim favorited = Not String.IsNullOrWhiteSpace(gameKey) AndAlso favoritesManager.IsGameFavorited(gameKey)
         Dim canDownload = isOnline AndAlso Not String.IsNullOrWhiteSpace(game.ZIPName)
+        Dim downloadStatus = GetGameDownloadStatus(game)
+
+        If downloadStatus IsNot Nothing AndAlso downloadStatus.State <> LibraryDownloadState.Failed Then
+            btnLaunchGame.Text = DownloadStateText(downloadStatus)
+            btnLaunchGame.Enabled = False
+            If _btnGameActions IsNot Nothing Then _btnGameActions.Enabled = True
+            _actionRedownload.Visible = installed
+            _actionRedownload.Enabled = False
+            _actionBackupSave.Enabled = False
+            _actionFavorite.Text = If(favorited, "Unfavorite", "Favorite")
+            _actionFavorite.Enabled = True
+            _actionOpenFolder.Enabled = False
+            _actionDelete.Enabled = False
+            cmsGameLV_Launch.Enabled = False
+            cmsGameLV_Download.Enabled = False
+            cmsGameLV_Delete.Enabled = False
+            OpenGameFolderToolStripMenuItem.Enabled = False
+            Return
+        End If
 
         SetGameActionAvailability(True, installed, canDownload)
         btnLaunchGame.Text = If(installed, "Play", "Download")
@@ -1795,6 +1965,11 @@ Partial Public Class MainForm
         Dim game = TryCast(ListViewGames.SelectedItems(0).Tag, Game)
         If game Is Nothing Then Return
 
+        If IsGameDownloadBusy(game) Then
+            NotificationManager.ShowInformation(Me, "Download in progress", $"'{game.ENTitle}' must finish installing before it can be opened.")
+            Return
+        End If
+
         If IsGameInstalled(game) Then
             btnLaunchGame.PerformClick()
         Else
@@ -1822,8 +1997,20 @@ Partial Public Class MainForm
             Return
         End If
         Dim installed = File.Exists(Path.Combine(DownloadsFolder, item.CFDName))
+        Dim downloadStatus = GetMachiDownloadStatus(item)
         _lblMachiTitle.Text = item.ENTitle
         _lblMachiMetadata.Text = BuildCharacterMetadata(item.JPTitle, item.CFDName)
+        If downloadStatus IsNot Nothing Then
+            CompactUiTheme.SetStatusBadge(_lblMachiStatus, DownloadStateText(downloadStatus), False)
+            _lblMachiStatus.ForeColor = If(downloadStatus.State = LibraryDownloadState.Failed, CompactUiTheme.Danger, CompactUiTheme.Accent)
+            btnMachiCharaLaunch.Enabled = False
+            _btnMachiDownload.Text = If(downloadStatus.State = LibraryDownloadState.Failed, "Try again", DownloadStateText(downloadStatus))
+            _btnMachiDownload.Enabled = downloadStatus.State = LibraryDownloadState.Failed AndAlso isOnline
+            _btnMachiDelete.Enabled = False
+            DownloadCMS_MachiChara.Enabled = _btnMachiDownload.Enabled
+            DeleteCMS_MachiChara.Enabled = False
+            Return
+        End If
         CompactUiTheme.SetStatusBadge(_lblMachiStatus, If(installed, "Installed", If(isOnline, "Available", "Offline")), installed)
         btnMachiCharaLaunch.Enabled = installed
         _btnMachiDownload.Text = If(installed, "Installed", "Download")
@@ -1849,8 +2036,20 @@ Partial Public Class MainForm
             Return
         End If
         Dim installed = File.Exists(Path.Combine(DownloadsFolder, item.AFDName))
+        Dim downloadStatus = GetCharaDownloadStatus(item)
         _lblCharaTitle.Text = item.ENTitle
         _lblCharaMetadata.Text = BuildCharacterMetadata(item.JPTitle, item.AFDName)
+        If downloadStatus IsNot Nothing Then
+            CompactUiTheme.SetStatusBadge(_lblCharaStatus, DownloadStateText(downloadStatus), False)
+            _lblCharaStatus.ForeColor = If(downloadStatus.State = LibraryDownloadState.Failed, CompactUiTheme.Danger, CompactUiTheme.Accent)
+            btnCharaDenLaunch.Enabled = False
+            _btnCharaDownload.Text = If(downloadStatus.State = LibraryDownloadState.Failed, "Try again", DownloadStateText(downloadStatus))
+            _btnCharaDownload.Enabled = downloadStatus.State = LibraryDownloadState.Failed AndAlso isOnline
+            _btnCharaDelete.Enabled = False
+            DownloadCMS_CharaDen.Enabled = _btnCharaDownload.Enabled
+            DeleteCMS_CharaDen.Enabled = False
+            Return
+        End If
         CompactUiTheme.SetStatusBadge(_lblCharaStatus, If(installed, "Installed", If(isOnline, "Available", "Offline")), installed)
         btnCharaDenLaunch.Enabled = installed
         _btnCharaDownload.Text = If(installed, "Installed", "Download")
@@ -1891,6 +2090,12 @@ Partial Public Class MainForm
 
     Private Sub MachiList_DoubleClick(sender As Object, e As EventArgs)
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
+        Dim item = TryCast(ListViewMachiChara.SelectedItems(0).Tag, MachiChara)
+        If item Is Nothing Then Return
+        If IsMachiDownloadBusy(item) Then
+            NotificationManager.ShowInformation(Me, "Download in progress", $"'{item.ENTitle}' must finish downloading before it can be opened.")
+            Return
+        End If
         If btnMachiCharaLaunch.Enabled Then
             btnMachiCharaLaunch.PerformClick()
         Else
@@ -1900,6 +2105,12 @@ Partial Public Class MainForm
 
     Private Sub CharaList_DoubleClick(sender As Object, e As EventArgs)
         If ListViewCharaDen.SelectedItems.Count = 0 Then Return
+        Dim item = TryCast(ListViewCharaDen.SelectedItems(0).Tag, CharaDen)
+        If item Is Nothing Then Return
+        If IsCharaDownloadBusy(item) Then
+            NotificationManager.ShowInformation(Me, "Download in progress", $"'{item.ENTitle}' must finish downloading before it can be opened.")
+            Return
+        End If
         If btnCharaDenLaunch.Enabled Then
             btnCharaDenLaunch.PerformClick()
         Else

@@ -3,71 +3,60 @@ Imports System.Net.Http
 
 Namespace My.Managers
     Public Class FileDownloader
-        Private progressBar As ProgressBar
-        Private overlay As Panel
+        Private ReadOnly _progress As IProgress(Of DownloadProgressInfo)
 
-        Public Sub New(progressBarControl As ProgressBar)
-            progressBar = progressBarControl
+        Public Sub New(progress As IProgress(Of DownloadProgressInfo))
+            _progress = progress
         End Sub
 
         Public Async Function DownloadFileAsync(url As String, savePath As String, contentName As String) As Task
+            Dim partialPath = savePath & ".part"
             Try
-                ' Create overlay
-                overlay = New Panel With {
-                    .Dock = DockStyle.Fill,
-                    .BackColor = Color.FromArgb(160, Color.White),
-                    .Visible = True
-                }
-                MainForm.Controls.Add(overlay)
-                overlay.BringToFront()
-
-                Dim loadingLabel As New Label With {
-                    .Text = $"Downloading {contentName}...",
-                    .ForeColor = Color.Black,
-                    .Font = New Font("Segoe UI", 14, FontStyle.Bold),
-                    .BackColor = Color.Transparent,
-                    .AutoSize = True
-                }
-                overlay.Controls.Add(loadingLabel)
-
-                progressBar.Style = ProgressBarStyle.Marquee
-                progressBar.MarqueeAnimationSpeed = 30
-                progressBar.Visible = True
-                overlay.Controls.Add(progressBar)
-
-                Dim centerControls = Sub()
-                                         progressBar.Left = (overlay.Width - progressBar.Width) \ 2
-                                         progressBar.Top = (overlay.Height - progressBar.Height) \ 2
-                                         loadingLabel.Left = (overlay.Width - loadingLabel.Width) \ 2
-                                         loadingLabel.Top = progressBar.Top - loadingLabel.Height - 10
-                                     End Sub
-                centerControls()
-                AddHandler overlay.Resize, Sub() centerControls()
+                Dim parentFolder = Path.GetDirectoryName(savePath)
+                If Not String.IsNullOrWhiteSpace(parentFolder) Then Directory.CreateDirectory(parentFolder)
+                If File.Exists(partialPath) Then File.Delete(partialPath)
+                ReportProgress($"Downloading {contentName}...", 0)
 
                 ' Download using shared HttpClient
                 Using response = Await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead)
                     response.EnsureSuccessStatusCode()
+                    Dim totalBytes = response.Content.Headers.ContentLength
                     Using contentStream = Await response.Content.ReadAsStreamAsync()
-                        Using fileStream As New FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None)
-                            Await contentStream.CopyToAsync(fileStream)
+                        Using fileStream As New FileStream(partialPath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, True)
+                            Dim buffer(81919) As Byte
+                            Dim downloadedBytes As Long = 0
+                            While True
+                                Dim bytesRead = Await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length))
+                                If bytesRead = 0 Then Exit While
+                                Await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead))
+                                downloadedBytes += bytesRead
+
+                                Dim percentage = -1
+                                If totalBytes.HasValue AndAlso totalBytes.Value > 0 Then
+                                    percentage = Math.Min(100, CInt((downloadedBytes * 100L) \ totalBytes.Value))
+                                End If
+                                ReportProgress($"Downloading {contentName}...", percentage)
+                            End While
                         End Using
                     End Using
                 End Using
 
+                File.Move(partialPath, savePath, True)
+
             Catch ex As Exception
                 logger.Logger.LogError($"[Download] Exception occurred during download:{vbCrLf}{ex}")
-                MessageBox.Show($"Failed to download {contentName}: {ex.Message}", "Download Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Throw
             Finally
-                If overlay IsNot Nothing Then
-                    If progressBar IsNot Nothing Then
-                        overlay.Controls.Remove(progressBar)
-                        progressBar.Visible = False
-                    End If
-                    MainForm.Controls.Remove(overlay)
-                    overlay.Dispose()
-                    overlay = Nothing
-                End If
+                If File.Exists(partialPath) Then File.Delete(partialPath)
             End Try
         End Function
+
+        Private Sub ReportProgress(statusText As String, percentage As Integer)
+            _progress?.Report(New DownloadProgressInfo With {
+                .Phase = DownloadOperationPhase.Downloading,
+                .StatusText = statusText,
+                .Percentage = percentage
+            })
+        End Sub
     End Class
 End Namespace

@@ -798,11 +798,6 @@ Namespace My.Managers
                 Return False
             End Try
         End Function
-        Public Shared Sub ShowSnackBar(InputString As String)
-            Dim snackBar As New ReaLTaiizor.Controls.MaterialSnackBar(InputString)
-            snackBar.Show(MainForm)
-        End Sub
-
         'Generate Controls
         Public Shared Sub GenerateDynamicControlsFromLines(JAMFile As String, container As Panel, Optional gameTitle As String = "")
             Try

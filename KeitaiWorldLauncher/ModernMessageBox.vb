@@ -74,7 +74,7 @@ Public NotInheritable Class MessageBox
         Dim ownerForm = ResolveOwner(owner)
         Dim dialogs As New UIDialogManager()
         Dim dialogTitle = If(String.IsNullOrWhiteSpace(caption), "Keitai World Launcher", caption)
-        Dim tone = ToneFromIcon(icon)
+        Dim tone = ToneFromContext(icon, dialogTitle, text)
 
         Select Case buttons
             Case MessageBoxButtons.YesNo
@@ -115,7 +115,7 @@ Public NotInheritable Class MessageBox
         Return Nothing
     End Function
 
-    Private Shared Function ToneFromIcon(icon As MessageBoxIcon) As CompactDialogTone
+    Private Shared Function ToneFromContext(icon As MessageBoxIcon, title As String, message As String) As CompactDialogTone
         Select Case icon
             Case MessageBoxIcon.Error
                 Return CompactDialogTone.Error
@@ -123,8 +123,25 @@ Public NotInheritable Class MessageBox
                 Return CompactDialogTone.Warning
             Case MessageBoxIcon.Information
                 Return CompactDialogTone.Information
-            Case Else
-                Return CompactDialogTone.Information
         End Select
+
+        Dim context = $"{title} {message}".ToLowerInvariant()
+        If ContainsAny(context, "error", "failed", "failure", "unable", "cannot", "could not") Then
+            Return CompactDialogTone.Error
+        End If
+        If ContainsAny(context, "warning", "missing", "invalid", "please select", "not installed", "not found", "unavailable", "required") Then
+            Return CompactDialogTone.Warning
+        End If
+        If ContainsAny(context, "success", "complete", "completed", "deleted", "extracted", "restored", "downloaded", "saved") Then
+            Return CompactDialogTone.Success
+        End If
+        Return CompactDialogTone.Information
+    End Function
+
+    Private Shared Function ContainsAny(value As String, ParamArray terms As String()) As Boolean
+        For Each term In terms
+            If value.Contains(term, StringComparison.OrdinalIgnoreCase) Then Return True
+        Next
+        Return False
     End Function
 End Class

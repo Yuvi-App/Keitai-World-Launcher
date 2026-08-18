@@ -21,7 +21,7 @@ Namespace My.Managers
                                    ZipFile.ExtractToDirectory(zipFilePath, extractPath)
                                End Sub)
 
-                MessageBox.Show($"Extracted to: {extractPath}", "Extraction Complete", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                NotificationManager.ShowSuccess(Nothing, "Extraction complete", $"Files were extracted to: {extractPath}")
 
             Catch ex As Exception
                 MessageBox.Show($"Failed to extract the ZIP file: {ex.Message}", "Extraction Error", MessageBoxButtons.OK, MessageBoxIcon.Error)

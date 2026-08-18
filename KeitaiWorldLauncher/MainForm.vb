@@ -41,7 +41,6 @@ Public Class MainForm
     Dim machicharas As List(Of MachiChara)
     Dim charadens As List(Of CharaDen)
     Public XInputDevices As New Dictionary(Of String, Integer)
-    Private Shared isGameDownloadInProgress As Boolean = False
     Dim CompletedBootSequence As Boolean = False
     Private _isProgrammaticVariantSelection As Boolean = False
     Public Shared UsingJDK1_8 As Boolean = False
@@ -1004,9 +1003,11 @@ Public Class MainForm
         CurrentSelectedGameSP = currentGamePaths.SP
         CurrentSelectedGameKJX = currentGamePaths.KJX
 
-        'Check if download is happening already.
-        If isGameDownloadInProgress Then
-            Logger.LogInfo("Skipping game file check — a download is already in progress.")
+        If IsGameDownloadBusy(selectedGame) Then
+            If ContextDownload Then
+                NotificationManager.ShowInformation(Me, "Download in progress", $"'{selectedGame.ENTitle}' is already queued or being installed.")
+            End If
+            UpdateGameSelectionState(selectedGame)
             Return
         End If
 
@@ -1021,7 +1022,7 @@ Public Class MainForm
             Exit Function
         End If
         Logger.LogInfo($"Checking for {CurrentSelectedGameJAR}")
-        If File.Exists(CurrentSelectedGameJAR) Then
+        If IsGameInstalled(selectedGame) Then
             If ContextDownload Then
                 Dim result = UIDialogManager.ShowConfirmation(
                     Me,
@@ -1031,30 +1032,21 @@ Public Class MainForm
                     "Redownload",
                     "Cancel",
                     CompactDialogTone.Warning)
-                Try
-                    If result = DialogResult.Yes Then
-                        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
-                        Dim gameFolder As String = Path.Combine(DownloadsFolder, $"{baseName}_{selectedGame.Emulator}")
-                        Await SaveDataManager.BackupSaveAsync(gameFolder, selectedGame.Emulator, Me, False)
-                        isGameDownloadInProgress = True
-                        Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
-                        Logger.LogInfo($"Starting redownload for {selectedGame.DownloadURL}")
-                        UtilManager.ShowSnackBar($"Redownloaded '{selectedGame.ENTitle}'")
-                    End If
-                    If File.Exists(CurrentSelectedGameJAM) Then
-                        UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
-                        ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
-                    Else
-                        Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
-                    End If
-                Catch ex As Exception
-                    Logger.LogError($"[UI] Error during game download: {ex.Message}")
-                    UIDialogManager.ShowError(Me, "Download failed", "The app could not be downloaded. Check your connection and try again.")
-                Finally
-                    isGameDownloadInProgress = False
-                End Try
+                If result = DialogResult.Yes Then
+                    Logger.LogInfo($"Queueing redownload for {selectedGame.DownloadURL}")
+                    QueueGameDownload(New QueuedGameDownload With {
+                        .Game = selectedGame,
+                        .ZipPath = downloadFileZipPath,
+                        .ExtractFolder = gameBasePath,
+                        .JamPath = CurrentSelectedGameJAM,
+                        .JarPath = CurrentSelectedGameJAR,
+                        .IsRedownload = True
+                    })
+                End If
             End If
-            UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
+            If File.Exists(CurrentSelectedGameJAM) Then
+                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
+            End If
             UpdateGameSelectionState(selectedGame)
         Else
             If selectedGame.ZIPName = String.Empty OrElse selectedGame.ZIPName Is Nothing Then
@@ -1078,45 +1070,22 @@ Public Class MainForm
                 "Download",
                 "Cancel")
             If result = DialogResult.Yes Then
-                isGameDownloadInProgress = True
-                Try
-                    Logger.LogInfo($"Starting download for {selectedGame.DownloadURL}")
-                    Await StartGameDownload(selectedGame, downloadFileZipPath, gameBasePath, CurrentSelectedGameJAM, CurrentSelectedGameJAR)
-                    If File.Exists(CurrentSelectedGameJAM) Then
-                        UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
-                        ListViewGames.SelectedItems(0).BackColor = Color.LightGreen
-                    Else
-                        Logger.LogError($"Download completed but JAM file not found at: {CurrentSelectedGameJAM}")
-                    End If
-                Catch ex As Exception
-                    Logger.LogError($"[UI] Error during game download: {ex.Message}")
-                    UIDialogManager.ShowError(Me, "Download failed", "The app could not be downloaded. Check your connection and try again.")
-                Finally
-                    isGameDownloadInProgress = False
-                End Try
+                Logger.LogInfo($"Queueing download for {selectedGame.DownloadURL}")
+                QueueGameDownload(New QueuedGameDownload With {
+                    .Game = selectedGame,
+                    .ZipPath = downloadFileZipPath,
+                    .ExtractFolder = gameBasePath,
+                    .JamPath = CurrentSelectedGameJAM,
+                    .JarPath = CurrentSelectedGameJAR,
+                    .IsRedownload = False
+                })
             End If
             UpdateGameSelectionState(selectedGame)
         End If
 
+        Await Task.CompletedTask
     End Function
-    Private Async Function StartGameDownload(selectedGame As Game, downloadFileZipPath As String, extractFolder As String, jamFilePath As String, jarFilePath As String) As Task
-        Try
-            Dim gameDownloader As New GameDownloader(pbGameDL)
-            Await gameDownloader.DownloadGameAsync(
-            selectedGame.DownloadURL,
-            downloadFileZipPath,
-            extractFolder,
-            selectedGame,
-            jamFilePath,
-            jarFilePath,
-            False
-        )
-        Catch ex As Exception
-            Logger.LogError($"Failed to download or extract game '{selectedGame.ENTitle}': {ex.Message}")
-            UIDialogManager.ShowError(Me, "Download failed", $"'{selectedGame.ENTitle}' could not be downloaded or installed. Please try again.")
-        End Try
-    End Function
-    Private Async Sub DownloadMachiChara(selectedMachiChara As MachiChara)
+    Private Sub DownloadMachiChara(selectedMachiChara As MachiChara)
         If selectedMachiChara IsNot Nothing Then
             Logger.LogInfo($"Checking for {DownloadsFolder}\{selectedMachiChara.CFDName}")
             CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
@@ -1124,6 +1093,12 @@ Public Class MainForm
             ' Check if the MachiChara is already downloaded
             Dim localFilePath As String = CurrentSelectedMachiCharaCFD
             Dim downloadFilePath As String = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
+
+            If IsMachiDownloadBusy(selectedMachiChara) Then
+                NotificationManager.ShowInformation(Me, "Download in progress", $"'{selectedMachiChara.ENTitle}' is already queued or downloading.")
+                UpdateMachiCharaSelectionState(selectedMachiChara)
+                Return
+            End If
 
             If File.Exists(localFilePath) Then
                 ' File already exists, nothing to do (or maybe inform the user)
@@ -1135,16 +1110,14 @@ Public Class MainForm
                     "Download",
                     "Cancel")
                 If result = DialogResult.Yes Then
-                    Logger.LogInfo($"Starting Download for {selectedMachiChara.DownloadURL}")
-                    Dim downloader As New FileDownloader(pbGameDL)
-                    Await downloader.DownloadFileAsync(selectedMachiChara.DownloadURL, downloadFilePath, "Machi Chara")
-                    HighlightMachiChara()
+                    Logger.LogInfo($"Queueing download for {selectedMachiChara.DownloadURL}")
+                    QueueMachiCharaDownload(selectedMachiChara, downloadFilePath)
                 End If
             End If
             UpdateMachiCharaSelectionState(selectedMachiChara)
         End If
     End Sub
-    Private Async Sub DownloadCharaDen(selectedCharaDen As CharaDen)
+    Private Sub DownloadCharaDen(selectedCharaDen As CharaDen)
         If selectedCharaDen IsNot Nothing Then
             Logger.LogInfo($"Checking for {DownloadsFolder}\{selectedCharaDen.AFDName}")
             CurrentSelectedCharaDenAFD = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
@@ -1152,6 +1125,12 @@ Public Class MainForm
             ' Check if the Chara-den is already downloaded
             Dim localFilePath As String = CurrentSelectedCharaDenAFD
             Dim downloadFilePath As String = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
+
+            If IsCharaDownloadBusy(selectedCharaDen) Then
+                NotificationManager.ShowInformation(Me, "Download in progress", $"'{selectedCharaDen.ENTitle}' is already queued or downloading.")
+                UpdateCharaDenSelectionState(selectedCharaDen)
+                Return
+            End If
 
             If File.Exists(localFilePath) Then
                 ' File already exists, nothing to do (or maybe inform the user)
@@ -1163,10 +1142,8 @@ Public Class MainForm
                     "Download",
                     "Cancel")
                 If result = DialogResult.Yes Then
-                    Logger.LogInfo($"Starting Download for {selectedCharaDen.DownloadURL}")
-                    Dim downloader As New FileDownloader(pbGameDL)
-                    Await downloader.DownloadFileAsync(selectedCharaDen.DownloadURL, downloadFilePath, "Chara-den")
-                    HighlightCharaDen()
+                    Logger.LogInfo($"Queueing download for {selectedCharaDen.DownloadURL}")
+                    QueueCharaDenDownload(selectedCharaDen, downloadFilePath)
                 End If
             End If
             UpdateCharaDenSelectionState(selectedCharaDen)
@@ -1186,6 +1163,12 @@ Public Class MainForm
                 gamesToDelete.Add(selectedGame)
             End If
         Next
+
+        Dim busyGame = gamesToDelete.FirstOrDefault(Function(game) IsGameDownloadBusy(game))
+        If busyGame IsNot Nothing Then
+            NotificationManager.ShowWarning(Me, "Download in progress", $"Wait for '{busyGame.ENTitle}' to finish installing before deleting it.")
+            Return
+        End If
 
         Dim gameList = String.Join(Environment.NewLine, gamesToDelete.Select(Function(g) $"{g.ENTitle} ({g.ZIPName})"))
         Dim result = UIDialogManager.ShowConfirmation(
@@ -1298,7 +1281,10 @@ Public Class MainForm
 
             ' Show summary
             If deletedGames.Count > 0 Then
-                UtilManager.ShowSnackBar(If(deletedGames.Count = 1, "App deleted", $"Deleted {deletedGames.Count} apps"))
+                NotificationManager.ShowSuccess(
+                    Me,
+                    If(deletedGames.Count = 1, "App deleted", "Apps deleted"),
+                    If(deletedGames.Count = 1, "The selected app was removed.", $"{deletedGames.Count} selected apps were removed."))
                 Await FilterAndHighlightGamesAsync()
             End If
 
@@ -1317,7 +1303,13 @@ Public Class MainForm
     End Function
     Public Async Function DeleteMachiCharaAsync() As Task
         If ListViewMachiChara.SelectedItems.Count = 0 Then
-            MessageBox.Show("Please select at least one MachiChara to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            NotificationManager.ShowWarning(Me, "Nothing selected", "Select at least one Machi-Chara to delete.")
+            Return
+        End If
+
+        Dim selectedMachi = TryCast(ListViewMachiChara.SelectedItems(0).Tag, MachiChara)
+        If IsMachiDownloadBusy(selectedMachi) Then
+            NotificationManager.ShowWarning(Me, "Download in progress", $"Wait for '{selectedMachi.ENTitle}' to finish downloading before deleting it.")
             Return
         End If
 
@@ -1352,13 +1344,21 @@ Public Class MainForm
         HighlightMachiChara()
 
         If deletedFiles.Count > 0 Then
-            MessageBox.Show("Deleted the following MachiCharas:" & vbCrLf & String.Join(vbCrLf, deletedFiles),
-                        "MachiChara Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            NotificationManager.ShowSuccess(
+                Me,
+                If(deletedFiles.Count = 1, "Machi-Chara deleted", "Machi-Chara files deleted"),
+                If(deletedFiles.Count = 1, "The selected Machi-Chara was removed.", $"{deletedFiles.Count} Machi-Chara files were removed."))
         End If
     End Function
     Public Async Function DeleteCharadenAsync() As Task
         If ListViewCharaDen.SelectedItems.Count = 0 Then
-            MessageBox.Show("Please select at least one Chara-den to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            NotificationManager.ShowWarning(Me, "Nothing selected", "Select at least one Chara-Den to delete.")
+            Return
+        End If
+
+        Dim selectedChara = TryCast(ListViewCharaDen.SelectedItems(0).Tag, CharaDen)
+        If IsCharaDownloadBusy(selectedChara) Then
+            NotificationManager.ShowWarning(Me, "Download in progress", $"Wait for '{selectedChara.ENTitle}' to finish downloading before deleting it.")
             Return
         End If
 
@@ -1393,8 +1393,10 @@ Public Class MainForm
         HighlightCharaDen()
 
         If deletedFiles.Count > 0 Then
-            MessageBox.Show("Deleted the following Chara-den:" & vbCrLf & String.Join(vbCrLf, deletedFiles),
-                        "Chara-den Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            NotificationManager.ShowSuccess(
+                Me,
+                If(deletedFiles.Count = 1, "Chara-Den deleted", "Chara-Den files deleted"),
+                If(deletedFiles.Count = 1, "The selected Chara-Den was removed.", $"{deletedFiles.Count} Chara-Den files were removed."))
         End If
     End Function
     Public Sub RefreshGameHighlighting()
@@ -1411,8 +1413,7 @@ Public Class MainForm
             Dim gameKey = $"{baseName}_{game.Emulator}"
 
             ' Installed check (new format)
-            Dim gameFolder As String = Path.Combine(DownloadsFolder, gameKey)
-            Dim isInstalled As Boolean = Directory.Exists(gameFolder)
+            Dim isInstalled As Boolean = IsGameInstalled(game)
 
             ' Favorited check (use same unique key!)
             Dim isFavorited As Boolean = favoritesManager.IsGameFavorited(gameKey)
@@ -1432,10 +1433,6 @@ Public Class MainForm
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
         If selectedGame Is Nothing Then Return False
 
-        Dim baseName As String = Path.GetFileNameWithoutExtension(selectedGame.ZIPName)
-        Dim gameKeyName As String = $"{baseName}_{selectedGame.Emulator}"
-        Dim gameFolder As String = Path.Combine(DownloadsFolder, gameKeyName)
-
         ' Variant selection
         Dim selectedVariant As String = String.Empty
         If ListViewGamesVariants.SelectedItems.Count > 0 Then
@@ -1445,17 +1442,12 @@ Public Class MainForm
             Return False
         End If
 
+        Dim paths = pathResolver.Resolve(selectedGame, selectedVariant, DownloadsFolder)
         Return Await Task.Run(Function()
-                                  If Not Directory.Exists(gameFolder) Then
-                                      Return False
-                                  End If
-
-                                  If String.IsNullOrEmpty(selectedVariant) Then
-                                      Return True
-                                  End If
-
-                                  Dim variantFolder As String = Path.Combine(gameFolder, selectedVariant)
-                                  Return Directory.Exists(variantFolder)
+                                  Return Not String.IsNullOrWhiteSpace(paths.JAM) AndAlso
+                                         Not String.IsNullOrWhiteSpace(paths.JAR) AndAlso
+                                         File.Exists(paths.JAM) AndAlso
+                                         File.Exists(paths.JAR)
                               End Function)
     End Function
     Public Sub AdjustFormPadding()
@@ -2112,7 +2104,7 @@ Public Class MainForm
         If addedCount > 0 Then message &= $"{addedCount} added to favorites. "
         If removedCount > 0 Then message &= $"{removedCount} removed from favorites."
         If message <> "" Then
-            UtilManager.ShowSnackBar(message.Trim())
+            NotificationManager.ShowInformation(Me, "Favorites updated", message.Trim())
         End If
 
         ' Refresh the UI to reflect the new favorite status
@@ -2211,7 +2203,7 @@ Public Class MainForm
         Dim stageCode As String = InputBox("Import Stage Code", "Enter the stage code you want to import:", "")
         If Not String.IsNullOrWhiteSpace(stageCode) Then
             Await gameManager.BomberManPuzzleSpecial_ImportStage(spFilePath, stageNumber, stageCode)
-            MessageBox.Show("Import Stage Success!")
+            NotificationManager.ShowSuccess(Me, "Save data imported", "The selected SP file was imported successfully.")
         End If
     End Sub
     Private Async Sub tsmBPSExportStage_Click(sender As Object, e As EventArgs) Handles _
@@ -2295,6 +2287,10 @@ Public Class MainForm
             Dim primaryActionGame = TryCast(ListViewGames.SelectedItems(0).Tag, Game)
             If primaryActionGame Is Nothing Then
                 Logger.LogError("Primary action failed: Game not found in the games list.")
+                Return
+            End If
+            If IsGameDownloadBusy(primaryActionGame) Then
+                NotificationManager.ShowInformation(Me, "Download in progress", $"'{primaryActionGame.ENTitle}' must finish installing before it can be opened.")
                 Return
             End If
             If Not IsGameInstalled(primaryActionGame) Then
@@ -2404,7 +2400,7 @@ Public Class MainForm
             End If
 
             ' Start Launching Game
-            UtilManager.ShowSnackBar($"Launching '{selectedGameTitle}'")
+            NotificationManager.ShowInformation(Me, "Launching app", $"Opening '{selectedGameTitle}'.")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
             Dim isEmulatorsRunning As Boolean = ProcessManager.CheckAndCloseAllEmulators()
             If isEmulatorsRunning Then
@@ -2531,13 +2527,17 @@ Public Class MainForm
         Dim selectedMachiChara = CType(selectedItem.Tag, MachiChara)
 
         If selectedMachiChara IsNot Nothing Then
+            If IsMachiDownloadBusy(selectedMachiChara) Then
+                NotificationManager.ShowInformation(Me, "Download in progress", $"'{selectedMachiChara.ENTitle}' must finish downloading before it can be opened.")
+                Return
+            End If
             CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
             If Not File.Exists(CurrentSelectedMachiCharaCFD) Then
                 MessageBox.Show("Download this Machi-Chara before launching it.", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 UpdateMachiCharaSelectionState(selectedMachiChara)
                 Return
             End If
-            UtilManager.ShowSnackBar($"Launching '{CurrentSelectedMachiCharaCFD}'")
+            NotificationManager.ShowInformation(Me, "Launching Machi-Chara", $"Opening '{CurrentSelectedMachiCharaCFD}'.")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedMachiCharaCFD))
             utilManager.LaunchCustomMachiCharaCommand(MachiCharaExe, CurrentSelectedMachiCharaCFD)
         End If
@@ -2552,13 +2552,17 @@ Public Class MainForm
         Dim selectedCharaDen = CType(selectedItem.Tag, CharaDen)
 
         If selectedCharaDen IsNot Nothing Then
+            If IsCharaDownloadBusy(selectedCharaDen) Then
+                NotificationManager.ShowInformation(Me, "Download in progress", $"'{selectedCharaDen.ENTitle}' must finish downloading before it can be opened.")
+                Return
+            End If
             CurrentSelectedCharaDenAFD = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
             If Not File.Exists(CurrentSelectedCharaDenAFD) Then
                 MessageBox.Show("Download this Chara-Den before launching it.", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
                 UpdateCharaDenSelectionState(selectedCharaDen)
                 Return
             End If
-            UtilManager.ShowSnackBar($"Launching '{CurrentSelectedCharaDenAFD}'")
+            NotificationManager.ShowInformation(Me, "Launching Chara-Den", $"Opening '{CurrentSelectedCharaDenAFD}'.")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedCharaDenAFD))
             utilManager.LaunchCustomCharaDenCommand(CharaDenExe, CurrentSelectedCharaDenAFD)
         End If
@@ -2798,7 +2802,7 @@ Public Class MainForm
                 Await FilterAndHighlightGamesAsync()
             End If
 
-            MessageBox.Show("Import complete!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            NotificationManager.ShowSuccess(Me, "Import complete", "The selected emulator sets were imported successfully.")
         End Using
     End Sub
     Private Sub btnSaveDataManagement_Click(sender As Object, e As EventArgs) Handles btnSaveDataManagement.Click

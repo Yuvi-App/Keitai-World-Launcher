@@ -79,7 +79,10 @@ Namespace My.Managers
                     End Using
                 Next
                 If notifyUser Then
-                    UtilManager.ShowSnackBar($"Backed up {saveFiles.Length} save file(s)")
+                    Global.KeitaiWorldLauncher.NotificationManager.ShowSuccess(
+                        owner,
+                        "Backup complete",
+                        $"Backed up {saveFiles.Length} save file(s).")
                 End If
                 Return True
 

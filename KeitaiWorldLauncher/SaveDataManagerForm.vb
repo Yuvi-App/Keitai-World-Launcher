@@ -24,7 +24,7 @@ Public Class SaveDataManagerForm
             End If
 
             If lbxInstalledAppli.SelectedIndex = -1 Then
-                MessageBox.Show("Please select a game to backup.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+                NotificationManager.ShowWarning(Me, "Nothing selected", "Select a game to back up.")
                 Exit Sub
             End If
 
@@ -44,7 +44,7 @@ Public Class SaveDataManagerForm
                                        ToList()
 
             If saveFiles.Count = 0 Then
-                MessageBox.Show($"No .sp or .rms save files found in {selectedGameFolder}.", "Backup Failed", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                NotificationManager.ShowWarning(Me, "No save data found", $"{selectedGameFolder} does not contain an .sp or .rms save file yet.")
                 Return
             End If
 
@@ -75,7 +75,7 @@ Public Class SaveDataManagerForm
                 End Using
             Next
 
-            MessageBox.Show($"Backup completed: {saveFiles.Count} file(s) backed up.", "Backup Successful", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            NotificationManager.ShowSuccess(Me, "Backup complete", $"Backed up {saveFiles.Count} save file(s).")
             LoadSaves()
         Catch ex As Exception
             MessageBox.Show($"Error during backup: {ex.Message}", "Backup Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -115,12 +115,12 @@ Public Class SaveDataManagerForm
     End Sub
     Private Sub DeleteToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles DeleteToolStripMenuItem.Click
         If lbxBackupSaves.SelectedIndex = -1 Then
-            MessageBox.Show("Please select a backup save to delete.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            NotificationManager.ShowWarning(Me, "Nothing selected", "Select a save backup to delete.")
             Exit Sub
         End If
 
         If lbxInstalledAppli.SelectedIndex = -1 Then
-            MessageBox.Show("Please select a game first.", "No Game Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            NotificationManager.ShowWarning(Me, "No game selected", "Select a game before deleting a backup.")
             Exit Sub
         End If
 
@@ -129,7 +129,7 @@ Public Class SaveDataManagerForm
         Dim fullBackupFilePath As String = Path.Combine(BackupFolder, selectedGameFolder, selectedBackupRelativePath)
 
         If Not File.Exists(fullBackupFilePath) Then
-            MessageBox.Show("Backup file does not exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            NotificationManager.ShowWarning(Me, "Backup unavailable", "The selected backup file no longer exists.")
             Exit Sub
         End If
 
@@ -138,7 +138,7 @@ Public Class SaveDataManagerForm
         If result = DialogResult.Yes Then
             Try
                 File.Delete(fullBackupFilePath)
-                MessageBox.Show("Backup file deleted successfully.", "Deleted", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                NotificationManager.ShowSuccess(Me, "Backup deleted", "The selected backup file was removed.")
 
                 ' Refresh the backup list
                 lbxBackupSaves.Items.RemoveAt(lbxBackupSaves.SelectedIndex)
@@ -153,12 +153,12 @@ Public Class SaveDataManagerForm
     End Function
     Private Async Sub RestoreSelectedBackup()
         If lbxBackupSaves.SelectedIndex = -1 Then
-            MessageBox.Show("Please select a backup save to restore.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            NotificationManager.ShowWarning(Me, "Nothing selected", "Select a save backup to restore.")
             Exit Sub
         End If
 
         If lbxInstalledAppli.SelectedIndex = -1 Then
-            MessageBox.Show("Please select a game first.", "No Game Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            NotificationManager.ShowWarning(Me, "No game selected", "Select a game before restoring a backup.")
             Exit Sub
         End If
 
@@ -169,7 +169,7 @@ Public Class SaveDataManagerForm
         Dim fullGameFolderPath As String = Path.Combine(DownloadFolder, selectedGameFolder)
 
         If Not File.Exists(fullBackupFilePath) Then
-            MessageBox.Show("Backup file does not exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            NotificationManager.ShowWarning(Me, "Backup unavailable", "The selected backup file no longer exists.")
             Exit Sub
         End If
 
@@ -201,7 +201,7 @@ Public Class SaveDataManagerForm
                     End Using
                 End Using
 
-                MessageBox.Show("Restore completed successfully.", "Restore Successful", MessageBoxButtons.OK, MessageBoxIcon.Information)
+                NotificationManager.ShowSuccess(Me, "Restore complete", "The selected save backup was restored successfully.")
 
             Catch ex As Exception
                 MessageBox.Show($"Error restoring file: {ex.Message}", "Restore Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
