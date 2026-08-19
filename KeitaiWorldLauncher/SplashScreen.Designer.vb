@@ -27,7 +27,7 @@ Partial Class SplashScreen
         ' SplashScreen
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
-        AutoScaleMode = AutoScaleMode.Font
+        AutoScaleMode = AutoScaleMode.None
         BackColor = Color.FromArgb(CByte(255), CByte(255), CByte(255))
         ClientSize = New Size(520, 320)
         ForeColor = Color.White

@@ -145,7 +145,7 @@ Partial Class SaveDataManagerForm
         ' SaveDataManagerForm
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
-        AutoScaleMode = AutoScaleMode.Font
+        AutoScaleMode = AutoScaleMode.None
         ClientSize = New Size(999, 540)
         Controls.Add(btnRestoreBackup)
         Controls.Add(btnBackup)

@@ -22,6 +22,11 @@
     ' End Sub
 
     Partial Friend Class MyApplication
+        Private Sub MyApplication_ApplyApplicationDefaults(sender As Object, e As Microsoft.VisualBasic.ApplicationServices.ApplyApplicationDefaultsEventArgs) Handles Me.ApplyApplicationDefaults
+            ' Keep the launcher at its designed 96-DPI layout. Windows can then scale
+            ' the completed window uniformly instead of resizing controls independently.
+            e.HighDpiMode = HighDpiMode.DpiUnaware
+        End Sub
 
     End Class
 End Namespace

@@ -164,7 +164,7 @@ Public Class UIDialogManager
         Protected ReadOnly FooterHost As Panel
 
         Protected Sub New(title As String, dialogWidth As Integer, dialogHeight As Integer, tone As CompactDialogTone)
-            AutoScaleMode = AutoScaleMode.Dpi
+            AutoScaleMode = AutoScaleMode.None
             BackColor = CompactUiTheme.Surface
             ClientSize = New Size(dialogWidth, dialogHeight)
             Font = New Font("Segoe UI", 9.0F)
@@ -605,7 +605,7 @@ Public Class UIDialogManager
             tone As CompactDialogTone,
             Optional defaultToSecondary As Boolean = False
         )
-            AutoScaleMode = AutoScaleMode.Dpi
+            AutoScaleMode = AutoScaleMode.None
             BackColor = CompactUiTheme.Surface
             Font = New Font("Segoe UI", 9.0F)
             FormBorderStyle = FormBorderStyle.None

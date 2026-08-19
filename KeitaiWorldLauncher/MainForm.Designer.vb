@@ -1785,7 +1785,7 @@ Partial Class MainForm
         ' MainForm
         ' 
         AutoScaleDimensions = New SizeF(96F, 96F)
-        AutoScaleMode = AutoScaleMode.Dpi
+        AutoScaleMode = AutoScaleMode.None
         ClientSize = New Size(1280, 800)
         Controls.Add(MaterialTabSelector1)
         Controls.Add(MaterialTabControl1)

@@ -120,7 +120,7 @@ Public NotInheritable Class NotificationManager
 
             AccessibleName = $"{ToneName(tone)} notification"
             AccessibleRole = AccessibleRole.Alert
-            AutoScaleMode = AutoScaleMode.Dpi
+            AutoScaleMode = AutoScaleMode.None
             BackColor = CompactUiTheme.Surface
             ClientSize = New Size(NotificationWidth, notificationHeight)
             ControlBox = False
