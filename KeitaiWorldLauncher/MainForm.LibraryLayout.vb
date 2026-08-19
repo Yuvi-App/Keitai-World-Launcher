@@ -25,15 +25,19 @@ Partial Public Class MainForm
     Private _lblMachiTitle As Label
     Private _lblMachiMetadata As Label
     Private _lblMachiStatus As Label
-    Private _btnMachiDownload As Button
-    Private _btnMachiDelete As Button
+    Private _btnMachiActions As Button
+    Private _machiActionsMenu As ContextMenuStrip
+    Private _actionMachiRedownload As ToolStripMenuItem
+    Private _actionMachiDelete As ToolStripMenuItem
 
     Private _txtCharaSearch As TextBox
     Private _lblCharaTitle As Label
     Private _lblCharaMetadata As Label
     Private _lblCharaStatus As Label
-    Private _btnCharaDownload As Button
-    Private _btnCharaDelete As Button
+    Private _btnCharaActions As Button
+    Private _charaActionsMenu As ContextMenuStrip
+    Private _actionCharaRedownload As ToolStripMenuItem
+    Private _actionCharaDelete As ToolStripMenuItem
 
     Private _lblActivityTotalTime As Label
     Private _lblActivityTotalTimeHint As Label
@@ -1474,17 +1478,15 @@ Partial Public Class MainForm
             _lblMachiMetadata,
             _lblMachiStatus,
             btnMachiCharaLaunch,
-            _btnMachiDownload,
-            _btnMachiDelete,
+            _btnMachiActions,
             chkboxMachiCharaLocalEmulator,
             "Machi-Chara details")
         detailPanel.Margin = New Padding(6, 0, 0, 0)
         _machiLibraryGrid.Controls.Add(detailPanel, 1, 0)
+        BuildMachiActionsMenu()
 
         AddHandler _txtMachiSearch.TextChanged, AddressOf MachiSearch_TextChanged
-        AddHandler _btnMachiDownload.Click, AddressOf MachiDownload_Click
-        AddHandler _btnMachiDelete.Click, AddressOf MachiDelete_Click
-        AddHandler ListViewMachiChara.DoubleClick, AddressOf MachiList_DoubleClick
+        AddHandler ListViewMachiChara.ItemActivate, AddressOf MachiList_Activate
     End Sub
 
     Private Sub BuildCompactCharaDenLayout()
@@ -1498,17 +1500,15 @@ Partial Public Class MainForm
             _lblCharaMetadata,
             _lblCharaStatus,
             btnCharaDenLaunch,
-            _btnCharaDownload,
-            _btnCharaDelete,
+            _btnCharaActions,
             chkboxCharadenLocalEmulator,
             "Chara-Den details")
         detailPanel.Margin = New Padding(6, 0, 0, 0)
         _charaLibraryGrid.Controls.Add(detailPanel, 1, 0)
+        BuildCharaActionsMenu()
 
         AddHandler _txtCharaSearch.TextChanged, AddressOf CharaSearch_TextChanged
-        AddHandler _btnCharaDownload.Click, AddressOf CharaDownload_Click
-        AddHandler _btnCharaDelete.Click, AddressOf CharaDelete_Click
-        AddHandler ListViewCharaDen.DoubleClick, AddressOf CharaList_DoubleClick
+        AddHandler ListViewCharaDen.ItemActivate, AddressOf CharaList_Activate
     End Sub
 
     Private Sub BuildCharacterListHost(
@@ -1556,8 +1556,7 @@ Partial Public Class MainForm
         ByRef metadataLabel As Label,
         ByRef statusLabel As Label,
         launchButton As Button,
-        ByRef downloadButton As Button,
-        ByRef deleteButton As Button,
+        ByRef actionsButton As Button,
         localeCheckbox As CheckBox,
         heading As String) As Control
 
@@ -1579,25 +1578,24 @@ Partial Public Class MainForm
         statusLabel = New Label With {.Anchor = AnchorStyles.Left, .Size = New Size(112, 28)}
         CompactUiTheme.SetStatusBadge(statusLabel, "No selection", False)
 
-        launchButton.Text = "Play"
-        launchButton.Size = New Size(88, 32)
+        launchButton.Text = "Play / Download"
+        launchButton.Size = New Size(220, 46)
+        launchButton.Margin = New Padding(0, 0, 0, 4)
         launchButton.FlatStyle = FlatStyle.Flat
         launchButton.UseVisualStyleBackColor = False
         CompactUiTheme.StylePrimaryButton(launchButton)
 
-        downloadButton = CompactUiTheme.CreateCompactButton("Download")
-        downloadButton.Size = New Size(104, 32)
-        deleteButton = CompactUiTheme.CreateCompactButton("Delete")
-        deleteButton.Size = New Size(76, 32)
-        CompactUiTheme.StyleDangerButton(deleteButton)
+        actionsButton = CompactUiTheme.CreateCompactButton("Actions  ▾")
+        actionsButton.Size = New Size(220, 32)
+        actionsButton.Margin = New Padding(0)
 
         Dim actions As New FlowLayoutPanel With {
             .Dock = DockStyle.Fill,
-            .FlowDirection = FlowDirection.LeftToRight,
-            .Padding = New Padding(0, 4, 0, 0),
+            .FlowDirection = FlowDirection.TopDown,
+            .Padding = New Padding(0),
             .WrapContents = False
         }
-        actions.Controls.AddRange(New Control() {launchButton, downloadButton, deleteButton})
+        actions.Controls.AddRange(New Control() {launchButton, actionsButton})
 
         localeCheckbox.AutoSize = True
         localeCheckbox.Anchor = AnchorStyles.Left
@@ -1612,7 +1610,7 @@ Partial Public Class MainForm
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 48))
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 60))
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 34))
-        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 46))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 86))
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 34))
         layout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         layout.Controls.Add(titleLabel, 0, 0)
@@ -1622,6 +1620,36 @@ Partial Public Class MainForm
         layout.Controls.Add(localeCheckbox, 0, 4)
         Return layout
     End Function
+
+    Private Sub BuildMachiActionsMenu()
+        _actionMachiRedownload = New ToolStripMenuItem("Redownload")
+        _actionMachiDelete = New ToolStripMenuItem("Delete") With {.ForeColor = CompactUiTheme.Danger}
+        _machiActionsMenu = New ContextMenuStrip()
+        _machiActionsMenu.Items.AddRange(New ToolStripItem() {
+            _actionMachiRedownload,
+            New ToolStripSeparator(),
+            _actionMachiDelete
+        })
+
+        AddHandler _btnMachiActions.Click, AddressOf MachiActions_Click
+        AddHandler _actionMachiRedownload.Click, AddressOf MachiRedownload_Click
+        AddHandler _actionMachiDelete.Click, AddressOf MachiDelete_Click
+    End Sub
+
+    Private Sub BuildCharaActionsMenu()
+        _actionCharaRedownload = New ToolStripMenuItem("Redownload")
+        _actionCharaDelete = New ToolStripMenuItem("Delete") With {.ForeColor = CompactUiTheme.Danger}
+        _charaActionsMenu = New ContextMenuStrip()
+        _charaActionsMenu.Items.AddRange(New ToolStripItem() {
+            _actionCharaRedownload,
+            New ToolStripSeparator(),
+            _actionCharaDelete
+        })
+
+        AddHandler _btnCharaActions.Click, AddressOf CharaActions_Click
+        AddHandler _actionCharaRedownload.Click, AddressOf CharaRedownload_Click
+        AddHandler _actionCharaDelete.Click, AddressOf CharaDelete_Click
+    End Sub
 
     Private Sub MainForm_ResponsiveResize(sender As Object, e As EventArgs)
         UpdateResponsiveShellLayout()
@@ -1986,9 +2014,11 @@ Partial Public Class MainForm
         _lblMachiTitle.Text = "Machi-Chara details"
         _lblMachiMetadata.Text = "Select an item to see its file and availability."
         CompactUiTheme.SetStatusBadge(_lblMachiStatus, "No selection", False)
+        btnMachiCharaLaunch.Text = "Play / Download"
         btnMachiCharaLaunch.Enabled = False
-        _btnMachiDownload.Enabled = False
-        _btnMachiDelete.Enabled = False
+        _btnMachiActions.Enabled = False
+        _actionMachiRedownload.Enabled = False
+        _actionMachiDelete.Enabled = False
     End Sub
 
     Public Sub UpdateMachiCharaSelectionState(item As MachiChara)
@@ -2000,23 +2030,33 @@ Partial Public Class MainForm
         Dim downloadStatus = GetMachiDownloadStatus(item)
         _lblMachiTitle.Text = item.ENTitle
         _lblMachiMetadata.Text = BuildCharacterMetadata(item.JPTitle, item.CFDName)
-        If downloadStatus IsNot Nothing Then
+        If downloadStatus IsNot Nothing AndAlso downloadStatus.State <> LibraryDownloadState.Failed Then
             CompactUiTheme.SetStatusBadge(_lblMachiStatus, DownloadStateText(downloadStatus), False)
-            _lblMachiStatus.ForeColor = If(downloadStatus.State = LibraryDownloadState.Failed, CompactUiTheme.Danger, CompactUiTheme.Accent)
+            _lblMachiStatus.ForeColor = CompactUiTheme.Accent
+            btnMachiCharaLaunch.Text = DownloadStateText(downloadStatus)
             btnMachiCharaLaunch.Enabled = False
-            _btnMachiDownload.Text = If(downloadStatus.State = LibraryDownloadState.Failed, "Try again", DownloadStateText(downloadStatus))
-            _btnMachiDownload.Enabled = downloadStatus.State = LibraryDownloadState.Failed AndAlso isOnline
-            _btnMachiDelete.Enabled = False
-            DownloadCMS_MachiChara.Enabled = _btnMachiDownload.Enabled
+            _btnMachiActions.Enabled = False
+            _actionMachiRedownload.Enabled = False
+            _actionMachiDelete.Enabled = False
+            DownloadCMS_MachiChara.Enabled = False
             DeleteCMS_MachiChara.Enabled = False
             Return
         End If
-        CompactUiTheme.SetStatusBadge(_lblMachiStatus, If(installed, "Installed", If(isOnline, "Available", "Offline")), installed)
-        btnMachiCharaLaunch.Enabled = installed
-        _btnMachiDownload.Text = If(installed, "Installed", "Download")
-        _btnMachiDownload.Enabled = isOnline AndAlso Not installed
-        _btnMachiDelete.Enabled = installed
-        DownloadCMS_MachiChara.Enabled = _btnMachiDownload.Enabled
+
+        Dim downloadFailed = downloadStatus IsNot Nothing
+        CompactUiTheme.SetStatusBadge(
+            _lblMachiStatus,
+            If(downloadFailed, "Download failed", If(installed, "Installed", If(isOnline, "Available", "Offline"))),
+            installed AndAlso Not downloadFailed)
+        If downloadFailed Then _lblMachiStatus.ForeColor = CompactUiTheme.Danger
+
+        btnMachiCharaLaunch.Text = If(installed, "Play", If(downloadFailed, "Try again", "Download"))
+        btnMachiCharaLaunch.Enabled = installed OrElse isOnline
+        _btnMachiActions.Enabled = installed
+        _actionMachiRedownload.Enabled = installed AndAlso isOnline
+        _actionMachiDelete.Enabled = installed
+        DownloadCMS_MachiChara.Text = If(installed, "Redownload", If(downloadFailed, "Try again", "Download"))
+        DownloadCMS_MachiChara.Enabled = isOnline
         DeleteCMS_MachiChara.Enabled = installed
     End Sub
 
@@ -2025,9 +2065,11 @@ Partial Public Class MainForm
         _lblCharaTitle.Text = "Chara-Den details"
         _lblCharaMetadata.Text = "Select an item to see its file and availability."
         CompactUiTheme.SetStatusBadge(_lblCharaStatus, "No selection", False)
+        btnCharaDenLaunch.Text = "Play / Download"
         btnCharaDenLaunch.Enabled = False
-        _btnCharaDownload.Enabled = False
-        _btnCharaDelete.Enabled = False
+        _btnCharaActions.Enabled = False
+        _actionCharaRedownload.Enabled = False
+        _actionCharaDelete.Enabled = False
     End Sub
 
     Public Sub UpdateCharaDenSelectionState(item As CharaDen)
@@ -2039,23 +2081,33 @@ Partial Public Class MainForm
         Dim downloadStatus = GetCharaDownloadStatus(item)
         _lblCharaTitle.Text = item.ENTitle
         _lblCharaMetadata.Text = BuildCharacterMetadata(item.JPTitle, item.AFDName)
-        If downloadStatus IsNot Nothing Then
+        If downloadStatus IsNot Nothing AndAlso downloadStatus.State <> LibraryDownloadState.Failed Then
             CompactUiTheme.SetStatusBadge(_lblCharaStatus, DownloadStateText(downloadStatus), False)
-            _lblCharaStatus.ForeColor = If(downloadStatus.State = LibraryDownloadState.Failed, CompactUiTheme.Danger, CompactUiTheme.Accent)
+            _lblCharaStatus.ForeColor = CompactUiTheme.Accent
+            btnCharaDenLaunch.Text = DownloadStateText(downloadStatus)
             btnCharaDenLaunch.Enabled = False
-            _btnCharaDownload.Text = If(downloadStatus.State = LibraryDownloadState.Failed, "Try again", DownloadStateText(downloadStatus))
-            _btnCharaDownload.Enabled = downloadStatus.State = LibraryDownloadState.Failed AndAlso isOnline
-            _btnCharaDelete.Enabled = False
-            DownloadCMS_CharaDen.Enabled = _btnCharaDownload.Enabled
+            _btnCharaActions.Enabled = False
+            _actionCharaRedownload.Enabled = False
+            _actionCharaDelete.Enabled = False
+            DownloadCMS_CharaDen.Enabled = False
             DeleteCMS_CharaDen.Enabled = False
             Return
         End If
-        CompactUiTheme.SetStatusBadge(_lblCharaStatus, If(installed, "Installed", If(isOnline, "Available", "Offline")), installed)
-        btnCharaDenLaunch.Enabled = installed
-        _btnCharaDownload.Text = If(installed, "Installed", "Download")
-        _btnCharaDownload.Enabled = isOnline AndAlso Not installed
-        _btnCharaDelete.Enabled = installed
-        DownloadCMS_CharaDen.Enabled = _btnCharaDownload.Enabled
+
+        Dim downloadFailed = downloadStatus IsNot Nothing
+        CompactUiTheme.SetStatusBadge(
+            _lblCharaStatus,
+            If(downloadFailed, "Download failed", If(installed, "Installed", If(isOnline, "Available", "Offline"))),
+            installed AndAlso Not downloadFailed)
+        If downloadFailed Then _lblCharaStatus.ForeColor = CompactUiTheme.Danger
+
+        btnCharaDenLaunch.Text = If(installed, "Play", If(downloadFailed, "Try again", "Download"))
+        btnCharaDenLaunch.Enabled = installed OrElse isOnline
+        _btnCharaActions.Enabled = installed
+        _actionCharaRedownload.Enabled = installed AndAlso isOnline
+        _actionCharaDelete.Enabled = installed
+        DownloadCMS_CharaDen.Text = If(installed, "Redownload", If(downloadFailed, "Try again", "Download"))
+        DownloadCMS_CharaDen.Enabled = isOnline
         DeleteCMS_CharaDen.Enabled = installed
     End Sub
 
@@ -2064,9 +2116,14 @@ Partial Public Class MainForm
         Return $"{title}{Environment.NewLine}File: {fileName}"
     End Function
 
-    Private Sub MachiDownload_Click(sender As Object, e As EventArgs)
+    Private Sub MachiActions_Click(sender As Object, e As EventArgs)
+        If Not _btnMachiActions.Enabled Then Return
+        _machiActionsMenu.Show(_btnMachiActions, New Point(0, _btnMachiActions.Height))
+    End Sub
+
+    Private Sub MachiRedownload_Click(sender As Object, e As EventArgs)
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
-        DownloadMachiChara(TryCast(ListViewMachiChara.SelectedItems(0).Tag, MachiChara))
+        DownloadMachiChara(TryCast(ListViewMachiChara.SelectedItems(0).Tag, MachiChara), True)
     End Sub
 
     Private Async Sub MachiDelete_Click(sender As Object, e As EventArgs)
@@ -2076,9 +2133,14 @@ Partial Public Class MainForm
         End If
     End Sub
 
-    Private Sub CharaDownload_Click(sender As Object, e As EventArgs)
+    Private Sub CharaActions_Click(sender As Object, e As EventArgs)
+        If Not _btnCharaActions.Enabled Then Return
+        _charaActionsMenu.Show(_btnCharaActions, New Point(0, _btnCharaActions.Height))
+    End Sub
+
+    Private Sub CharaRedownload_Click(sender As Object, e As EventArgs)
         If ListViewCharaDen.SelectedItems.Count = 0 Then Return
-        DownloadCharaDen(TryCast(ListViewCharaDen.SelectedItems(0).Tag, CharaDen))
+        DownloadCharaDen(TryCast(ListViewCharaDen.SelectedItems(0).Tag, CharaDen), True)
     End Sub
 
     Private Async Sub CharaDelete_Click(sender As Object, e As EventArgs)
@@ -2088,34 +2150,12 @@ Partial Public Class MainForm
         End If
     End Sub
 
-    Private Sub MachiList_DoubleClick(sender As Object, e As EventArgs)
-        If ListViewMachiChara.SelectedItems.Count = 0 Then Return
-        Dim item = TryCast(ListViewMachiChara.SelectedItems(0).Tag, MachiChara)
-        If item Is Nothing Then Return
-        If IsMachiDownloadBusy(item) Then
-            NotificationManager.ShowInformation(Me, "Download in progress", $"'{item.ENTitle}' must finish downloading before it can be opened.")
-            Return
-        End If
-        If btnMachiCharaLaunch.Enabled Then
-            btnMachiCharaLaunch.PerformClick()
-        Else
-            _btnMachiDownload.Focus()
-        End If
+    Private Sub MachiList_Activate(sender As Object, e As EventArgs)
+        ActivateSelectedMachiChara()
     End Sub
 
-    Private Sub CharaList_DoubleClick(sender As Object, e As EventArgs)
-        If ListViewCharaDen.SelectedItems.Count = 0 Then Return
-        Dim item = TryCast(ListViewCharaDen.SelectedItems(0).Tag, CharaDen)
-        If item Is Nothing Then Return
-        If IsCharaDownloadBusy(item) Then
-            NotificationManager.ShowInformation(Me, "Download in progress", $"'{item.ENTitle}' must finish downloading before it can be opened.")
-            Return
-        End If
-        If btnCharaDenLaunch.Enabled Then
-            btnCharaDenLaunch.PerformClick()
-        Else
-            _btnCharaDownload.Focus()
-        End If
+    Private Sub CharaList_Activate(sender As Object, e As EventArgs)
+        ActivateSelectedCharaDen()
     End Sub
 
     Private Sub MachiSearch_TextChanged(sender As Object, e As EventArgs)

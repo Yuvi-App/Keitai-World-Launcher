@@ -1085,7 +1085,7 @@ Public Class MainForm
 
         Await Task.CompletedTask
     End Function
-    Private Sub DownloadMachiChara(selectedMachiChara As MachiChara)
+    Private Sub DownloadMachiChara(selectedMachiChara As MachiChara, Optional forceRedownload As Boolean = False)
         If selectedMachiChara IsNot Nothing Then
             Logger.LogInfo($"Checking for {DownloadsFolder}\{selectedMachiChara.CFDName}")
             CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
@@ -1100,24 +1100,29 @@ Public Class MainForm
                 Return
             End If
 
-            If File.Exists(localFilePath) Then
-                ' File already exists, nothing to do (or maybe inform the user)
-            Else
-                Dim result = UIDialogManager.ShowConfirmation(
-                    Me,
-                    "Download Machi-Chara?",
-                    $"'{selectedMachiChara.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?",
-                    "Download",
-                    "Cancel")
-                If result = DialogResult.Yes Then
-                    Logger.LogInfo($"Queueing download for {selectedMachiChara.DownloadURL}")
-                    QueueMachiCharaDownload(selectedMachiChara, downloadFilePath)
-                End If
+            Dim isRedownload = forceRedownload AndAlso File.Exists(localFilePath)
+            If File.Exists(localFilePath) AndAlso Not isRedownload Then Return
+            If Not isOnline Then
+                NotificationManager.ShowWarning(Me, "No connection", "Connect to the internet before downloading this Machi-Chara.")
+                Return
+            End If
+
+            Dim result = UIDialogManager.ShowConfirmation(
+                Me,
+                If(isRedownload, "Redownload Machi-Chara?", "Download Machi-Chara?"),
+                If(isRedownload,
+                    $"Download a fresh copy of '{selectedMachiChara.ENTitle}' and replace the installed file?",
+                    $"'{selectedMachiChara.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?"),
+                If(isRedownload, "Redownload", "Download"),
+                "Cancel")
+            If result = DialogResult.Yes Then
+                Logger.LogInfo($"Queueing download for {selectedMachiChara.DownloadURL}")
+                QueueMachiCharaDownload(selectedMachiChara, downloadFilePath)
             End If
             UpdateMachiCharaSelectionState(selectedMachiChara)
         End If
     End Sub
-    Private Sub DownloadCharaDen(selectedCharaDen As CharaDen)
+    Private Sub DownloadCharaDen(selectedCharaDen As CharaDen, Optional forceRedownload As Boolean = False)
         If selectedCharaDen IsNot Nothing Then
             Logger.LogInfo($"Checking for {DownloadsFolder}\{selectedCharaDen.AFDName}")
             CurrentSelectedCharaDenAFD = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
@@ -1132,19 +1137,24 @@ Public Class MainForm
                 Return
             End If
 
-            If File.Exists(localFilePath) Then
-                ' File already exists, nothing to do (or maybe inform the user)
-            Else
-                Dim result = UIDialogManager.ShowConfirmation(
-                    Me,
-                    "Download Chara-Den?",
-                    $"'{selectedCharaDen.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?",
-                    "Download",
-                    "Cancel")
-                If result = DialogResult.Yes Then
-                    Logger.LogInfo($"Queueing download for {selectedCharaDen.DownloadURL}")
-                    QueueCharaDenDownload(selectedCharaDen, downloadFilePath)
-                End If
+            Dim isRedownload = forceRedownload AndAlso File.Exists(localFilePath)
+            If File.Exists(localFilePath) AndAlso Not isRedownload Then Return
+            If Not isOnline Then
+                NotificationManager.ShowWarning(Me, "No connection", "Connect to the internet before downloading this Chara-Den.")
+                Return
+            End If
+
+            Dim result = UIDialogManager.ShowConfirmation(
+                Me,
+                If(isRedownload, "Redownload Chara-Den?", "Download Chara-Den?"),
+                If(isRedownload,
+                    $"Download a fresh copy of '{selectedCharaDen.ENTitle}' and replace the installed file?",
+                    $"'{selectedCharaDen.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?"),
+                If(isRedownload, "Redownload", "Download"),
+                "Cancel")
+            If result = DialogResult.Yes Then
+                Logger.LogInfo($"Queueing download for {selectedCharaDen.DownloadURL}")
+                QueueCharaDenDownload(selectedCharaDen, downloadFilePath)
             End If
             UpdateCharaDenSelectionState(selectedCharaDen)
         End If
@@ -2250,7 +2260,8 @@ Public Class MainForm
         If ListViewMachiChara.SelectedItems.Count = 0 Then Return
         Dim selectedItem = ListViewMachiChara.SelectedItems(0)
         Dim selectedMachiChara = CType(selectedItem.Tag, MachiChara)
-        DownloadMachiChara(selectedMachiChara)
+        Dim installed = File.Exists(Path.Combine(DownloadsFolder, selectedMachiChara.CFDName))
+        DownloadMachiChara(selectedMachiChara, installed)
     End Sub
     Private Async Sub DeleteCMS_MachiChara_Click(sender As Object, e As EventArgs) Handles DeleteCMS_MachiChara.Click
         Await DeleteMachiCharaAsync()
@@ -2261,7 +2272,8 @@ Public Class MainForm
         If ListViewCharaDen.SelectedItems.Count = 0 Then Return
         Dim selectedItem = ListViewCharaDen.SelectedItems(0)
         Dim selectedCharaden = CType(selectedItem.Tag, CharaDen)
-        DownloadCharaDen(selectedCharaden)
+        Dim installed = File.Exists(Path.Combine(DownloadsFolder, selectedCharaden.AFDName))
+        DownloadCharaDen(selectedCharaden, installed)
     End Sub
     Private Async Sub DeleteCMS_CharaDen_Click(sender As Object, e As EventArgs) Handles DeleteCMS_CharaDen.Click
         Await DeleteCharadenAsync()
@@ -2518,8 +2530,12 @@ Public Class MainForm
         End Try
     End Sub
     Private Sub btnMachiCharaLaunch_Click(sender As Object, e As EventArgs) Handles btnMachiCharaLaunch.Click
+        ActivateSelectedMachiChara()
+    End Sub
+
+    Private Sub ActivateSelectedMachiChara()
         If ListViewMachiChara.SelectedItems.Count = 0 Then
-            MessageBox.Show("Please select a MachiChara to launch.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            UIDialogManager.ShowNotice(Me, "Select a Machi-Chara", "Choose a Machi-Chara to play or download.", "OK", CompactDialogTone.Warning)
             Return
         End If
 
@@ -2533,8 +2549,7 @@ Public Class MainForm
             End If
             CurrentSelectedMachiCharaCFD = Path.Combine(DownloadsFolder, selectedMachiChara.CFDName)
             If Not File.Exists(CurrentSelectedMachiCharaCFD) Then
-                MessageBox.Show("Download this Machi-Chara before launching it.", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                UpdateMachiCharaSelectionState(selectedMachiChara)
+                DownloadMachiChara(selectedMachiChara)
                 Return
             End If
             NotificationManager.ShowInformation(Me, "Launching Machi-Chara", $"Opening '{CurrentSelectedMachiCharaCFD}'.")
@@ -2543,8 +2558,12 @@ Public Class MainForm
         End If
     End Sub
     Private Sub btnCharaDenLaunch_Click(sender As Object, e As EventArgs) Handles btnCharaDenLaunch.Click
+        ActivateSelectedCharaDen()
+    End Sub
+
+    Private Sub ActivateSelectedCharaDen()
         If ListViewCharaDen.SelectedItems.Count = 0 Then
-            MessageBox.Show("Please select a Chara-den to launch.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            UIDialogManager.ShowNotice(Me, "Select a Chara-Den", "Choose a Chara-Den to play or download.", "OK", CompactDialogTone.Warning)
             Return
         End If
 
@@ -2558,8 +2577,7 @@ Public Class MainForm
             End If
             CurrentSelectedCharaDenAFD = Path.Combine(DownloadsFolder, selectedCharaDen.AFDName)
             If Not File.Exists(CurrentSelectedCharaDenAFD) Then
-                MessageBox.Show("Download this Chara-Den before launching it.", "Not Installed", MessageBoxButtons.OK, MessageBoxIcon.Information)
-                UpdateCharaDenSelectionState(selectedCharaDen)
+                DownloadCharaDen(selectedCharaDen)
                 Return
             End If
             NotificationManager.ShowInformation(Me, "Launching Chara-Den", $"Opening '{CurrentSelectedCharaDenAFD}'.")
