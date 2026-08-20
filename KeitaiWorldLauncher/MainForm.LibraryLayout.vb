@@ -1675,6 +1675,7 @@ Partial Public Class MainForm
         Dim actions As New FlowLayoutPanel With {
             .Dock = DockStyle.Fill,
             .FlowDirection = FlowDirection.TopDown,
+            .Margin = New Padding(0),
             .Padding = New Padding(0),
             .WrapContents = False
         }
@@ -1694,7 +1695,7 @@ Partial Public Class MainForm
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 48))
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 60))
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 34))
-        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 86))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 90))
         If hasLauncherSelector Then
             layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 60))
         End If
