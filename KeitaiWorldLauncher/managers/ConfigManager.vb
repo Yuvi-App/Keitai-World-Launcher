@@ -51,6 +51,8 @@ Namespace My.Managers
         {"FlashPlayerEXEPath", "flashplayer.exe"},
         {"MachiCharaPath", "c:\machichara"},
         {"MachiCharaEXEPath", "machicharaemu.exe"},
+        {"MachiCharaDesktopEXEPath", "MachiCharaDesktop.exe"},
+        {"DefaultMachiCharaLauncher", "OfficialSDK"},
         {"CharaDenPath", "c:\charaden"},
         {"CharaDenEXEPath", "CharaDenemu.exe"},
         {"OpenDojaPath", "c:\opendoja"},

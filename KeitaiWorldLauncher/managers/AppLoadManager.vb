@@ -51,6 +51,8 @@ Namespace My.Managers
                 MainForm.FlashPlayerEXE = cfg("FlashPlayerEXEPath")
                 MainForm.MachiCharapath = cfg("MachiCharaPath")
                 MainForm.MachiCharaExe = cfg("MachiCharaEXEPath")
+                MainForm.MachiCharaDesktopExe = cfg("MachiCharaDesktopEXEPath")
+                MainForm.DefaultMachiCharaLauncher = cfg("DefaultMachiCharaLauncher")
                 MainForm.CharaDenpath = cfg("CharaDenPath")
                 MainForm.CharaDenExe = cfg("CharaDenEXEPath")
                 MainForm.OpenDojapath = cfg("OpenDojaPath")

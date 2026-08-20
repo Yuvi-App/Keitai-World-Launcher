@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="shift_jis" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <Config>
   <Setting name="VersionCheckURL">latest_version.txt</Setting>
   <Setting name="AutoUpdate">true</Setting>
@@ -43,6 +43,8 @@
   <Setting name="FlashPlayerEXEPath">JSKY.exe</Setting>
   <Setting name="MachiCharaPath">c:\machichara</Setting>
   <Setting name="MachiCharaEXEPath">machicharaemu.exe</Setting>
+  <Setting name="MachiCharaDesktopEXEPath">MachiCharaDesktop.exe</Setting>
+  <Setting name="DefaultMachiCharaLauncher">OfficialSDK</Setting>
   <Setting name="CharaDenPath">c:\charaden</Setting>
   <Setting name="CharaDenEXEPath">CharaDenemu.exe</Setting>
   <Setting name="OpenDojaPath">c:\opendoja</Setting>

@@ -110,6 +110,8 @@ Public Class MainForm
     Public FlashPlayerEXE As String
     Public MachiCharapath As String
     Public MachiCharaExe As String
+    Public MachiCharaDesktopExe As String
+    Public DefaultMachiCharaLauncher As String
     Public CharaDenpath As String
     Public CharaDenExe As String
     Public OpenDojapath As String
@@ -177,6 +179,7 @@ Public Class MainForm
 
         ' Access and Assign Config settings
         AppLoadManager.LoadConfigValues(config)
+        ConfigureMachiCharaLauncherSelection()
 
         ' Get NetworkUID & TerminalID Config
         AppLoadManager.LoadNetworkUIDTerminaID()
@@ -2554,7 +2557,15 @@ Public Class MainForm
             End If
             NotificationManager.ShowInformation(Me, "Launching Machi-Chara", $"Opening '{CurrentSelectedMachiCharaCFD}'.")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedMachiCharaCFD))
-            utilManager.LaunchCustomMachiCharaCommand(MachiCharaExe, CurrentSelectedMachiCharaCFD)
+            Dim useDesktopCompanion = String.Equals(
+                DefaultMachiCharaLauncher,
+                MachiCharaDesktopLauncherKey,
+                StringComparison.OrdinalIgnoreCase)
+            utilManager.LaunchCustomMachiCharaCommand(
+                MachiCharaExe,
+                MachiCharaDesktopExe,
+                CurrentSelectedMachiCharaCFD,
+                useDesktopCompanion)
         End If
     End Sub
     Private Sub btnCharaDenLaunch_Click(sender As Object, e As EventArgs) Handles btnCharaDenLaunch.Click

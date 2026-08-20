@@ -2147,37 +2147,90 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Sub LaunchCustomMachiCharaCommand(MachiCharaEXE As String, CFDFile As String)
+        Public Sub LaunchCustomMachiCharaCommand(
+            MachiCharaEXE As String,
+            MachiCharaDesktopEXE As String,
+            CFDFile As String,
+            useDesktopCompanion As Boolean)
+
             Try
-                ' Build full paths
-                Dim LocalEmulatorPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data\tools\locale_emulator\LEProc.exe")
-                Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
-                Dim machicharaexePath As String = MachiCharaEXE
-                Dim CFDPath As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, CFDFile)
-
-                Dim processInfo As New ProcessStartInfo()
-
-                If MainForm.chkboxMachiCharaLocalEmulator.Checked = True Then
-                    ' Launch using Locale Emulator
-                    processInfo.FileName = LocalEmulatorPath
-                    processInfo.Arguments = $"{guidArg} ""{machicharaexePath}"" ""{CFDPath}"""
+                Dim baseDirectory = AppDomain.CurrentDomain.BaseDirectory
+                Dim officialExePath = If(
+                    Path.IsPathFullyQualified(MachiCharaEXE),
+                    MachiCharaEXE,
+                    Path.Combine(baseDirectory, MachiCharaEXE))
+                Dim configuredDesktopExe = If(
+                    String.IsNullOrWhiteSpace(MachiCharaDesktopEXE),
+                    "MachiCharaDesktop.exe",
+                    MachiCharaDesktopEXE.Trim())
+                Dim desktopExePath As String
+                If Path.IsPathFullyQualified(configuredDesktopExe) Then
+                    desktopExePath = configuredDesktopExe
+                ElseIf String.IsNullOrWhiteSpace(Path.GetDirectoryName(configuredDesktopExe)) Then
+                    desktopExePath = Path.Combine(
+                        baseDirectory,
+                        "data\tools\machicharadesktop",
+                        configuredDesktopExe)
                 Else
-                    ' Launch directly
-                    processInfo.FileName = machicharaexePath
-                    processInfo.Arguments = $"""{CFDPath}"""
+                    desktopExePath = Path.Combine(baseDirectory, configuredDesktopExe)
+                End If
+                Dim cfdPath = If(
+                    Path.IsPathFullyQualified(CFDFile),
+                    CFDFile,
+                    Path.Combine(baseDirectory, CFDFile))
+
+                officialExePath = Path.GetFullPath(officialExePath)
+                desktopExePath = Path.GetFullPath(desktopExePath)
+                cfdPath = Path.GetFullPath(cfdPath)
+
+                If Not File.Exists(cfdPath) Then
+                    Throw New FileNotFoundException("The selected Machi-Chara CFD could not be found.", cfdPath)
                 End If
 
-                ' Common settings
-                processInfo.UseShellExecute = False
-                processInfo.CreateNoWindow = True
-                processInfo.RedirectStandardOutput = True
-                processInfo.RedirectStandardError = True
-                processInfo.WorkingDirectory = Path.GetDirectoryName(machicharaexePath)
+                Dim processInfo As New ProcessStartInfo With {
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True
+                }
 
-                ' Start the process
+                If useDesktopCompanion Then
+                    If Not File.Exists(desktopExePath) Then
+                        Throw New FileNotFoundException("MachiChara Desktop could not be found.", desktopExePath)
+                    End If
+
+                    processInfo.FileName = desktopExePath
+                    processInfo.ArgumentList.Add("--background")
+                    processInfo.ArgumentList.Add(cfdPath)
+                    processInfo.WorkingDirectory = Path.GetDirectoryName(desktopExePath)
+                    logger.Logger.LogInfo($"[Machi-Chara] Launching Desktop companion: {desktopExePath} --background ""{cfdPath}""")
+                Else
+                    If Not File.Exists(officialExePath) Then
+                        Throw New FileNotFoundException("The official Machi-Chara SDK emulator could not be found.", officialExePath)
+                    End If
+
+                    If MainForm.chkboxMachiCharaLocalEmulator.Checked Then
+                        Dim localEmulatorPath = Path.Combine(baseDirectory, "data\tools\locale_emulator\LEProc.exe")
+                        If Not File.Exists(localEmulatorPath) Then
+                            Throw New FileNotFoundException("Locale Emulator could not be found.", localEmulatorPath)
+                        End If
+
+                        processInfo.FileName = localEmulatorPath
+                        processInfo.ArgumentList.Add("-runas")
+                        processInfo.ArgumentList.Add("ad1a7fe1-4f95-45ba-b563-9ba60c3642d3")
+                        processInfo.ArgumentList.Add(officialExePath)
+                        processInfo.ArgumentList.Add(cfdPath)
+                    Else
+                        processInfo.FileName = officialExePath
+                        processInfo.ArgumentList.Add(cfdPath)
+                    End If
+
+                    processInfo.WorkingDirectory = Path.GetDirectoryName(officialExePath)
+                    logger.Logger.LogInfo($"[Machi-Chara] Launching official SDK emulator for: {cfdPath}")
+                End If
+
                 Process.Start(processInfo)
 
             Catch ex As Exception
+                logger.Logger.LogError($"[Machi-Chara] Failed to launch: {ex}")
                 MessageBox.Show($"Failed to launch the command: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub

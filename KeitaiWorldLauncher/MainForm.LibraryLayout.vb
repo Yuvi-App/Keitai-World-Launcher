@@ -1,7 +1,11 @@
 Imports System.IO
+Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Models
 
 Partial Public Class MainForm
+    Private Const MachiCharaOfficialLauncherKey As String = "OfficialSDK"
+    Private Const MachiCharaDesktopLauncherKey As String = "MachiCharaDesktop"
+
     Private _compactLibraryInitialized As Boolean
     Private _appLibraryGrid As TableLayoutPanel
     Private _machiLibraryGrid As TableLayoutPanel
@@ -29,6 +33,7 @@ Partial Public Class MainForm
     Private _machiActionsMenu As ContextMenuStrip
     Private _actionMachiRedownload As ToolStripMenuItem
     Private _actionMachiDelete As ToolStripMenuItem
+    Private _cbxMachiCharaLauncher As ComboBox
 
     Private _txtCharaSearch As TextBox
     Private _lblCharaTitle As Label
@@ -1473,6 +1478,8 @@ Partial Public Class MainForm
         _machiLibraryGrid.Controls.Add(GroupBox2, 0, 0)
         BuildCharacterListHost(GroupBox2, ListViewMachiChara, lblMachiCharaTotalCount, _txtMachiSearch, "Search Machi-Chara")
 
+        chkboxMachiCharaLocalEmulator.Text = "Use Locale Emulator (official SDK only)"
+        Dim launcherSelector = BuildMachiCharaLauncherSelector()
         Dim detailPanel = BuildCharacterDetailPanel(
             _lblMachiTitle,
             _lblMachiMetadata,
@@ -1480,13 +1487,88 @@ Partial Public Class MainForm
             btnMachiCharaLaunch,
             _btnMachiActions,
             chkboxMachiCharaLocalEmulator,
-            "Machi-Chara details")
+            "Machi-Chara details",
+            launcherSelector)
         detailPanel.Margin = New Padding(6, 0, 0, 0)
         _machiLibraryGrid.Controls.Add(detailPanel, 1, 0)
         BuildMachiActionsMenu()
 
         AddHandler _txtMachiSearch.TextChanged, AddressOf MachiSearch_TextChanged
         AddHandler ListViewMachiChara.ItemActivate, AddressOf MachiList_Activate
+    End Sub
+
+    Private Function BuildMachiCharaLauncherSelector() As Control
+        Dim launcherLabel As New Label With {
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI", 9.0F, FontStyle.Bold),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Text = "OPEN WITH",
+            .TextAlign = ContentAlignment.BottomLeft
+        }
+
+        _cbxMachiCharaLauncher = New ComboBox With {
+            .Dock = DockStyle.Fill,
+            .DropDownStyle = ComboBoxStyle.DropDownList,
+            .Font = New Font("Segoe UI", 9.5F),
+            .IntegralHeight = False,
+            .MaxDropDownItems = 4
+        }
+        _cbxMachiCharaLauncher.Items.AddRange(New Object() {
+            "Official SDK emulator",
+            "MachiChara Desktop companion"
+        })
+        AddHandler _cbxMachiCharaLauncher.SelectedIndexChanged, AddressOf MachiCharaLauncher_SelectedIndexChanged
+
+        Dim selector As New TableLayoutPanel With {
+            .ColumnCount = 1,
+            .Dock = DockStyle.Fill,
+            .Margin = New Padding(0),
+            .Padding = New Padding(0),
+            .RowCount = 2
+        }
+        selector.RowStyles.Add(New RowStyle(SizeType.Absolute, 22.0F))
+        selector.RowStyles.Add(New RowStyle(SizeType.Absolute, 30.0F))
+        selector.Controls.Add(launcherLabel, 0, 0)
+        selector.Controls.Add(_cbxMachiCharaLauncher, 0, 1)
+        Return selector
+    End Function
+
+    Private Sub ConfigureMachiCharaLauncherSelection()
+        If _cbxMachiCharaLauncher Is Nothing Then Return
+
+        If String.Equals(DefaultMachiCharaLauncher, MachiCharaDesktopLauncherKey, StringComparison.OrdinalIgnoreCase) Then
+            _cbxMachiCharaLauncher.SelectedIndex = 1
+        Else
+            DefaultMachiCharaLauncher = MachiCharaOfficialLauncherKey
+            _cbxMachiCharaLauncher.SelectedIndex = 0
+        End If
+
+        UpdateMachiCharaLauncherOptions()
+    End Sub
+
+    Private Sub MachiCharaLauncher_SelectedIndexChanged(sender As Object, e As EventArgs)
+        DefaultMachiCharaLauncher = If(
+            _cbxMachiCharaLauncher.SelectedIndex = 1,
+            MachiCharaDesktopLauncherKey,
+            MachiCharaOfficialLauncherKey)
+        UpdateMachiCharaLauncherOptions()
+
+        If Not CompletedBootSequence Then Return
+
+        configManager.UpdateSetting("DefaultMachiCharaLauncher", DefaultMachiCharaLauncher)
+        Logger.LogInfo($"Machi-Chara launcher changed to: {DefaultMachiCharaLauncher}")
+    End Sub
+
+    Private Sub UpdateMachiCharaLauncherOptions()
+        Dim usingOfficialSdk = String.Equals(
+            DefaultMachiCharaLauncher,
+            MachiCharaOfficialLauncherKey,
+            StringComparison.OrdinalIgnoreCase)
+
+        chkboxMachiCharaLocalEmulator.Enabled = usingOfficialSdk
+        If Not usingOfficialSdk Then
+            chkboxMachiCharaLocalEmulator.Checked = False
+        End If
     End Sub
 
     Private Sub BuildCompactCharaDenLayout()
@@ -1558,7 +1640,8 @@ Partial Public Class MainForm
         launchButton As Button,
         ByRef actionsButton As Button,
         localeCheckbox As CheckBox,
-        heading As String) As Control
+        heading As String,
+        Optional launcherSelector As Control = Nothing) As Control
 
         titleLabel = New Label With {
             .AutoEllipsis = True,
@@ -1600,24 +1683,33 @@ Partial Public Class MainForm
         localeCheckbox.AutoSize = True
         localeCheckbox.Anchor = AnchorStyles.Left
 
+        Dim hasLauncherSelector = launcherSelector IsNot Nothing
         Dim layout As New TableLayoutPanel With {
             .BackColor = CompactUiTheme.Surface,
             .ColumnCount = 1,
             .Dock = DockStyle.Fill,
             .Padding = New Padding(24),
-            .RowCount = 6
+            .RowCount = If(hasLauncherSelector, 7, 6)
         }
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 48))
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 60))
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 34))
         layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 86))
-        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 34))
+        If hasLauncherSelector Then
+            layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 60))
+        End If
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 40))
         layout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         layout.Controls.Add(titleLabel, 0, 0)
         layout.Controls.Add(metadataLabel, 0, 1)
         layout.Controls.Add(statusLabel, 0, 2)
         layout.Controls.Add(actions, 0, 3)
-        layout.Controls.Add(localeCheckbox, 0, 4)
+        If hasLauncherSelector Then
+            layout.Controls.Add(launcherSelector, 0, 4)
+            layout.Controls.Add(localeCheckbox, 0, 5)
+        Else
+            layout.Controls.Add(localeCheckbox, 0, 4)
+        End If
         Return layout
     End Function
 
