@@ -61,7 +61,13 @@ Public Class HomepageManager
         _tp = tpHomepage
         _tp.Controls.Clear()
 
-        _web = New WebView2() With {.Dock = DockStyle.Fill}
+        _web = New WebView2() With {
+            .AccessibleName = "Launcher home",
+            .AccessibleDescription = "Launcher news and homepage content.",
+            .Dock = DockStyle.Fill,
+            .TabIndex = 0,
+            .TabStop = True
+        }
         _tp.Controls.Add(_web)
 
         Directory.CreateDirectory(_cacheRoot)
@@ -194,6 +200,8 @@ Public Class HomepageManager
     Private Sub ShowHomepageDisabled(tp As TabPage)
         tp.Controls.Clear()
         Dim lbl As New Label() With {
+            .AccessibleName = "Homepage unavailable",
+            .AccessibleDescription = "The WebView2 Runtime is not installed, so homepage content cannot be displayed.",
             .Text = "Homepage is unavailable — WebView2 Runtime is not installed.",
             .AutoSize = False,
             .Dock = DockStyle.Fill,

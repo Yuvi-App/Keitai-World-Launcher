@@ -118,7 +118,9 @@ Public NotInheritable Class NotificationManager
             Dim bodyHeight = Math.Max(38, Math.Min(76, messageSize.Height + 4))
             Dim notificationHeight = Math.Max(104, 52 + bodyHeight)
 
-            AccessibleName = $"{ToneName(tone)} notification"
+            Dim resolvedTitle = If(String.IsNullOrWhiteSpace(title), ToneName(tone), title)
+            AccessibleName = $"{ToneName(tone)} notification: {resolvedTitle}"
+            AccessibleDescription = message
             AccessibleRole = AccessibleRole.Alert
             AutoScaleMode = AutoScaleMode.None
             BackColor = CompactUiTheme.Surface
@@ -132,7 +134,7 @@ Public NotInheritable Class NotificationManager
             ShowIcon = False
             ShowInTaskbar = False
             StartPosition = FormStartPosition.Manual
-            Text = If(String.IsNullOrWhiteSpace(title), ToneName(tone), title)
+            Text = resolvedTitle
 
             Dim accentBar As New Panel With {
                 .BackColor = _toneColor,
@@ -154,16 +156,20 @@ Public NotInheritable Class NotificationManager
             iconSurface.Controls.Add(iconLabel)
 
             Dim titleLabel As New Label With {
+                .AccessibleName = resolvedTitle,
+                .AccessibleRole = AccessibleRole.StaticText,
                 .AutoEllipsis = True,
                 .Font = New Font("Segoe UI Semibold", 10.0F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Location = New Point(74, 14),
                 .Size = New Size(NotificationWidth - 120, 25),
-                .Text = If(String.IsNullOrWhiteSpace(title), ToneName(tone), title),
+                .Text = resolvedTitle,
                 .TextAlign = ContentAlignment.MiddleLeft,
                 .UseMnemonic = False
             }
             Dim messageLabel As New Label With {
+                .AccessibleName = message,
+                .AccessibleRole = AccessibleRole.StaticText,
                 .AutoEllipsis = True,
                 .Font = messageFont,
                 .ForeColor = CompactUiTheme.TextSecondary,
@@ -175,6 +181,7 @@ Public NotInheritable Class NotificationManager
             }
             Dim closeButton As New Button With {
                 .AccessibleName = "Dismiss notification",
+                .AccessibleRole = AccessibleRole.PushButton,
                 .BackColor = CompactUiTheme.Surface,
                 .FlatStyle = FlatStyle.Flat,
                 .Font = New Font("Segoe UI", 12.0F),

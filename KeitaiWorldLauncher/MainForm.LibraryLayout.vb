@@ -81,6 +81,7 @@ Partial Public Class MainForm
             BuildCompactCharaDenLayout()
             StyleActivityView()
             StyleSettingsView()
+            InitializeAccessibilityPolish()
 
             AddHandler Resize, AddressOf MainForm_ResponsiveResize
             AddHandler ListViewGames.SizeChanged, AddressOf LibraryList_SizeChanged
@@ -408,6 +409,7 @@ Partial Public Class MainForm
             $"{FormatActivityDuration(mostPlayed.PlayTime)}  {ChrW(&H2022)}  {mostPlayed.Sessions} session{If(mostPlayed.Sessions = 1, String.Empty, "s")}")
 
         _lblActivityHistoryCount.Text = $"{activityEntries.Count:N0} app{If(activityEntries.Count = 1, String.Empty, "s")}"
+        UpdateActivityAccessibility()
         Dim hasActivity = activityEntries.Count > 0
         lvwPlaytimes.Visible = hasActivity
         _activityEmptyState.Visible = Not hasActivity
@@ -607,6 +609,9 @@ Partial Public Class MainForm
                 foreground,
                 TextFormatFlags.Left Or TextFormatFlags.VerticalCenter Or TextFormatFlags.EndEllipsis Or TextFormatFlags.NoPrefix)
         End Using
+        If (e.State And DrawItemState.Focus) = DrawItemState.Focus Then
+            e.DrawFocusRectangle()
+        End If
     End Sub
 
     Private Sub SettingsNavigation_SelectedIndexChanged(sender As Object, e As EventArgs)
@@ -620,6 +625,8 @@ Partial Public Class MainForm
 
     Private Function CreateSettingsPage(title As String, subtitle As String, ByRef content As FlowLayoutPanel) As Panel
         Dim page As New Panel With {
+            .AccessibleName = $"{title} settings",
+            .AccessibleDescription = subtitle,
             .BackColor = CompactUiTheme.AppBackground,
             .Dock = DockStyle.Fill,
             .Margin = New Padding(0)
@@ -710,6 +717,7 @@ Partial Public Class MainForm
         cardLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 23.0F))
         cardLayout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         Dim cardTitle As New Label With {
+            .AccessibleName = title,
             .Dock = DockStyle.Fill,
             .Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
@@ -717,6 +725,7 @@ Partial Public Class MainForm
             .TextAlign = ContentAlignment.MiddleLeft
         }
         Dim cardSubtitle As New Label With {
+            .AccessibleDescription = subtitle,
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
             .Font = New Font("Segoe UI", 8.8F),
@@ -775,18 +784,22 @@ Partial Public Class MainForm
 
     Private Function CreateSettingsFieldLabel(text As String) As Label
         Return New Label With {
+            .AccessibleName = text,
             .Dock = DockStyle.Fill,
             .Font = New Font("Segoe UI", 9.0F),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Margin = New Padding(4, 0, 8, 0),
             .Text = text,
-            .TextAlign = ContentAlignment.MiddleLeft
+            .TextAlign = ContentAlignment.MiddleLeft,
+            .UseMnemonic = False
         }
     End Function
 
     Private Sub AddSettingsField(table As TableLayoutPanel, row As Integer, labelText As String, control As Control)
         EnsureSettingsRow(table, row)
         PrepareSettingsInput(control)
+        control.AccessibleName = labelText
+        control.TabIndex = row
         table.Controls.Add(CreateSettingsFieldLabel(labelText), 0, row)
         table.Controls.Add(control, 1, row)
     End Sub
@@ -794,6 +807,7 @@ Partial Public Class MainForm
     Private Sub AddSettingsCheck(table As TableLayoutPanel, row As Integer, checkBox As CheckBox)
         EnsureSettingsRow(table, row, 32.0F)
         PrepareSettingsInput(checkBox)
+        checkBox.TabIndex = row
         table.Controls.Add(checkBox, 0, row)
         table.SetColumnSpan(checkBox, table.ColumnCount)
     End Sub
@@ -862,9 +876,9 @@ Partial Public Class MainForm
             .Padding = New Padding(0, 5, 0, 0),
             .WrapContents = True
         }
-        btnSaveDataManagement.Text = "Manage Save Data"
-        btnLaunchKey2Pad.Text = "Controller Mapping"
-        btnAddCustomApps.Text = "Add Custom Apps"
+        btnSaveDataManagement.Text = "Manage save data"
+        btnLaunchKey2Pad.Text = "Controller mapping"
+        btnAddCustomApps.Text = "Add custom apps"
         For Each button In New Button() {btnSaveDataManagement, btnLaunchKey2Pad, btnAddCustomApps}
             StyleSettingsButton(button)
             button.Width = 210
@@ -921,6 +935,9 @@ Partial Public Class MainForm
 
     Private Sub AddSdkSettingsField(table As TableLayoutPanel, row As Integer, column As Integer, labelText As String, combo As ComboBox)
         PrepareSettingsInput(combo)
+        combo.AccessibleName = $"{labelText} default SDK"
+        combo.AccessibleDescription = $"Choose the default SDK used for {labelText} apps."
+        combo.TabIndex = (row * 2) + (column \ 2)
         table.Controls.Add(CreateSettingsFieldLabel(labelText), column, row)
         table.Controls.Add(combo, column + 1, row)
     End Sub
@@ -1083,8 +1100,10 @@ Partial Public Class MainForm
 
         PrepareSettingsInput(txtCurrentUID)
         PrepareSettingsInput(txtCurrentTID)
-        txtCurrentUID.AccessibleName = "Current Network UID"
-        txtCurrentTID.AccessibleName = "Current Terminal ID"
+        txtCurrentUID.AccessibleName = "Network UID"
+        txtCurrentUID.AccessibleDescription = "The Network UID used by supported online apps."
+        txtCurrentTID.AccessibleName = "Terminal ID"
+        txtCurrentTID.AccessibleDescription = "The Terminal ID used by supported online apps."
         For Each warning In New Label() {lblInvalidUID, lblInvalidTID}
             warning.AutoSize = False
             warning.Dock = DockStyle.Fill
@@ -1093,16 +1112,16 @@ Partial Public Class MainForm
             warning.Margin = New Padding(10, 0, 4, 0)
             warning.TextAlign = ContentAlignment.MiddleLeft
         Next
-        networkForm.Controls.Add(CreateSettingsFieldLabel("Current UID"), 0, 0)
+        networkForm.Controls.Add(CreateSettingsFieldLabel("Network UID"), 0, 0)
         networkForm.Controls.Add(txtCurrentUID, 1, 0)
         networkForm.Controls.Add(lblInvalidUID, 2, 0)
-        networkForm.Controls.Add(CreateSettingsFieldLabel("Current TID"), 0, 1)
+        networkForm.Controls.Add(CreateSettingsFieldLabel("Terminal ID"), 0, 1)
         networkForm.Controls.Add(txtCurrentTID, 1, 1)
         networkForm.Controls.Add(lblInvalidTID, 2, 1)
         PrepareSettingsInput(chkboxNetworkModifyURLS)
         networkForm.Controls.Add(chkboxNetworkModifyURLS, 0, 2)
         networkForm.SetColumnSpan(chkboxNetworkModifyURLS, 3)
-        btnUpdateNetworkUID.Text = "Update Network Identity"
+        btnUpdateNetworkUID.Text = "Update network identity"
         StyleSettingsButton(btnUpdateNetworkUID, True)
         btnUpdateNetworkUID.Width = 220
         btnUpdateNetworkUID.Margin = New Padding(4, 4, 4, 4)
@@ -1148,7 +1167,7 @@ Partial Public Class MainForm
             .WrapContents = False
         }
         btnVisitKeitaiArchive.Text = "Visit Keitai Archive"
-        btnControls.Text = "Keyboard && Controller Guide"
+        btnControls.Text = "Keyboard && controller guide"
         StyleSettingsButton(btnVisitKeitaiArchive)
         StyleSettingsButton(btnControls)
         btnVisitKeitaiArchive.Width = 150
@@ -1191,6 +1210,8 @@ Partial Public Class MainForm
         Dim charaPage As New TabPage("Chara-Den") With {.BackColor = CompactUiTheme.AppBackground, .Padding = New Padding(4)}
 
         _libraryCategoryTabs = New TabControl With {
+            .AccessibleName = "Library categories",
+            .AccessibleDescription = "Choose Apps, Machi-Chara, or Chara-Den. Use the arrow keys to change categories.",
             .Dock = DockStyle.Fill,
             .Font = New Font("Segoe UI", 9.5F),
             .ItemSize = New Size(128, 28),
@@ -1273,7 +1294,7 @@ Partial Public Class MainForm
         AddHandler GroupBox1.Resize, AddressOf GroupBox1_Resize
         AddHandler GroupBox3.Resize, AddressOf PlayOptions_Resize
         AddHandler ListViewGamesVariants.VisibleChanged, AddressOf Variants_VisibleChanged
-        txtLVSearch.PlaceholderText = "Search English or Japanese titles"
+        txtLVSearch.PlaceholderText = "Search titles"
         cbxFilterType.AccessibleName = "Library filter"
         ListViewGames.MultiSelect = False
         ListViewGames.HideSelection = False
@@ -1283,6 +1304,8 @@ Partial Public Class MainForm
         If _libraryRoot Is Nothing OrElse _downloadQueueBorder IsNot Nothing Then Return
 
         _downloadQueueBorder = New Panel With {
+            .AccessibleName = "Download status",
+            .AccessibleDescription = "Shows the current download and the number of queued downloads.",
             .BackColor = CompactUiTheme.Border,
             .Dock = DockStyle.Fill,
             .Margin = New Padding(4, 6, 4, 4),
@@ -1364,6 +1387,9 @@ Partial Public Class MainForm
         _downloadQueueTitle.Text = title
         _downloadQueueStatus.Text = If(String.IsNullOrWhiteSpace(status), "Working...", status)
         _downloadQueueCount.Text = If(queuedCount > 0, $"{queuedCount} queued", "Current download")
+        _downloadQueueTitle.AccessibleName = title
+        _downloadQueueStatus.AccessibleName = $"Download status: {_downloadQueueStatus.Text}"
+        _downloadQueueCount.AccessibleName = _downloadQueueCount.Text
         If percentage >= 0 Then
             pbGameDL.Style = ProgressBarStyle.Continuous
             pbGameDL.Value = Math.Max(pbGameDL.Minimum, Math.Min(pbGameDL.Maximum, percentage))
@@ -1507,6 +1533,8 @@ Partial Public Class MainForm
         }
 
         _cbxMachiCharaLauncher = New ComboBox With {
+            .AccessibleName = "Open Machi-Chara with",
+            .AccessibleDescription = "Choose which emulator or companion app opens installed Machi-Chara files.",
             .Dock = DockStyle.Fill,
             .DropDownStyle = ComboBoxStyle.DropDownList,
             .Font = New Font("Segoe UI", 9.5F),
@@ -1566,6 +1594,10 @@ Partial Public Class MainForm
             StringComparison.OrdinalIgnoreCase)
 
         chkboxMachiCharaLocalEmulator.Enabled = usingOfficialSdk
+        chkboxMachiCharaLocalEmulator.AccessibleDescription = If(
+            usingOfficialSdk,
+            "Run the official SDK through Locale Emulator.",
+            "Available only when Official SDK emulator is selected above.")
         If Not usingOfficialSdk Then
             chkboxMachiCharaLocalEmulator.Checked = False
         End If
@@ -1915,6 +1947,8 @@ Partial Public Class MainForm
         gbxGameInfo.Text = "App details"
         panelDynamic.Controls.Add(CreateEmptyStateLabel("Select an app to see details and available actions."))
         SetGameActionAvailability(False, False)
+        SetActionGuidance(btnLaunchGame, "Select an app before choosing Play or Download.")
+        SetActionGuidance(_btnGameActions, "Select an app to see its additional actions.")
     End Sub
 
     Public Sub ShowSelectedGameSummary(game As Game, installed As Boolean, offline As Boolean)
@@ -2018,6 +2052,8 @@ Partial Public Class MainForm
             cmsGameLV_Download.Enabled = False
             cmsGameLV_Delete.Enabled = False
             OpenGameFolderToolStripMenuItem.Enabled = False
+            SetActionGuidance(btnLaunchGame, $"{game.ENTitle} is still downloading or installing. Wait for it to finish before opening it.")
+            SetActionGuidance(_btnGameActions, "Open additional actions. Actions that need installed files remain unavailable until the download finishes.")
             Return
         End If
 
@@ -2035,6 +2071,16 @@ Partial Public Class MainForm
         cmsGameLV_Download.Text = If(installed, "Redownload", "Download")
         cmsGameLV_Delete.Enabled = installed
         OpenGameFolderToolStripMenuItem.Enabled = installed
+        If installed Then
+            SetActionGuidance(btnLaunchGame, $"Play {game.ENTitle}.")
+            SetActionGuidance(_btnGameActions, "Open additional actions for the selected app.")
+        ElseIf canDownload Then
+            SetActionGuidance(btnLaunchGame, $"Download and install {game.ENTitle}.")
+            SetActionGuidance(_btnGameActions, "Open additional actions. Install the app to enable file and save-data actions.")
+        Else
+            SetActionGuidance(btnLaunchGame, $"{game.ENTitle} is not installed. Connect to the internet to download it.")
+            SetActionGuidance(_btnGameActions, "Open additional actions. Install the app to enable file and save-data actions.")
+        End If
     End Sub
 
     Private Sub SetGameActionAvailability(hasSelection As Boolean, installed As Boolean, Optional canDownload As Boolean = False)
@@ -2112,6 +2158,9 @@ Partial Public Class MainForm
         _btnMachiActions.Enabled = False
         _actionMachiRedownload.Enabled = False
         _actionMachiDelete.Enabled = False
+        SetStatusGuidance(_lblMachiStatus, "Select a Machi-Chara to enable its actions.")
+        SetActionGuidance(btnMachiCharaLaunch, "Select a Machi-Chara before choosing Play or Download.")
+        SetActionGuidance(_btnMachiActions, "Select a Machi-Chara to see its additional actions.")
     End Sub
 
     Public Sub UpdateMachiCharaSelectionState(item As MachiChara)
@@ -2133,6 +2182,9 @@ Partial Public Class MainForm
             _actionMachiDelete.Enabled = False
             DownloadCMS_MachiChara.Enabled = False
             DeleteCMS_MachiChara.Enabled = False
+            SetStatusGuidance(_lblMachiStatus, "Wait for this download and installation to finish before opening the item or using file actions.")
+            SetActionGuidance(btnMachiCharaLaunch, $"{item.ENTitle} is still downloading or installing. Wait for it to finish before opening it.")
+            SetActionGuidance(_btnMachiActions, "Additional file actions become available after installation finishes.")
             Return
         End If
 
@@ -2151,6 +2203,19 @@ Partial Public Class MainForm
         DownloadCMS_MachiChara.Text = If(installed, "Redownload", If(downloadFailed, "Try again", "Download"))
         DownloadCMS_MachiChara.Enabled = isOnline
         DeleteCMS_MachiChara.Enabled = installed
+        If installed Then
+            SetStatusGuidance(_lblMachiStatus, "Installed and ready to play. Additional actions are available.")
+            SetActionGuidance(btnMachiCharaLaunch, $"Play {item.ENTitle}.")
+            SetActionGuidance(_btnMachiActions, "Open additional actions for the selected Machi-Chara.")
+        ElseIf isOnline Then
+            SetStatusGuidance(_lblMachiStatus, "Download this Machi-Chara to enable Play and additional file actions.")
+            SetActionGuidance(btnMachiCharaLaunch, $"Download and install {item.ENTitle}.")
+            SetActionGuidance(_btnMachiActions, "Install this Machi-Chara to enable additional actions.")
+        Else
+            SetStatusGuidance(_lblMachiStatus, "Connect to the internet to download this Machi-Chara. Installed items remain playable offline.")
+            SetActionGuidance(btnMachiCharaLaunch, $"{item.ENTitle} is not installed. Connect to the internet to download it.")
+            SetActionGuidance(_btnMachiActions, "Install this Machi-Chara to enable additional actions.")
+        End If
     End Sub
 
     Public Sub ShowNoCharaDenSelected()
@@ -2163,6 +2228,9 @@ Partial Public Class MainForm
         _btnCharaActions.Enabled = False
         _actionCharaRedownload.Enabled = False
         _actionCharaDelete.Enabled = False
+        SetStatusGuidance(_lblCharaStatus, "Select a Chara-Den to enable its actions.")
+        SetActionGuidance(btnCharaDenLaunch, "Select a Chara-Den before choosing Play or Download.")
+        SetActionGuidance(_btnCharaActions, "Select a Chara-Den to see its additional actions.")
     End Sub
 
     Public Sub UpdateCharaDenSelectionState(item As CharaDen)
@@ -2184,6 +2252,9 @@ Partial Public Class MainForm
             _actionCharaDelete.Enabled = False
             DownloadCMS_CharaDen.Enabled = False
             DeleteCMS_CharaDen.Enabled = False
+            SetStatusGuidance(_lblCharaStatus, "Wait for this download and installation to finish before opening the item or using file actions.")
+            SetActionGuidance(btnCharaDenLaunch, $"{item.ENTitle} is still downloading or installing. Wait for it to finish before opening it.")
+            SetActionGuidance(_btnCharaActions, "Additional file actions become available after installation finishes.")
             Return
         End If
 
@@ -2202,6 +2273,19 @@ Partial Public Class MainForm
         DownloadCMS_CharaDen.Text = If(installed, "Redownload", If(downloadFailed, "Try again", "Download"))
         DownloadCMS_CharaDen.Enabled = isOnline
         DeleteCMS_CharaDen.Enabled = installed
+        If installed Then
+            SetStatusGuidance(_lblCharaStatus, "Installed and ready to play. Additional actions are available.")
+            SetActionGuidance(btnCharaDenLaunch, $"Play {item.ENTitle}.")
+            SetActionGuidance(_btnCharaActions, "Open additional actions for the selected Chara-Den.")
+        ElseIf isOnline Then
+            SetStatusGuidance(_lblCharaStatus, "Download this Chara-Den to enable Play and additional file actions.")
+            SetActionGuidance(btnCharaDenLaunch, $"Download and install {item.ENTitle}.")
+            SetActionGuidance(_btnCharaActions, "Install this Chara-Den to enable additional actions.")
+        Else
+            SetStatusGuidance(_lblCharaStatus, "Connect to the internet to download this Chara-Den. Installed items remain playable offline.")
+            SetActionGuidance(btnCharaDenLaunch, $"{item.ENTitle} is not installed. Connect to the internet to download it.")
+            SetActionGuidance(_btnCharaActions, "Install this Chara-Den to enable additional actions.")
+        End If
     End Sub
 
     Private Function BuildCharacterMetadata(japaneseTitle As String, fileName As String) As String

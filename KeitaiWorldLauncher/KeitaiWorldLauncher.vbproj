@@ -46,6 +46,17 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Update="MainForm.Accessibility.vb">
+      <DependentUpon>MainForm.vb</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- This partial class contains code only. Ignore any empty .resx that the
+         Visual Studio designer may try to create for it, since MainForm.resx
+         already owns the MainForm resource name. -->
+    <EmbeddedResource Remove="MainForm.Accessibility.resx" />
   </ItemGroup>
 
   <ItemGroup>

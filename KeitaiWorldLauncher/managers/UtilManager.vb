@@ -3216,6 +3216,11 @@ Namespace My.Managers
         End Sub)
         End Function
         Public Async Function EnableDisableHP903iSound(STARLOCATION As String, DOJALOCATION As String, TOOLFOLDER As String, EnableDisable As Boolean) As Task
+            If IsOpenDojaSdkLocation(STARLOCATION) OrElse IsOpenDojaSdkLocation(DOJALOCATION) Then
+                logger.Logger.LogInfo("Skipping high-performance emulator changes because OpenDoJa is the selected SDK.")
+                Return
+            End If
+
             Dim SoundHPFolder As String = Path.Combine(TOOLFOLDER, "highperformancemodules", "sound")
             Dim emulatorLocations() As String = {STARLOCATION, DOJALOCATION}
 
@@ -3246,6 +3251,11 @@ Namespace My.Managers
             Next
         End Function
         Public Async Function EnableDisableHighPerformanceEmulators(STARLOCATION As String, DOJALOCATION As String, TOOLFOLDER As String, EnableDisable As Boolean) As Task
+            If IsOpenDojaSdkLocation(STARLOCATION) OrElse IsOpenDojaSdkLocation(DOJALOCATION) Then
+                logger.Logger.LogInfo("Skipping high-performance emulator changes because OpenDoJa is the selected SDK.")
+                Return
+            End If
+
             Dim DojaBinFolder As String = Path.Combine(DOJALOCATION, "bin")
             Dim StarBinFolder As String = Path.Combine(STARLOCATION, "bin")
 
@@ -3321,6 +3331,14 @@ Namespace My.Managers
                 End If
             End If
         End Sub)
+        End Function
+
+        Private Shared Function IsOpenDojaSdkLocation(location As String) As Boolean
+            If String.IsNullOrWhiteSpace(location) Then Return False
+
+            Dim normalizedLocation = location.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            Dim sdkFolderName = Path.GetFileName(normalizedLocation)
+            Return sdkFolderName.StartsWith("opendoja", StringComparison.OrdinalIgnoreCase)
         End Function
 
         'EZWeb Helper

@@ -25,7 +25,8 @@ Public Class UIDialogManager
         Optional tone As CompactDialogTone = CompactDialogTone.Information,
         Optional defaultToCancel As Boolean = False
     ) As DialogResult
-        Using dialog As New CompactDialogForm(title, message, confirmText, cancelText, True, tone, defaultToCancel)
+        Dim useSafeDefault = defaultToCancel OrElse tone = CompactDialogTone.Danger
+        Using dialog As New CompactDialogForm(title, message, confirmText, cancelText, True, tone, useSafeDefault)
             Return ShowOwnedDialog(dialog, owner)
         End Using
     End Function
@@ -177,6 +178,7 @@ Public Class UIDialogManager
             ShowInTaskbar = False
             StartPosition = FormStartPosition.CenterParent
             Text = title
+            AccessibleName = title
 
             Dim layout As New TableLayoutPanel With {
                 .BackColor = CompactUiTheme.Surface,
@@ -203,6 +205,7 @@ Public Class UIDialogManager
                 .Margin = New Padding(0)
             }
             Dim titleLabel As New Label With {
+                .AccessibleName = $"Dialog title: {title}",
                 .AutoEllipsis = True,
                 .Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
@@ -258,6 +261,11 @@ Public Class UIDialogManager
             Optional tone As CompactDialogTone = CompactDialogTone.Information
         ) As Button
             Dim primaryButton = CompactUiTheme.CreateCompactButton(primaryText, True)
+            primaryButton.AccessibleName = primaryText
+            primaryButton.AccessibleDescription = If(
+                tone = CompactDialogTone.Danger,
+                "Complete the destructive action.",
+                "Complete the primary dialog action.")
             primaryButton.DialogResult = primaryResult
             primaryButton.Size = New Size(128, 34)
             primaryButton.Location = New Point(FooterHost.Width - primaryButton.Width - 18, 14)
@@ -273,12 +281,15 @@ Public Class UIDialogManager
 
             If Not String.IsNullOrWhiteSpace(secondaryText) Then
                 Dim secondaryButton = CompactUiTheme.CreateCompactButton(secondaryText)
+                secondaryButton.AccessibleName = secondaryText
+                secondaryButton.AccessibleDescription = "Cancel this action and close the dialog."
                 secondaryButton.DialogResult = secondaryResult
                 secondaryButton.Size = New Size(100, 34)
                 secondaryButton.Location = New Point(primaryButton.Left - secondaryButton.Width - 10, 14)
                 secondaryButton.Anchor = AnchorStyles.Top Or AnchorStyles.Right
                 FooterHost.Controls.Add(secondaryButton)
                 CancelButton = secondaryButton
+                If tone = CompactDialogTone.Danger Then AcceptButton = secondaryButton
             End If
             Return primaryButton
         End Function
@@ -518,17 +529,23 @@ Public Class UIDialogManager
                 .Multiline = True,
                 .ReadOnly = True,
                 .ScrollBars = ScrollBars.Vertical,
-                .TabStop = False,
+                .TabStop = True,
                 .Text = details
             }
             ContentHost.Controls.Add(detailsBox)
+            detailsBox.AccessibleName = "Details"
+            detailsBox.AccessibleDescription = details
             Dim actionButton As Button
             If showSecondaryAction Then
                 actionButton = ConfigureActions(primaryText, DialogResult.Yes, secondaryText, DialogResult.No, tone)
             Else
                 actionButton = ConfigureActions(primaryText, DialogResult.OK, String.Empty, DialogResult.Cancel, tone)
             End If
-            AddHandler Shown, Sub() actionButton.Focus()
+            AddHandler Shown,
+                Sub()
+                    Dim defaultButton = TryCast(AcceptButton, Button)
+                    If defaultButton IsNot Nothing Then defaultButton.Focus() Else actionButton.Focus()
+                End Sub
         End Sub
     End Class
 
@@ -549,6 +566,8 @@ Public Class UIDialogManager
             guideLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 56.0F))
             guideLayout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
             Dim bindingsBox As New TextBox With {
+                .AccessibleName = "Keyboard and controller bindings",
+                .AccessibleDescription = "Read-only keyboard and controller reference. Use the arrow keys or Page Up and Page Down to scroll.",
                 .BackColor = Color.FromArgb(249, 250, 252),
                 .BorderStyle = BorderStyle.FixedSingle,
                 .Dock = DockStyle.Fill,
@@ -558,7 +577,7 @@ Public Class UIDialogManager
                 .Multiline = True,
                 .ReadOnly = True,
                 .ScrollBars = ScrollBars.Vertical,
-                .TabStop = False,
+                .TabStop = True,
                 .Text = keybindText
             }
             Dim imageSurface As New Panel With {
@@ -569,6 +588,7 @@ Public Class UIDialogManager
             }
             If guideImage Is Nothing Then
                 imageSurface.Controls.Add(New Label With {
+                    .AccessibleName = "Controller diagram unavailable",
                     .Dock = DockStyle.Fill,
                     .Font = New Font("Segoe UI", 9.0F),
                     .ForeColor = CompactUiTheme.TextSecondary,
@@ -577,6 +597,7 @@ Public Class UIDialogManager
                 })
             Else
                 imageSurface.Controls.Add(New PictureBox With {
+                    .AccessibleName = "Controller reference diagram",
                     .Dock = DockStyle.Fill,
                     .Image = guideImage,
                     .SizeMode = PictureBoxSizeMode.Zoom
@@ -618,6 +639,8 @@ Public Class UIDialogManager
             ShowInTaskbar = False
             StartPosition = FormStartPosition.CenterParent
             Text = title
+            AccessibleName = title
+            AccessibleDescription = message
 
             Dim accentColor = GetToneColor(tone)
             Dim messageFont As New Font("Segoe UI", 9.5F)
@@ -641,6 +664,7 @@ Public Class UIDialogManager
             }
 
             Dim titleLabel As New Label With {
+                .AccessibleName = $"Dialog title: {title}",
                 .AutoEllipsis = True,
                 .Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
@@ -683,8 +707,8 @@ Public Class UIDialogManager
                     .Location = New Point(HorizontalPadding, messageTop),
                     .Multiline = True,
                     .ReadOnly = True,
-                .ScrollBars = ScrollBars.Vertical,
-                    .TabStop = False,
+                    .ScrollBars = ScrollBars.Vertical,
+                    .TabStop = True,
                     .Size = New Size(availableTextWidth, messageHeight),
                     .Text = message
                 }
@@ -698,6 +722,8 @@ Public Class UIDialogManager
                     .TextAlign = ContentAlignment.TopLeft
                 }
             End If
+            messageControl.AccessibleName = "Message"
+            messageControl.AccessibleDescription = message
 
             Dim footer As New Panel With {
                 .BackColor = CompactUiTheme.AppBackground,
@@ -706,6 +732,11 @@ Public Class UIDialogManager
             }
 
             Dim primaryButton = CompactUiTheme.CreateCompactButton(primaryText, True)
+            primaryButton.AccessibleName = primaryText
+            primaryButton.AccessibleDescription = If(
+                tone = CompactDialogTone.Danger,
+                "Complete the destructive action.",
+                "Complete the primary dialog action.")
             primaryButton.DialogResult = If(showSecondaryAction, DialogResult.Yes, DialogResult.OK)
             primaryButton.Size = New Size(112, 34)
             primaryButton.Location = New Point(footer.Width - primaryButton.Width - 18, 14)
@@ -720,12 +751,14 @@ Public Class UIDialogManager
 
             If showSecondaryAction Then
                 Dim secondaryButton = CompactUiTheme.CreateCompactButton(secondaryText)
+                secondaryButton.AccessibleName = secondaryText
+                secondaryButton.AccessibleDescription = "Cancel this action and close the dialog."
                 secondaryButton.DialogResult = DialogResult.No
                 secondaryButton.Size = New Size(92, 34)
                 secondaryButton.Location = New Point(primaryButton.Left - secondaryButton.Width - 10, 14)
                 footer.Controls.Add(secondaryButton)
                 CancelButton = secondaryButton
-                If defaultToSecondary Then AcceptButton = secondaryButton
+                If defaultToSecondary OrElse tone = CompactDialogTone.Danger Then AcceptButton = secondaryButton
             Else
                 CancelButton = closeButton
             End If
@@ -739,6 +772,11 @@ Public Class UIDialogManager
             })
 
             AddHandler closeButton.Click, Sub() Close()
+            AddHandler Shown,
+                Sub()
+                    Dim defaultButton = TryCast(AcceptButton, Button)
+                    If defaultButton IsNot Nothing Then defaultButton.Focus()
+                End Sub
         End Sub
 
         Protected Overrides Sub OnShown(e As EventArgs)

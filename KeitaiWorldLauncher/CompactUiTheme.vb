@@ -1,7 +1,11 @@
+Imports System.Collections.Generic
 Imports System.Drawing
+Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
 
 Public Module CompactUiTheme
+    Private ReadOnly FocusCueButtons As New HashSet(Of Button)()
+
     Public ReadOnly AppBackground As Color = Color.FromArgb(246, 247, 251)
     Public ReadOnly Surface As Color = Color.White
     Public ReadOnly Border As Color = Color.FromArgb(218, 222, 230)
@@ -37,6 +41,7 @@ Public Module CompactUiTheme
     End Function
 
     Public Sub StylePrimaryButton(button As Button)
+        EnableFocusCue(button)
         button.FlatAppearance.MouseOverBackColor = PrimaryHover
         button.FlatAppearance.MouseDownBackColor = PrimaryHover
         RemoveHandler button.EnabledChanged, AddressOf PrimaryButton_EnabledChanged
@@ -56,6 +61,7 @@ Public Module CompactUiTheme
     End Sub
 
     Public Sub StyleSecondaryButton(button As Button)
+        EnableFocusCue(button)
         button.BackColor = Surface
         button.ForeColor = TextPrimary
         button.FlatAppearance.BorderColor = Border
@@ -77,5 +83,45 @@ Public Module CompactUiTheme
         label.Padding = New Padding(6, 0, 6, 0)
         label.BackColor = If(installed, SuccessBackground, NeutralBackground)
         label.ForeColor = If(installed, Success, TextSecondary)
+        label.AccessibleRole = AccessibleRole.StaticText
+        label.AccessibleName = $"Status: {text}"
+        label.AccessibleDescription = text
+    End Sub
+
+    Public Sub EnableFocusCue(button As Button)
+        If button Is Nothing OrElse FocusCueButtons.Contains(button) Then Return
+
+        FocusCueButtons.Add(button)
+        button.AccessibleRole = AccessibleRole.PushButton
+        If String.IsNullOrWhiteSpace(button.AccessibleName) Then
+            button.AccessibleName = button.Text.Replace("&", String.Empty).Replace(ChrW(&H25BE), String.Empty).Trim()
+        End If
+        AddHandler button.Enter, AddressOf FocusCueButton_Changed
+        AddHandler button.Leave, AddressOf FocusCueButton_Changed
+        AddHandler button.Paint, AddressOf FocusCueButton_Paint
+        AddHandler button.Disposed, AddressOf FocusCueButton_Disposed
+    End Sub
+
+    Private Sub FocusCueButton_Changed(sender As Object, e As EventArgs)
+        TryCast(sender, Button)?.Invalidate()
+    End Sub
+
+    Private Sub FocusCueButton_Paint(sender As Object, e As PaintEventArgs)
+        Dim button = TryCast(sender, Button)
+        If button Is Nothing OrElse Not button.Focused OrElse Not button.Enabled Then Return
+
+        Dim focusColor = If(SystemInformation.HighContrast, SystemColors.Highlight, Accent)
+        Dim focusBounds = Rectangle.Inflate(button.ClientRectangle, -3, -3)
+        If focusBounds.Width <= 0 OrElse focusBounds.Height <= 0 Then Return
+
+        Using focusPen As New Pen(focusColor, 2.0F) With {.DashStyle = DashStyle.Dot}
+            e.Graphics.DrawRectangle(focusPen, focusBounds.Left, focusBounds.Top, focusBounds.Width - 1, focusBounds.Height - 1)
+        End Using
+    End Sub
+
+    Private Sub FocusCueButton_Disposed(sender As Object, e As EventArgs)
+        Dim button = TryCast(sender, Button)
+        If button Is Nothing Then Return
+        FocusCueButtons.Remove(button)
     End Sub
 End Module
