@@ -19,6 +19,7 @@ Partial Public Class MainForm
 
     Private _gameActionBar As FlowLayoutPanel
     Private _btnGameActions As Button
+    Private _btnAppGacha As Button
     Private _gameActionsMenu As ContextMenuStrip
     Private _actionRedownload As ToolStripMenuItem
     Private _actionBackupSave As ToolStripMenuItem
@@ -1294,6 +1295,7 @@ Partial Public Class MainForm
         _appLibraryGrid.Controls.Add(rightPanel, 1, 0)
 
         BuildGameActionBar()
+        BuildAppGachaButton()
         BuildDownloadQueueBar()
         RepositionCompactLaunchOptions()
 
@@ -1304,6 +1306,20 @@ Partial Public Class MainForm
         cbxFilterType.AccessibleName = "Library filter"
         ListViewGames.MultiSelect = False
         ListViewGames.HideSelection = False
+    End Sub
+
+    Private Sub BuildAppGachaButton()
+        If _btnAppGacha IsNot Nothing Then Return
+
+        _btnAppGacha = CompactUiTheme.CreateCompactButton("App Gacha")
+        _btnAppGacha.Name = "btnAppGacha"
+        _btnAppGacha.Size = New Size(106, 25)
+        _btnAppGacha.Padding = New Padding(4, 0, 4, 0)
+        _btnAppGacha.Margin = New Padding(0)
+        GroupBox1.Controls.Add(_btnAppGacha)
+        _btnAppGacha.BringToFront()
+
+        AddHandler _btnAppGacha.Click, AddressOf AppGacha_Click
     End Sub
 
     Private Sub BuildDownloadQueueBar()
@@ -1817,7 +1833,27 @@ Partial Public Class MainForm
         cbxFilterType.Width = Math.Min(136, Math.Max(110, contentWidth \ 3))
         cbxFilterType.Left = GroupBox1.ClientSize.Width - cbxFilterType.Width - 4
         txtLVSearch.Left = 5
-        txtLVSearch.Width = Math.Max(120, cbxFilterType.Left - txtLVSearch.Left - 5)
+        If _btnAppGacha IsNot Nothing Then
+            Const headerGap As Integer = 5
+            Const minimumSearchWidth As Integer = 120
+            Dim preferredButtonWidth = If(GroupBox1.ClientSize.Width >= 440, 106, 96)
+            Dim availableButtonWidth = cbxFilterType.Left - txtLVSearch.Left - (headerGap * 2) - minimumSearchWidth
+            Dim showGachaButton = availableButtonWidth >= 82
+            _btnAppGacha.Visible = showGachaButton
+            If showGachaButton Then
+                _btnAppGacha.Width = Math.Min(preferredButtonWidth, availableButtonWidth)
+                _btnAppGacha.SetBounds(
+                    cbxFilterType.Left - _btnAppGacha.Width - headerGap,
+                    txtLVSearch.Top - 1,
+                    _btnAppGacha.Width,
+                    txtLVSearch.Height + 2)
+                txtLVSearch.Width = Math.Max(minimumSearchWidth, _btnAppGacha.Left - txtLVSearch.Left - headerGap)
+            Else
+                txtLVSearch.Width = Math.Max(minimumSearchWidth, cbxFilterType.Left - txtLVSearch.Left - headerGap)
+            End If
+        Else
+            txtLVSearch.Width = Math.Max(120, cbxFilterType.Left - txtLVSearch.Left - 5)
+        End If
 
         Dim footerTop = Panel1.Top
         If footerTop <= 0 Then footerTop = GroupBox1.ClientSize.Height - Panel1.Height - 2
@@ -2147,6 +2183,79 @@ Partial Public Class MainForm
             btnLaunchGame.PerformClick()
         Else
             Await DownloadGames(True, True)
+            If ListViewGames.SelectedItems.Count > 0 Then
+                UpdateGameSelectionState(TryCast(ListViewGames.SelectedItems(0).Tag, Game))
+                RefreshGameHighlighting()
+            End If
+        End If
+    End Sub
+
+    Private Async Sub AppGacha_Click(sender As Object, e As EventArgs)
+        Dim candidates As New List(Of ListViewItem)()
+        Dim currentItem As ListViewItem = If(
+            ListViewGames.SelectedItems.Count > 0,
+            ListViewGames.SelectedItems(0),
+            Nothing)
+
+        For Each item As ListViewItem In ListViewGames.Items
+            Dim game = TryCast(item.Tag, Game)
+            If game IsNot Nothing AndAlso Not IsGameDownloadBusy(game) Then
+                candidates.Add(item)
+            End If
+        Next
+
+        If candidates.Count = 0 Then
+            NotificationManager.ShowInformation(
+                Me,
+                "No apps in this gacha pool",
+                "Try clearing the current search or filter. Apps already downloading are skipped.")
+            Return
+        End If
+
+        ' Avoid immediately choosing the same app when another visible result exists.
+        If candidates.Count > 1 AndAlso currentItem IsNot Nothing Then
+            candidates.Remove(currentItem)
+        End If
+
+        Dim selectedItem = candidates(Random.Shared.Next(candidates.Count))
+        Dim selectedGame = TryCast(selectedItem.Tag, Game)
+        If selectedGame Is Nothing Then Return
+
+        Dim installed = IsGameInstalled(selectedGame)
+        Dim result = UIDialogManager.ShowGachaReveal(
+            Me,
+            selectedGame.ENTitle,
+            selectedGame.Emulator,
+            installed,
+            isOnline)
+
+        ' Keep the result hidden in the Library until the capsule has opened.
+        ' Once the reveal closes, leave that app selected even when it is skipped
+        ' or cannot be downloaded while offline.
+        ListViewGames.BeginUpdate()
+        Try
+            While ListViewGames.SelectedItems.Count > 0
+                ListViewGames.SelectedItems(0).Selected = False
+            End While
+            selectedItem.Selected = True
+            selectedItem.Focused = True
+            selectedItem.EnsureVisible()
+        Finally
+            ListViewGames.EndUpdate()
+        End Try
+        ListViewGames.Focus()
+
+        selectionTimer.Stop()
+        If Not Await PrepareSelectedGameAsync(selectedGame) Then Return
+
+        If result <> DialogResult.Yes Then Return
+
+        If installed Then
+            btnLaunchGame.PerformClick()
+        Else
+            ' The gacha result's Download button is the explicit confirmation,
+            ' so queue the app without presenting a second confirmation dialog.
+            Await DownloadGames(True, True, True)
             If ListViewGames.SelectedItems.Count > 0 Then
                 UpdateGameSelectionState(TryCast(ListViewGames.SelectedItems(0).Tag, Game))
                 RefreshGameHighlighting()

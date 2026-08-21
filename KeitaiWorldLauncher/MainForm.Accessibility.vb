@@ -49,6 +49,7 @@ Partial Public Class MainForm
             "Library categories",
             "Apps, Machi-Chara, and Chara-Den. Use the left and right arrow keys to change categories.")
         SetAccessible(txtLVSearch, "Search apps", "Search titles. Press Control+F from the Library to return here.")
+        SetAccessible(_btnAppGacha, "Roll App Gacha", "Reveal a random app from the current results, then choose whether to play or download it.")
         SetAccessible(cbxFilterType, "Filter apps", "Choose which apps appear in the list.")
         SetAccessible(ListViewGames, "Apps", "Use the arrow keys to choose an app. Press Enter or double-click to play or download it.")
         SetAccessible(ListViewGamesVariants, "App variants", "Use the arrow keys to choose a variant. Press Enter to select it.")
@@ -88,6 +89,7 @@ Partial Public Class MainForm
         ConfigureSettingsAccessibleMetadata()
 
         SetGuidance(txtLVSearch, "Search apps (Control+F)")
+        SetGuidance(_btnAppGacha, "Reveal a random app from the current search and filter")
         SetGuidance(cbxFilterType, "Filter the app list")
         SetGuidance(chkbxLocalEmulator, "Run supported SDKs through Locale Emulator")
         SetGuidance(chkbxShaderGlass, "Apply the selected ShaderGlass filter")
@@ -134,9 +136,10 @@ Partial Public Class MainForm
 
         GroupBox1.TabIndex = 0
         txtLVSearch.TabIndex = 0
-        cbxFilterType.TabIndex = 1
-        ListViewGames.TabIndex = 2
-        ListViewGamesVariants.TabIndex = 3
+        _btnAppGacha.TabIndex = 1
+        cbxFilterType.TabIndex = 2
+        ListViewGames.TabIndex = 3
+        ListViewGamesVariants.TabIndex = 4
 
         _gameActionBar.TabIndex = 0
         btnLaunchGame.TabIndex = 0

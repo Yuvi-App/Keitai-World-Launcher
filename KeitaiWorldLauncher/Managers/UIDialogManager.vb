@@ -1,4 +1,5 @@
 Imports System.Drawing
+Imports System.Drawing.Drawing2D
 Imports System.Windows.Forms
 
 Public Enum CompactDialogTone
@@ -39,6 +40,18 @@ Public Class UIDialogManager
         Optional tone As CompactDialogTone = CompactDialogTone.Information
     ) As DialogResult
         Using dialog As New CompactDialogForm(title, message, buttonText, String.Empty, False, tone)
+            Return ShowOwnedDialog(dialog, owner)
+        End Using
+    End Function
+
+    Public Function ShowGachaReveal(
+        owner As Form,
+        appTitle As String,
+        platform As String,
+        isInstalled As Boolean,
+        canDownload As Boolean
+    ) As DialogResult
+        Using dialog As New CompactGachaDialog(appTitle, platform, isInstalled, canDownload)
             Return ShowOwnedDialog(dialog, owner)
         End Using
     End Function
@@ -546,6 +559,284 @@ Public Class UIDialogManager
                     Dim defaultButton = TryCast(AcceptButton, Button)
                     If defaultButton IsNot Nothing Then defaultButton.Focus() Else actionButton.Focus()
                 End Sub
+        End Sub
+    End Class
+
+    Private NotInheritable Class CompactGachaDialog
+        Inherits CompactCustomDialogForm
+
+        Private ReadOnly _capsule As GachaCapsuleControl
+        Private ReadOnly _stateLabel As Label
+        Private ReadOnly _titleLabel As Label
+        Private ReadOnly _detailLabel As Label
+        Private ReadOnly _actionButton As Button
+        Private ReadOnly _appTitle As String
+        Private ReadOnly _platform As String
+        Private ReadOnly _isInstalled As Boolean
+        Private ReadOnly _canDownload As Boolean
+
+        Public Sub New(appTitle As String, platform As String, isInstalled As Boolean, canDownload As Boolean)
+            MyBase.New("App Gacha", 500, 440, CompactDialogTone.Information)
+
+            _appTitle = If(String.IsNullOrWhiteSpace(appTitle), "Mystery app", appTitle.Trim())
+            _platform = FormatPlatformName(platform)
+            _isInstalled = isInstalled
+            _canDownload = canDownload
+
+            Dim revealLayout As New TableLayoutPanel With {
+                .BackColor = CompactUiTheme.Surface,
+                .ColumnCount = 1,
+                .Dock = DockStyle.Fill,
+                .Margin = New Padding(0),
+                .RowCount = 4
+            }
+            revealLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+            revealLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 154.0F))
+            revealLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 26.0F))
+            revealLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 58.0F))
+            revealLayout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+
+            _capsule = New GachaCapsuleControl With {
+                .AccessibleName = "App Gacha capsule",
+                .AccessibleDescription = "An animated capsule that opens to reveal a random app.",
+                .Dock = DockStyle.Fill,
+                .Margin = New Padding(0)
+            }
+            _stateLabel = New Label With {
+                .AccessibleName = "Gacha status",
+                .Dock = DockStyle.Fill,
+                .Font = New Font("Segoe UI Semibold", 8.7F, FontStyle.Bold),
+                .ForeColor = CompactUiTheme.Primary,
+                .Text = "Rolling the capsule...",
+                .TextAlign = ContentAlignment.MiddleCenter
+            }
+            _titleLabel = New Label With {
+                .AccessibleName = "Gacha result",
+                .AutoEllipsis = True,
+                .Dock = DockStyle.Fill,
+                .Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold),
+                .ForeColor = CompactUiTheme.TextPrimary,
+                .Text = "???",
+                .TextAlign = ContentAlignment.MiddleCenter
+            }
+            _detailLabel = New Label With {
+                .AccessibleName = "Gacha result details",
+                .Dock = DockStyle.Fill,
+                .Font = New Font("Segoe UI", 9.0F),
+                .ForeColor = CompactUiTheme.TextSecondary,
+                .Text = "The result comes from your current search and filter.",
+                .TextAlign = ContentAlignment.TopCenter
+            }
+
+            revealLayout.Controls.Add(_capsule, 0, 0)
+            revealLayout.Controls.Add(_stateLabel, 0, 1)
+            revealLayout.Controls.Add(_titleLabel, 0, 2)
+            revealLayout.Controls.Add(_detailLabel, 0, 3)
+            ContentHost.Controls.Add(revealLayout)
+
+            If _isInstalled Then
+                _actionButton = ConfigureActions("Play app", DialogResult.Yes, "Skip", DialogResult.No)
+            ElseIf _canDownload Then
+                _actionButton = ConfigureActions("Download app", DialogResult.Yes, "Skip", DialogResult.No)
+            Else
+                _actionButton = ConfigureActions("Close", DialogResult.OK)
+            End If
+            _actionButton.Enabled = False
+
+            AddHandler _capsule.RevealCompleted, AddressOf Capsule_RevealCompleted
+            AddHandler Shown, Sub() _capsule.StartAnimation()
+        End Sub
+
+        Private Sub Capsule_RevealCompleted(sender As Object, e As EventArgs)
+            _stateLabel.Text = $"{_platform} · Gacha result"
+            _titleLabel.Text = _appTitle
+
+            If _isInstalled Then
+                _detailLabel.Text = "Installed and ready to play. Choose Play app to launch your result."
+            ElseIf _canDownload Then
+                _detailLabel.Text = "Download required. Choose Download app to add your result to the download queue."
+            Else
+                _detailLabel.Text = "Download required, but the launcher is offline. The app will remain selected."
+            End If
+
+            AccessibleDescription = $"App Gacha revealed {_appTitle}. {_detailLabel.Text}"
+            _titleLabel.AccessibleDescription = AccessibleDescription
+            _actionButton.Enabled = True
+            _actionButton.Focus()
+        End Sub
+
+        Private Shared Function FormatPlatformName(platform As String) As String
+            If String.IsNullOrWhiteSpace(platform) Then Return "Unknown platform"
+            Select Case platform.Trim().ToLowerInvariant()
+                Case "doja"
+                    Return "DoJa"
+                Case "star"
+                    Return "Star"
+                Case "jsky"
+                    Return "J-SKY"
+                Case "softbank"
+                    Return "SoftBank"
+                Case "airedge"
+                    Return "AirEdge"
+                Case "vodafone"
+                    Return "Vodafone"
+                Case "ezplus"
+                    Return "EZplus"
+                Case "flash"
+                    Return "Flash"
+                Case Else
+                    Return platform.Trim()
+            End Select
+        End Function
+    End Class
+
+    Private NotInheritable Class GachaCapsuleControl
+        Inherits Control
+
+        Private Const ShakeFrames As Integer = 20
+        Private Const OpenFrames As Integer = 18
+        Private ReadOnly _timer As New System.Windows.Forms.Timer With {.Interval = 33}
+        Private _frame As Integer
+        Private _hasRevealed As Boolean
+
+        Public Event RevealCompleted As EventHandler
+
+        Public Sub New()
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint Or
+                ControlStyles.OptimizedDoubleBuffer Or
+                ControlStyles.ResizeRedraw Or
+                ControlStyles.UserPaint,
+                True)
+            BackColor = CompactUiTheme.Surface
+            TabStop = False
+            AddHandler _timer.Tick, AddressOf AnimationTimer_Tick
+        End Sub
+
+        Public Sub StartAnimation()
+            _frame = 0
+            _hasRevealed = False
+            _timer.Start()
+            Invalidate()
+        End Sub
+
+        Private Sub AnimationTimer_Tick(sender As Object, e As EventArgs)
+            _frame += 1
+            If _frame >= ShakeFrames + OpenFrames + 5 Then
+                _timer.Stop()
+                If Not _hasRevealed Then
+                    _hasRevealed = True
+                    RaiseEvent RevealCompleted(Me, EventArgs.Empty)
+                End If
+            End If
+            Invalidate()
+        End Sub
+
+        Protected Overrides Sub OnPaint(e As PaintEventArgs)
+            MyBase.OnPaint(e)
+            Dim graphics = e.Graphics
+            graphics.SmoothingMode = SmoothingMode.AntiAlias
+
+            Dim centerX = ClientSize.Width / 2.0F
+            Dim centerY = ClientSize.Height / 2.0F + 5.0F
+            Dim diameter = Math.Min(104.0F, Math.Max(72.0F, Math.Min(ClientSize.Width - 36.0F, ClientSize.Height - 28.0F)))
+            Dim shakeOffset As Single = 0.0F
+            If _frame < ShakeFrames Then
+                shakeOffset = CSng(Math.Sin(_frame * 1.9) * Math.Min(7.0, _frame / 2.5))
+            End If
+
+            Dim openProgress As Single = 0.0F
+            If _frame >= ShakeFrames Then
+                openProgress = Math.Min(1.0F, CSng(_frame - ShakeFrames) / OpenFrames)
+            End If
+            Dim easedProgress = 1.0F - CSng(Math.Pow(1.0F - openProgress, 3.0F))
+            Dim separation = 30.0F * easedProgress
+
+            If openProgress > 0.0F Then DrawSparkles(graphics, centerX, centerY, openProgress)
+
+            Dim capsuleBounds As New RectangleF(
+                centerX - (diameter / 2.0F) + shakeOffset,
+                centerY - (diameter / 2.0F),
+                diameter,
+                diameter)
+            DrawCapsuleHalf(graphics, capsuleBounds, True, -separation)
+            DrawCapsuleHalf(graphics, capsuleBounds, False, separation)
+
+            If openProgress < 0.18F Then
+                Dim buttonSize = diameter * 0.22F
+                Dim buttonBounds As New RectangleF(
+                    capsuleBounds.Left + ((diameter - buttonSize) / 2.0F),
+                    capsuleBounds.Top + ((diameter - buttonSize) / 2.0F),
+                    buttonSize,
+                    buttonSize)
+                Using buttonBrush As New SolidBrush(CompactUiTheme.Surface),
+                      buttonPen As New Pen(CompactUiTheme.Primary, 2.0F)
+                    graphics.FillEllipse(buttonBrush, buttonBounds)
+                    graphics.DrawEllipse(buttonPen, buttonBounds)
+                End Using
+            End If
+        End Sub
+
+        Private Shared Sub DrawCapsuleHalf(
+            graphics As Graphics,
+            capsuleBounds As RectangleF,
+            topHalf As Boolean,
+            verticalOffset As Single)
+
+            Dim bounds = capsuleBounds
+            bounds.Y += verticalOffset
+            Using path As New GraphicsPath()
+                If topHalf Then
+                    path.AddArc(bounds, 180.0F, 180.0F)
+                    path.AddLine(bounds.Right, bounds.Top + (bounds.Height / 2.0F), bounds.Left, bounds.Top + (bounds.Height / 2.0F))
+                Else
+                    path.AddArc(bounds, 0.0F, 180.0F)
+                    path.AddLine(bounds.Left, bounds.Top + (bounds.Height / 2.0F), bounds.Right, bounds.Top + (bounds.Height / 2.0F))
+                End If
+                path.CloseFigure()
+
+                Dim fillColor = If(topHalf, CompactUiTheme.Primary, Color.FromArgb(238, 240, 250))
+                Using fillBrush As New SolidBrush(fillColor),
+                      outlinePen As New Pen(CompactUiTheme.PrimaryHover, 3.0F)
+                    graphics.FillPath(fillBrush, path)
+                    graphics.DrawPath(outlinePen, path)
+                End Using
+
+                If topHalf Then
+                    Dim shineBounds As New RectangleF(
+                        bounds.Left + (bounds.Width * 0.22F),
+                        bounds.Top + (bounds.Height * 0.18F),
+                        bounds.Width * 0.18F,
+                        bounds.Height * 0.12F)
+                    Using shineBrush As New SolidBrush(Color.FromArgb(145, Color.White))
+                        graphics.FillEllipse(shineBrush, shineBounds)
+                    End Using
+                End If
+            End Using
+        End Sub
+
+        Private Shared Sub DrawSparkles(graphics As Graphics, centerX As Single, centerY As Single, progress As Single)
+            Dim alpha = Math.Max(0, Math.Min(210, CInt(230 * (1.0F - Math.Abs(progress - 0.7F)))))
+            Using rayPen As New Pen(Color.FromArgb(alpha, CompactUiTheme.Primary), 2.0F),
+                  dotBrush As New SolidBrush(Color.FromArgb(alpha, CompactUiTheme.PrimaryHover))
+                For index = 0 To 7
+                    Dim angle = CSng(index * Math.PI / 4.0)
+                    Dim innerRadius = 34.0F + (progress * 7.0F)
+                    Dim outerRadius = 46.0F + (progress * 24.0F)
+                    graphics.DrawLine(
+                        rayPen,
+                        centerX + CSng(Math.Cos(angle) * innerRadius),
+                        centerY + CSng(Math.Sin(angle) * innerRadius),
+                        centerX + CSng(Math.Cos(angle) * outerRadius),
+                        centerY + CSng(Math.Sin(angle) * outerRadius))
+                Next
+                graphics.FillEllipse(dotBrush, centerX - 3.0F, centerY - 3.0F, 6.0F, 6.0F)
+            End Using
+        End Sub
+
+        Protected Overrides Sub Dispose(disposing As Boolean)
+            If disposing Then _timer.Dispose()
+            MyBase.Dispose(disposing)
         End Sub
     End Class
 

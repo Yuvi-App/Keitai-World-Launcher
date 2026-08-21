@@ -954,7 +954,11 @@ Public Class MainForm
             ListViewGamesVariants.EndUpdate()
         End Try
     End Function
-    Private Async Function DownloadGames(ContextDownload As Boolean, Optional allowDownloadPrompt As Boolean = True) As Task
+    Private Async Function DownloadGames(
+        ContextDownload As Boolean,
+        Optional allowDownloadPrompt As Boolean = True,
+        Optional downloadAlreadyConfirmed As Boolean = False
+    ) As Task
         ' Ensure a game is selected
         If ListViewGames.SelectedItems.Count = 0 Then
             UIDialogManager.ShowMaterialError(Me, "Please select a game")
@@ -1066,13 +1070,17 @@ Public Class MainForm
             End If
 
             ' Game not downloaded - prompt user to download it
-            Dim result = UIDialogManager.ShowConfirmation(
-                Me,
-                "Download app?",
-                $"'{selectedGame.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?",
-                "Download",
-                "Cancel")
-            If result = DialogResult.Yes Then
+            Dim downloadApproved = downloadAlreadyConfirmed
+            If Not downloadApproved Then
+                Dim result = UIDialogManager.ShowConfirmation(
+                    Me,
+                    "Download app?",
+                    $"'{selectedGame.ENTitle}' is not installed yet.{vbCrLf}{vbCrLf}Download it now?",
+                    "Download",
+                    "Cancel")
+                downloadApproved = result = DialogResult.Yes
+            End If
+            If downloadApproved Then
                 Logger.LogInfo($"Queueing download for {selectedGame.DownloadURL}")
                 QueueGameDownload(New QueuedGameDownload With {
                     .Game = selectedGame,
@@ -1631,19 +1639,30 @@ Public Class MainForm
         ' Check if any items are selected
         If ListViewGames.SelectedItems.Count = 0 Then Return
 
-        ' Get selected game title
-        Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
-
         ' Find the game on a background thread
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
 
-        ' Perform actions once after all selections are done
+        Await PrepareSelectedGameAsync(selectedGame)
+    End Sub
+
+    Private Async Function PrepareSelectedGameAsync(selectedGame As Game) As Task(Of Boolean)
+        If selectedGame Is Nothing OrElse ListViewGames.SelectedItems.Count = 0 Then Return False
+        If Not Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, selectedGame) Then Return False
+
+        ' Prepare the selected app's variant and paths before any launch action.
         Await LoadGameVariantsAsync()
+        If ListViewGames.SelectedItems.Count = 0 OrElse
+           Not Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, selectedGame) Then Return False
+
         Await DownloadGames(False, False)
+        If ListViewGames.SelectedItems.Count = 0 OrElse
+           Not Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, selectedGame) Then Return False
+
         EnableButtons(selectedGame)
         UpdateGameSelectionState(selectedGame)
-    End Sub
+        Return True
+    End Function
     Private Async Sub ListViewGamesVariants_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGamesVariants.SelectedIndexChanged
         If _isProgrammaticVariantSelection Then Return
         Await DownloadGames(False, False)
