@@ -21,6 +21,7 @@ Namespace My.Managers
                 MainForm.autoUpdatecharadenList = Boolean.Parse(cfg("AutoUpdateCharaDenList"))
                 MainForm.UseShaderGlass = Boolean.Parse(cfg("UseShaderGlass"))
                 MainForm.UseDialPad = Boolean.Parse(cfg("UseDialPad"))
+                MainForm.EnableKeitaiWiki = Boolean.Parse(cfg("EnableKeitaiWiki"))
                 MainForm.DojaStarHardwareRendering = Boolean.Parse(cfg("DojaStarHardwareRendering"))
                 MainForm.DojaStarHighPerformanceEXE = Boolean.Parse(cfg("DojaStarHighPerformanceEXE"))
                 MainForm.DefaultDOJASDK = cfg("DefaultDOJASDK")

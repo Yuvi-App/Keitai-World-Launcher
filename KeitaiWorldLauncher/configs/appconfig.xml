@@ -13,6 +13,7 @@
   <Setting name="AutoUpdateCharaDenList">true</Setting>
   <Setting name="UseShaderGlass">true</Setting>
   <Setting name="UseDialPad">true</Setting>
+  <Setting name="EnableKeitaiWiki">true</Setting>
   <Setting name="DojaStarHardwareRendering">false</Setting>
   <Setting name="DojaStarHighPerformanceEXE">false</Setting>
   <Setting name="DefaultDOJASDK">OpenDoja</Setting>

@@ -106,6 +106,7 @@ Partial Public Class MainForm
         SetAccessible(btnSaveDataManagement, "Manage save data", "Open the save-data manager.")
         SetAccessible(btnLaunchKey2Pad, "Controller mapping", "Open the keyboard and controller mapping tool.")
         SetAccessible(btnAddCustomApps, "Add custom apps", "Import an app that is not in the online library.")
+        SetAccessible(_chkEnableKeitaiWiki, "Show KeitaiWiki information", "Contact KeitaiWiki in the background to enrich selected-app details. Results are cached locally.")
         SetAccessible(cbxAudioType, "Audio type", "Choose the audio implementation used by DoJa and Star emulators.")
         SetAccessible(cbxInternalRenderingResolution, "Rendering resolution", "Choose the internal rendering resolution.")
         SetAccessible(cbxOpenDojaHostScale, "OpenDoJa host scale", "Choose the OpenDoJa display scale.")
@@ -124,6 +125,7 @@ Partial Public Class MainForm
         SetGuidance(cbxSJMELaunchOption, "Available when SquirrelJME is the selected DoJa SDK")
         SetGuidance(cbxSJMEScaling, "Available when SquirrelJME is the selected DoJa SDK")
         SetGuidance(btnSJMEUpdate, "Available when SquirrelJME is the selected DoJa SDK")
+        SetGuidance(_chkEnableKeitaiWiki, "May make an additional network request when an uncached app is selected")
     End Sub
 
     Private Sub ConfigurePrimaryTabOrder()

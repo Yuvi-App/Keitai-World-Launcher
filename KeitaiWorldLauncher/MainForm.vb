@@ -31,6 +31,7 @@ Public Class MainForm
     Dim UIDialogManager As New UIDialogManager()
     Dim HomepageManager As HomepageManager
     Dim favoritesManager As New FavoritesManager()
+    Dim keitaiWikiManager As New KeitaiWikiManager()
     Public vibrationManager As New VibrationManager()
     Dim pathResolver As New GamePathResolver()
     Dim currentGamePaths As GamePaths = Nothing
@@ -78,6 +79,7 @@ Public Class MainForm
     Public autoUpdatecharadenList As Boolean
     Public UseShaderGlass As Boolean
     Public UseDialPad As Boolean
+    Public EnableKeitaiWiki As Boolean
     Public DojaStarHardwareRendering As Boolean
     Public DojaStarHighPerformanceEXE As Boolean
     Public DefaultDOJASDK As String
@@ -123,6 +125,7 @@ Public Class MainForm
 
     ' FORM Close/Load
     Private Sub MainForm_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
+        CancelKeitaiWikiLookup(True)
         ProcessManager.StopMonitoring()
         vibrationManager.StopMonitoring()
         ProcessManager.CheckAndCloseAllEmulators()
@@ -179,6 +182,7 @@ Public Class MainForm
 
         ' Access and Assign Config settings
         AppLoadManager.LoadConfigValues(config)
+        ApplyKeitaiWikiSettingFromConfig()
         ConfigureMachiCharaLauncherSelection()
 
         ' Get NetworkUID & TerminalID Config
@@ -1009,6 +1013,21 @@ Public Class MainForm
         CurrentSelectedGameJAR = currentGamePaths.JAR
         CurrentSelectedGameSP = currentGamePaths.SP
         CurrentSelectedGameKJX = currentGamePaths.KJX
+
+        ' Library browsing must stay immediate and must never wait on KeitaiWiki.
+        ' Render the normal local details first, then start the optional lookup.
+        If Not ContextDownload AndAlso Not allowDownloadPrompt Then
+            Dim installedForDetails = IsGameInstalled(selectedGame)
+            CancelKeitaiWikiLookup(True)
+            If installedForDetails AndAlso File.Exists(CurrentSelectedGameJAM) Then
+                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
+                AttachKeitaiWikiToCurrentDetails(selectedGame)
+            Else
+                ShowSelectedGameSummary(selectedGame, installedForDetails, Not isOnline)
+            End If
+            UpdateGameSelectionState(selectedGame)
+            Return
+        End If
 
         If IsGameDownloadBusy(selectedGame) Then
             If ContextDownload Then

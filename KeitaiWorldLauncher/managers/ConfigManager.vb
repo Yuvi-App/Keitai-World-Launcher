@@ -21,6 +21,7 @@ Namespace My.Managers
         {"AutoUpdateCharaDenList", "true"},
         {"UseShaderGlass", "true"},
         {"UseDialPad", "true"},
+        {"EnableKeitaiWiki", "false"},
         {"DojaStarHardwareRendering", "false"},
         {"DojaStarHighPerformanceEXE", "false"},
         {"DefaultDOJASDK", "OpenDoja"},

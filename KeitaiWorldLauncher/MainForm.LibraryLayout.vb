@@ -1,10 +1,14 @@
 Imports System.IO
+Imports System.Threading
 Imports KeitaiWorldLauncher.My.logger
 Imports KeitaiWorldLauncher.My.Models
 
 Partial Public Class MainForm
     Private Const MachiCharaOfficialLauncherKey As String = "OfficialSDK"
     Private Const MachiCharaDesktopLauncherKey As String = "MachiCharaDesktop"
+    Private Const KeitaiWikiCardHeight As Integer = 190
+    Private Const InstalledKeitaiWikiCardHeight As Integer = 220
+    Private Const SelectedGameSummaryHeightWithWiki As Integer = 420
 
     Private _compactLibraryInitialized As Boolean
     Private _appLibraryGrid As TableLayoutPanel
@@ -58,6 +62,11 @@ Partial Public Class MainForm
 
     Private _settingsNavigation As ListBox
     Private _settingsPages As List(Of Panel)
+    Private _chkEnableKeitaiWiki As CheckBox
+    Private _applyingKeitaiWikiSetting As Boolean
+    Private _keitaiWikiLookupCts As CancellationTokenSource
+    Private _keitaiWikiDetailsHost As Panel
+    Private _keitaiWikiLookupSequence As Integer
 
     Private Sub InitializeCompactLibrary()
         If _compactLibraryInitialized Then Return
@@ -887,9 +896,79 @@ Partial Public Class MainForm
         Next
         cardContent.Controls.Add(actions)
         flow.Controls.Add(actionsCard)
+
+        Dim wikiContent As Panel = Nothing
+        Dim wikiCard = CreateSettingsCard(
+            "Online app details",
+            "Optionally enrich selected apps with information from KeitaiWiki.",
+            156,
+            "full",
+            wikiContent)
+        Dim wikiLayout As New TableLayoutPanel With {
+            .BackColor = CompactUiTheme.Surface,
+            .ColumnCount = 1,
+            .Dock = DockStyle.Fill,
+            .Margin = New Padding(0),
+            .RowCount = 2
+        }
+        wikiLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        wikiLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 34.0F))
+        wikiLayout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        _chkEnableKeitaiWiki = New CheckBox With {
+            .AccessibleName = "Show KeitaiWiki information",
+            .AccessibleDescription = "When enabled, selecting an app may contact KeitaiWiki to retrieve additional app information.",
+            .Text = "Show KeitaiWiki information in app details"
+        }
+        PrepareSettingsInput(_chkEnableKeitaiWiki)
+        Dim wikiNote As New Label With {
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI", 8.8F),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Padding = New Padding(4, 2, 4, 0),
+            .Text = "Adds a background network request when an uncached app is selected. Matches and thumbnails are cached locally.",
+            .TextAlign = ContentAlignment.TopLeft
+        }
+        wikiLayout.Controls.Add(_chkEnableKeitaiWiki, 0, 0)
+        wikiLayout.Controls.Add(wikiNote, 0, 1)
+        wikiContent.Controls.Add(wikiLayout)
+        flow.Controls.Add(wikiCard)
+        AddHandler _chkEnableKeitaiWiki.CheckedChanged, AddressOf EnableKeitaiWiki_CheckedChanged
+
         ResizeSettingsCards(flow)
         Return page
     End Function
+
+    Public Sub ApplyKeitaiWikiSettingFromConfig()
+        If _chkEnableKeitaiWiki Is Nothing Then Return
+        _applyingKeitaiWikiSetting = True
+        Try
+            _chkEnableKeitaiWiki.Checked = EnableKeitaiWiki
+        Finally
+            _applyingKeitaiWikiSetting = False
+        End Try
+    End Sub
+
+    Private Sub EnableKeitaiWiki_CheckedChanged(sender As Object, e As EventArgs)
+        If _applyingKeitaiWikiSetting OrElse _chkEnableKeitaiWiki Is Nothing Then Return
+        EnableKeitaiWiki = _chkEnableKeitaiWiki.Checked
+        configManager.UpdateSetting("EnableKeitaiWiki", EnableKeitaiWiki.ToString().ToLowerInvariant())
+
+        If ListViewGames.SelectedItems.Count > 0 Then
+            Dim selectedGame = TryCast(ListViewGames.SelectedItems(0).Tag, Game)
+            If selectedGame Is Nothing Then Return
+
+            Dim installed = IsGameInstalled(selectedGame)
+            CancelKeitaiWikiLookup(True)
+            If installed AndAlso File.Exists(CurrentSelectedGameJAM) Then
+                Global.KeitaiWorldLauncher.My.Managers.UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
+                AttachKeitaiWikiToCurrentDetails(selectedGame)
+            Else
+                ShowSelectedGameSummary(selectedGame, installed, Not isOnline)
+            End If
+        Else
+            CancelKeitaiWikiLookup(True)
+        End If
+    End Sub
 
     Private Function BuildSdkSettingsPage() As Panel
         Dim flow As FlowLayoutPanel = Nothing
@@ -1985,7 +2064,9 @@ Partial Public Class MainForm
 
     Public Sub ShowNoGameSelected()
         If panelDynamic Is Nothing Then Return
+        CancelKeitaiWikiLookup(True)
         panelDynamic.Controls.Clear()
+        panelDynamic.AutoScrollPosition = Point.Empty
         gbxGameInfo.Text = "App details"
         panelDynamic.Controls.Add(CreateEmptyStateLabel("Select an app to see details and available actions."))
         SetGameActionAvailability(False, False)
@@ -1999,7 +2080,9 @@ Partial Public Class MainForm
             Return
         End If
 
+        CancelKeitaiWikiLookup(True)
         panelDynamic.Controls.Clear()
+        panelDynamic.AutoScrollPosition = Point.Empty
         gbxGameInfo.Text = $"App details — {game.ENTitle}"
 
         Dim title As New Label With {
@@ -2010,6 +2093,9 @@ Partial Public Class MainForm
             .Text = game.ENTitle,
             .TextAlign = ContentAlignment.BottomLeft
         }
+        Dim duplicateSubtitle =
+            Not String.IsNullOrWhiteSpace(game.JPTitle) AndAlso
+            String.Equals(game.ENTitle?.Trim(), game.JPTitle.Trim(), StringComparison.OrdinalIgnoreCase)
         Dim subtitleText = If(String.IsNullOrWhiteSpace(game.JPTitle), "No Japanese title available", game.JPTitle)
         Dim subtitle As New Label With {
             .AutoEllipsis = True,
@@ -2017,7 +2103,8 @@ Partial Public Class MainForm
             .Font = New Font("Segoe UI", 10.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = subtitleText,
-            .TextAlign = ContentAlignment.TopLeft
+            .TextAlign = ContentAlignment.TopLeft,
+            .Visible = Not duplicateSubtitle
         }
         Dim facts As New Label With {
             .Dock = DockStyle.Fill,
@@ -2039,21 +2126,525 @@ Partial Public Class MainForm
         Dim layout As New TableLayoutPanel With {
             .BackColor = CompactUiTheme.Surface,
             .ColumnCount = 1,
-            .Dock = DockStyle.Fill,
+            .Dock = If(EnableKeitaiWiki, DockStyle.Top, DockStyle.Fill),
+            .Height = If(EnableKeitaiWiki, SelectedGameSummaryHeightWithWiki, panelDynamic.ClientSize.Height),
             .Padding = New Padding(24),
             .RowCount = 5
         }
-        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 58))
-        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 46))
-        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 58))
-        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 70))
-        layout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 52))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, If(duplicateSubtitle, 0, 32)))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 54))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 44))
+        layout.RowStyles.Add(New RowStyle(
+            If(EnableKeitaiWiki, SizeType.Absolute, SizeType.Percent),
+            If(EnableKeitaiWiki, CSng(KeitaiWikiCardHeight), 100.0F)))
         layout.Controls.Add(title, 0, 0)
         layout.Controls.Add(subtitle, 0, 1)
         layout.Controls.Add(facts, 0, 2)
         layout.Controls.Add(guidance, 0, 3)
+        If EnableKeitaiWiki Then
+            Dim wikiHost = CreateKeitaiWikiDetailsHost(DockStyle.Fill)
+            layout.Controls.Add(wikiHost, 0, 4)
+            BeginKeitaiWikiLookup(game, wikiHost)
+        End If
         panelDynamic.Controls.Add(layout)
     End Sub
+
+    Private Sub AttachKeitaiWikiToCurrentDetails(game As Game)
+        If game Is Nothing OrElse panelDynamic Is Nothing Then Return
+        CancelKeitaiWikiLookup(True)
+
+        panelDynamic.SuspendLayout()
+        Try
+            Dim metadataControls = panelDynamic.Controls.Cast(Of Control)().ToArray()
+            For Each metadataControl In metadataControls
+                panelDynamic.Controls.Remove(metadataControl)
+            Next
+            panelDynamic.AutoScrollPosition = Point.Empty
+
+            Dim root As New TableLayoutPanel With {
+                .BackColor = CompactUiTheme.Surface,
+                .ColumnCount = 1,
+                .Dock = DockStyle.Fill,
+                .Margin = New Padding(0),
+                .Name = "InstalledAppDetailsLayout",
+                .RowCount = 3
+            }
+            root.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+            root.RowStyles.Add(New RowStyle(SizeType.Absolute, 42.0F))
+            root.RowStyles.Add(New RowStyle(SizeType.Absolute, 0.0F))
+            root.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+
+            Dim header As New TableLayoutPanel With {
+                .AccessibleName = "Advanced app metadata controls",
+                .BackColor = CompactUiTheme.NeutralBackground,
+                .ColumnCount = 2,
+                .Dock = DockStyle.Fill,
+                .Margin = New Padding(0, 0, 0, 1),
+                .Padding = New Padding(12, 5, 8, 5),
+                .RowCount = 1
+            }
+            header.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+            header.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 112.0F))
+            header.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+
+            Dim headerLabel As New Label With {
+                .AccessibleName = "Advanced JAM or JAD app metadata",
+                .AutoEllipsis = True,
+                .Dock = DockStyle.Fill,
+                .Font = New Font("Segoe UI Semibold", 9.2F, FontStyle.Bold),
+                .ForeColor = CompactUiTheme.TextPrimary,
+                .Text = "Advanced JAM/JAD metadata",
+                .TextAlign = ContentAlignment.MiddleLeft
+            }
+            Dim toggleButton = CompactUiTheme.CreateCompactButton("Show details")
+            toggleButton.AccessibleName = "Show advanced JAM or JAD metadata"
+            toggleButton.AccessibleDescription = "Shows the technical metadata stored in this app's JAM or JAD file."
+            toggleButton.Dock = DockStyle.Fill
+            toggleButton.Margin = New Padding(0)
+            toggleButton.Enabled = metadataControls.Length > 0
+            If Not toggleButton.Enabled Then toggleButton.Text = "Unavailable"
+            header.Controls.Add(headerLabel, 0, 0)
+            header.Controls.Add(toggleButton, 1, 0)
+
+            Dim metadataHost As New Panel With {
+                .AccessibleName = "JAM or JAD metadata",
+                .BackColor = CompactUiTheme.Surface,
+                .Dock = DockStyle.Fill,
+                .Margin = New Padding(0),
+                .Name = "InstalledAppMetadataHost",
+                .Visible = False
+            }
+            For Each metadataControl In metadataControls
+                metadataControl.Dock = DockStyle.Fill
+                metadataHost.Controls.Add(metadataControl)
+            Next
+
+            Dim primaryDetails As New Panel With {
+                .BackColor = CompactUiTheme.Surface,
+                .Dock = DockStyle.Fill,
+                .Margin = New Padding(0),
+                .Padding = New Padding(0, 8, 0, 0)
+            }
+
+            Dim wikiHost As Panel = Nothing
+            If EnableKeitaiWiki Then
+                wikiHost = CreateKeitaiWikiDetailsHost(DockStyle.Top)
+                wikiHost.Height = InstalledKeitaiWikiCardHeight
+                primaryDetails.Controls.Add(wikiHost)
+            Else
+                primaryDetails.Controls.Add(CreateInstalledAppOverview(game))
+            End If
+
+            Dim metadataExpanded = False
+            AddHandler toggleButton.Click,
+                Sub()
+                    metadataExpanded = Not metadataExpanded
+                    root.SuspendLayout()
+                    metadataHost.Visible = metadataExpanded
+                    If metadataExpanded Then
+                        root.RowStyles(1).SizeType = SizeType.Percent
+                        root.RowStyles(1).Height = 100.0F
+                        root.RowStyles(2).SizeType = SizeType.Absolute
+                        root.RowStyles(2).Height = If(EnableKeitaiWiki, InstalledKeitaiWikiCardHeight + 8, 88.0F)
+                        toggleButton.Text = "Hide details"
+                        toggleButton.AccessibleName = "Hide advanced JAM or JAD metadata"
+                    Else
+                        root.RowStyles(1).SizeType = SizeType.Absolute
+                        root.RowStyles(1).Height = 0.0F
+                        root.RowStyles(2).SizeType = SizeType.Percent
+                        root.RowStyles(2).Height = 100.0F
+                        toggleButton.Text = "Show details"
+                        toggleButton.AccessibleName = "Show advanced JAM or JAD metadata"
+                    End If
+                    root.ResumeLayout(True)
+                End Sub
+
+            root.Controls.Add(header, 0, 0)
+            root.Controls.Add(metadataHost, 0, 1)
+            root.Controls.Add(primaryDetails, 0, 2)
+            panelDynamic.Controls.Add(root)
+
+            If wikiHost IsNot Nothing Then BeginKeitaiWikiLookup(game, wikiHost)
+        Finally
+            panelDynamic.ResumeLayout(True)
+        End Try
+    End Sub
+
+    Private Function CreateInstalledAppOverview(game As Game) As Control
+        Dim overview As New TableLayoutPanel With {
+            .BackColor = CompactUiTheme.Surface,
+            .ColumnCount = 1,
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(24, 20, 24, 20),
+            .RowCount = 3
+        }
+        overview.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        overview.RowStyles.Add(New RowStyle(SizeType.Absolute, 42.0F))
+        overview.RowStyles.Add(New RowStyle(SizeType.Absolute, 30.0F))
+        overview.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        overview.Controls.Add(New Label With {
+            .AutoEllipsis = True,
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI", 15.0F, FontStyle.Bold),
+            .ForeColor = CompactUiTheme.TextPrimary,
+            .Text = game.ENTitle,
+            .TextAlign = ContentAlignment.MiddleLeft
+        }, 0, 0)
+        overview.Controls.Add(New Label With {
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI Semibold", 9.2F, FontStyle.Bold),
+            .ForeColor = CompactUiTheme.Success,
+            .Text = "Installed",
+            .TextAlign = ContentAlignment.MiddleLeft
+        }, 0, 1)
+        overview.Controls.Add(New Label With {
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI", 8.8F),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Text = "Technical JAM/JAD metadata is hidden by default. Choose Show details above if you need to inspect or edit it.",
+            .TextAlign = ContentAlignment.TopLeft
+        }, 0, 2)
+        Return overview
+    End Function
+
+    Private Function CreateKeitaiWikiDetailsHost(dockStyle As DockStyle) As Panel
+        Return New Panel With {
+            .AccessibleName = "KeitaiWiki app information",
+            .AccessibleDescription = "Additional information loaded from KeitaiWiki.",
+            .BackColor = CompactUiTheme.Border,
+            .Dock = dockStyle,
+            .Margin = New Padding(0, 8, 0, 0),
+            .Name = "KeitaiWikiDetailsHost",
+            .Padding = New Padding(1)
+        }
+    End Function
+
+    Private Async Sub BeginKeitaiWikiLookup(game As Game, host As Panel)
+        If Not EnableKeitaiWiki OrElse game Is Nothing OrElse host Is Nothing Then Return
+
+        CancelKeitaiWikiLookup()
+        _keitaiWikiDetailsHost = host
+        _keitaiWikiLookupSequence += 1
+        Dim sequence = _keitaiWikiLookupSequence
+        _keitaiWikiLookupCts = New CancellationTokenSource()
+        Dim cancellationToken = _keitaiWikiLookupCts.Token
+        ShowKeitaiWikiLoadingState(host)
+
+        Try
+            Dim result = Await keitaiWikiManager.LookupAsync(game.ENTitle, isOnline, cancellationToken)
+            If Not IsCurrentKeitaiWikiLookup(game, host, sequence, cancellationToken) Then Return
+
+            Select Case result.Kind
+                Case KeitaiWikiLookupKind.Match
+                    Await ShowKeitaiWikiMetadataAsync(game, host, result.Metadata, sequence, cancellationToken)
+                Case KeitaiWikiLookupKind.NeedsConfirmation
+                    ShowKeitaiWikiMatchChoice(game, host, result.Candidates, sequence, cancellationToken)
+                Case Else
+                    host.Visible = False
+            End Select
+        Catch ex As OperationCanceledException
+            ' Selection changes intentionally cancel the previous lookup.
+        Catch ex As Exception
+            Logger.LogWarning($"Unable to display KeitaiWiki data for '{game.ENTitle}': {ex.Message}")
+            If Not host.IsDisposed Then host.Visible = False
+        End Try
+    End Sub
+
+    Private Sub ShowKeitaiWikiLoadingState(host As Panel)
+        ClearAndDisposeKeitaiWikiControls(host)
+        host.Visible = True
+        Dim surface As New Panel With {
+            .BackColor = CompactUiTheme.Surface,
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(14, 8, 14, 8)
+        }
+        surface.Controls.Add(New Label With {
+            .AccessibleName = "Checking KeitaiWiki",
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI", 8.8F),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Text = "Checking KeitaiWiki...",
+            .TextAlign = ContentAlignment.MiddleLeft
+        })
+        host.Controls.Add(surface)
+    End Sub
+
+    Private Async Function ShowKeitaiWikiMetadataAsync(
+        game As Game,
+        host As Panel,
+        metadata As KeitaiWikiMetadata,
+        sequence As Integer,
+        cancellationToken As CancellationToken
+    ) As Task
+
+        If metadata Is Nothing OrElse host.IsDisposed Then Return
+        host.SuspendLayout()
+        ClearAndDisposeKeitaiWikiControls(host)
+        host.Visible = True
+
+        Dim surface As New Panel With {
+            .BackColor = CompactUiTheme.Surface,
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(12)
+        }
+        Dim layout As New TableLayoutPanel With {
+            .BackColor = CompactUiTheme.Surface,
+            .ColumnCount = 2,
+            .Dock = DockStyle.Fill,
+            .Margin = New Padding(0),
+            .RowCount = 3
+        }
+        layout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 142.0F))
+        layout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 31.0F))
+        layout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 27.0F))
+
+        Dim imageSurface As New Panel With {
+            .AccessibleName = $"KeitaiWiki image for {metadata.CanonicalTitle}",
+            .BackColor = CompactUiTheme.NeutralBackground,
+            .Dock = DockStyle.Fill,
+            .Margin = New Padding(0, 0, 12, 0)
+        }
+        Dim imagePlaceholder As New Label With {
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI", 8.2F),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Text = "Loading image...",
+            .TextAlign = ContentAlignment.MiddleCenter
+        }
+        imageSurface.Controls.Add(imagePlaceholder)
+
+        Dim titleLink As New LinkLabel With {
+            .AccessibleName = $"Open {metadata.CanonicalTitle} on KeitaiWiki",
+            .AutoEllipsis = True,
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold),
+            .ForeColor = CompactUiTheme.TextPrimary,
+            .LinkBehavior = LinkBehavior.HoverUnderline,
+            .LinkColor = CompactUiTheme.Primary,
+            .Text = metadata.CanonicalTitle,
+            .TextAlign = ContentAlignment.MiddleLeft,
+            .VisitedLinkColor = CompactUiTheme.PrimaryHover
+        }
+        titleLink.Links.Clear()
+        titleLink.Links.Add(0, titleLink.Text.Length, metadata.PageUrl)
+        AddHandler titleLink.LinkClicked, AddressOf KeitaiWikiTitle_LinkClicked
+
+        Dim extractLabel As New Label With {
+            .AccessibleName = "KeitaiWiki introduction",
+            .AccessibleDescription = metadata.Extract,
+            .AutoEllipsis = True,
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI", 8.9F),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Padding = New Padding(0, 4, 4, 0),
+            .Text = TruncateKeitaiWikiExtract(metadata.Extract),
+            .TextAlign = ContentAlignment.TopLeft
+        }
+        Dim updatedText = If(
+            metadata.RevisionTimestamp.HasValue,
+            metadata.RevisionTimestamp.Value.LocalDateTime.ToString("MMM d, yyyy"),
+            "date unavailable")
+        Dim footerLabel As New Label With {
+            .AccessibleName = "KeitaiWiki source details",
+            .AccessibleDescription = $"KeitaiWiki page {metadata.PageId}, revision {metadata.RevisionId}, updated {updatedText}.",
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI", 8.0F),
+            .ForeColor = CompactUiTheme.TextSecondary,
+            .Text = $"KeitaiWiki · Page {metadata.PageId} · Updated {updatedText}",
+            .TextAlign = ContentAlignment.BottomLeft
+        }
+
+        layout.Controls.Add(imageSurface, 0, 0)
+        layout.SetRowSpan(imageSurface, 3)
+        layout.Controls.Add(titleLink, 1, 0)
+        layout.Controls.Add(extractLabel, 1, 1)
+        layout.Controls.Add(footerLabel, 1, 2)
+        surface.Controls.Add(layout)
+        host.Controls.Add(surface)
+        host.ResumeLayout(True)
+
+        If String.IsNullOrWhiteSpace(metadata.ThumbnailUrl) Then
+            imagePlaceholder.Text = "No image available"
+            Return
+        End If
+
+        Try
+            Dim wikiImage = Await keitaiWikiManager.LoadThumbnailAsync(metadata, cancellationToken)
+            If wikiImage Is Nothing Then
+                imagePlaceholder.Text = "No image available"
+                Return
+            End If
+            If Not IsCurrentKeitaiWikiLookup(game, host, sequence, cancellationToken) Then
+                wikiImage.Dispose()
+                Return
+            End If
+
+            Dim picture As New PictureBox With {
+                .AccessibleName = $"Thumbnail for {metadata.CanonicalTitle}",
+                .Dock = DockStyle.Fill,
+                .Image = wikiImage,
+                .SizeMode = PictureBoxSizeMode.Zoom
+            }
+            AddHandler picture.Disposed, Sub() wikiImage.Dispose()
+            ClearAndDisposeKeitaiWikiControls(imageSurface)
+            imageSurface.Controls.Add(picture)
+        Catch ex As OperationCanceledException
+            Throw
+        Catch ex As Exception
+            Logger.LogWarning($"KeitaiWiki thumbnail failed for page {metadata.PageId}: {ex.Message}")
+            If Not imagePlaceholder.IsDisposed Then imagePlaceholder.Text = "Image unavailable"
+        End Try
+    End Function
+
+    Private Sub ShowKeitaiWikiMatchChoice(
+        game As Game,
+        host As Panel,
+        candidates As List(Of KeitaiWikiMetadata),
+        sequence As Integer,
+        cancellationToken As CancellationToken)
+
+        If candidates Is Nothing OrElse candidates.Count = 0 Then
+            host.Visible = False
+            Return
+        End If
+
+        ClearAndDisposeKeitaiWikiControls(host)
+        host.Visible = True
+        Dim surface As New Panel With {
+            .BackColor = CompactUiTheme.Surface,
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(14, 9, 14, 9)
+        }
+        Dim layout As New TableLayoutPanel With {
+            .BackColor = CompactUiTheme.Surface,
+            .ColumnCount = 1,
+            .Dock = DockStyle.Fill,
+            .Margin = New Padding(0),
+            .RowCount = 3
+        }
+        layout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 28.0F))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 38.0F))
+        layout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        Dim prompt As New Label With {
+            .AccessibleName = "Confirm KeitaiWiki match",
+            .Dock = DockStyle.Fill,
+            .Font = New Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+            .ForeColor = CompactUiTheme.TextPrimary,
+            .Text = "Is this the right KeitaiWiki page?",
+            .TextAlign = ContentAlignment.MiddleLeft
+        }
+        Dim choices As New ComboBox With {
+            .AccessibleName = "Possible KeitaiWiki pages",
+            .BackColor = Color.FromArgb(246, 247, 250),
+            .Dock = DockStyle.Fill,
+            .DropDownStyle = ComboBoxStyle.DropDownList,
+            .FlatStyle = FlatStyle.Flat,
+            .Font = New Font("Segoe UI", 9.0F),
+            .Margin = New Padding(0, 4, 0, 4)
+        }
+        choices.Items.AddRange(candidates.Cast(Of Object)().ToArray())
+        choices.SelectedIndex = 0
+
+        Dim actions As New FlowLayoutPanel With {
+            .AutoSize = False,
+            .BackColor = CompactUiTheme.Surface,
+            .Dock = DockStyle.Fill,
+            .FlowDirection = FlowDirection.LeftToRight,
+            .Margin = New Padding(0, 3, 0, 0),
+            .WrapContents = False
+        }
+        Dim useButton = CompactUiTheme.CreateCompactButton("Use this page", True)
+        useButton.AccessibleDescription = "Use the selected KeitaiWiki page for this app and remember the choice."
+        useButton.Size = New Size(132, 32)
+        Dim rejectButton = CompactUiTheme.CreateCompactButton("No match")
+        rejectButton.AccessibleDescription = "Do not use any of these pages for this app."
+        rejectButton.Size = New Size(106, 32)
+        actions.Controls.AddRange(New Control() {useButton, rejectButton})
+
+        AddHandler useButton.Click,
+            Async Sub()
+                If Not IsCurrentKeitaiWikiLookup(game, host, sequence, cancellationToken) Then Return
+                Dim selectedMetadata = TryCast(choices.SelectedItem, KeitaiWikiMetadata)
+                If selectedMetadata Is Nothing Then Return
+                keitaiWikiManager.AcceptMatch(game.ENTitle, selectedMetadata)
+                Await ShowKeitaiWikiMetadataAsync(game, host, selectedMetadata, sequence, cancellationToken)
+            End Sub
+        AddHandler rejectButton.Click,
+            Sub()
+                If Not IsCurrentKeitaiWikiLookup(game, host, sequence, cancellationToken) Then Return
+                keitaiWikiManager.RejectMatch(game.ENTitle)
+                host.Visible = False
+            End Sub
+
+        layout.Controls.Add(prompt, 0, 0)
+        layout.Controls.Add(choices, 0, 1)
+        layout.Controls.Add(actions, 0, 2)
+        surface.Controls.Add(layout)
+        host.Controls.Add(surface)
+    End Sub
+
+    Private Sub KeitaiWikiTitle_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs)
+        Dim url = TryCast(e.Link.LinkData, String)
+        If String.IsNullOrWhiteSpace(url) Then Return
+        Try
+            System.Diagnostics.Process.Start(New System.Diagnostics.ProcessStartInfo(url) With {.UseShellExecute = True})
+            DirectCast(sender, LinkLabel).LinkVisited = True
+        Catch ex As Exception
+            NotificationManager.ShowFailure(Me, "Could not open KeitaiWiki", ex.Message)
+        End Try
+    End Sub
+
+    Private Function IsCurrentKeitaiWikiLookup(
+        game As Game,
+        host As Panel,
+        sequence As Integer,
+        cancellationToken As CancellationToken
+    ) As Boolean
+
+        If cancellationToken.IsCancellationRequested OrElse sequence <> _keitaiWikiLookupSequence Then Return False
+        If host Is Nothing OrElse host.IsDisposed OrElse Not Object.ReferenceEquals(host, _keitaiWikiDetailsHost) Then Return False
+        If ListViewGames.SelectedItems.Count = 0 Then Return False
+        Return Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, game)
+    End Function
+
+    Private Sub CancelKeitaiWikiLookup(Optional removeHost As Boolean = False)
+        _keitaiWikiLookupSequence += 1
+        If _keitaiWikiLookupCts IsNot Nothing Then
+            _keitaiWikiLookupCts.Cancel()
+            _keitaiWikiLookupCts.Dispose()
+            _keitaiWikiLookupCts = Nothing
+        End If
+
+        If removeHost AndAlso _keitaiWikiDetailsHost IsNot Nothing AndAlso Not _keitaiWikiDetailsHost.IsDisposed Then
+            Dim parent = _keitaiWikiDetailsHost.Parent
+            If parent IsNot Nothing Then parent.Controls.Remove(_keitaiWikiDetailsHost)
+            _keitaiWikiDetailsHost.Dispose()
+        End If
+        _keitaiWikiDetailsHost = Nothing
+    End Sub
+
+    Private Shared Sub ClearAndDisposeKeitaiWikiControls(parent As Control)
+        If parent Is Nothing OrElse parent.IsDisposed Then Return
+        Dim children = parent.Controls.Cast(Of Control)().ToArray()
+        parent.Controls.Clear()
+        For Each child In children
+            child.Dispose()
+        Next
+    End Sub
+
+    Private Shared Function TruncateKeitaiWikiExtract(extract As String) As String
+        If String.IsNullOrWhiteSpace(extract) Then Return "KeitaiWiki does not currently provide an introduction for this page."
+        Dim normalized = extract.Replace(vbCr, " ").Replace(vbLf, " ").Trim()
+        While normalized.Contains("  ")
+            normalized = normalized.Replace("  ", " ")
+        End While
+        If normalized.Length <= 620 Then Return normalized
+        Return normalized.Substring(0, 617).TrimEnd() & "..."
+    End Function
 
     Private Function CreateEmptyStateLabel(text As String) As Label
         Return New Label With {
