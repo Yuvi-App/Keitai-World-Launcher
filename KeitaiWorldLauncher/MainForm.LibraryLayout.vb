@@ -900,7 +900,7 @@ Partial Public Class MainForm
         Dim wikiContent As Panel = Nothing
         Dim wikiCard = CreateSettingsCard(
             "Online app details",
-            "Optionally enrich selected apps with information from KeitaiWiki.",
+            "Enrich selected apps with information from KeitaiWiki.",
             156,
             "full",
             wikiContent)
@@ -925,7 +925,7 @@ Partial Public Class MainForm
             .Font = New Font("Segoe UI", 8.8F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Padding = New Padding(4, 2, 4, 0),
-            .Text = "Adds a background network request when an uncached app is selected. Matches and thumbnails are cached locally.",
+            .Text = "This is a WIP, as we finetune the integration.",
             .TextAlign = ContentAlignment.TopLeft
         }
         wikiLayout.Controls.Add(_chkEnableKeitaiWiki, 0, 0)

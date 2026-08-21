@@ -106,7 +106,7 @@ Partial Public Class MainForm
         SetAccessible(btnSaveDataManagement, "Manage save data", "Open the save-data manager.")
         SetAccessible(btnLaunchKey2Pad, "Controller mapping", "Open the keyboard and controller mapping tool.")
         SetAccessible(btnAddCustomApps, "Add custom apps", "Import an app that is not in the online library.")
-        SetAccessible(_chkEnableKeitaiWiki, "Show KeitaiWiki information", "Contact KeitaiWiki in the background to enrich selected-app details. Results are cached locally.")
+        SetAccessible(_chkEnableKeitaiWiki, "Show KeitaiWiki information", "Enrich selected-app details.")
         SetAccessible(cbxAudioType, "Audio type", "Choose the audio implementation used by DoJa and Star emulators.")
         SetAccessible(cbxInternalRenderingResolution, "Rendering resolution", "Choose the internal rendering resolution.")
         SetAccessible(cbxOpenDojaHostScale, "OpenDoJa host scale", "Choose the OpenDoJa display scale.")
