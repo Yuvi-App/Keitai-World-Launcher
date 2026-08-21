@@ -1159,21 +1159,27 @@ Partial Public Class MainForm
         lblHelp_AppVer.Font = New Font("Segoe UI", 10.0F)
         lblHelp_AppVer.ForeColor = CompactUiTheme.TextPrimary
         lblHelp_AppVer.TextAlign = ContentAlignment.MiddleCenter
-        Dim helpActions As New FlowLayoutPanel With {
+        Dim helpActions As New TableLayoutPanel With {
             .BackColor = CompactUiTheme.Surface,
+            .ColumnCount = 2,
             .Dock = DockStyle.Fill,
-            .FlowDirection = FlowDirection.LeftToRight,
+            .Margin = New Padding(0),
             .Padding = New Padding(0, 2, 0, 0),
-            .WrapContents = False
+            .RowCount = 1
         }
+        helpActions.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 42.0F))
+        helpActions.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 58.0F))
+        helpActions.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         btnVisitKeitaiArchive.Text = "Visit Keitai Archive"
         btnControls.Text = "Keyboard && controller guide"
         StyleSettingsButton(btnVisitKeitaiArchive)
         StyleSettingsButton(btnControls)
-        btnVisitKeitaiArchive.Width = 150
-        btnControls.Width = 220
-        helpActions.Controls.Add(btnVisitKeitaiArchive)
-        helpActions.Controls.Add(btnControls)
+        btnVisitKeitaiArchive.Dock = DockStyle.Fill
+        btnVisitKeitaiArchive.Margin = New Padding(0, 2, 6, 4)
+        btnControls.Dock = DockStyle.Fill
+        btnControls.Margin = New Padding(6, 2, 0, 4)
+        helpActions.Controls.Add(btnVisitKeitaiArchive, 0, 0)
+        helpActions.Controls.Add(btnControls, 1, 0)
         aboutLayout.Controls.Add(lblHelp_AppVer, 0, 0)
         aboutLayout.Controls.Add(helpActions, 0, 1)
         aboutContent.Controls.Add(aboutLayout)

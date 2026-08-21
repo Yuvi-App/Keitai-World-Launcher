@@ -103,6 +103,7 @@ Public NotInheritable Class NotificationManager
         Private ReadOnly _durationMilliseconds As Integer
         Private ReadOnly _toneColor As Color
         Private ReadOnly _dismissTimer As Timer
+        Private ReadOnly _progressIndicator As NotificationProgressControl
         Private _elapsedMilliseconds As Integer
 
         Public Sub New(title As String, message As String, tone As CompactDialogTone, durationMilliseconds As Integer)
@@ -126,6 +127,7 @@ Public NotInheritable Class NotificationManager
             BackColor = CompactUiTheme.Surface
             ClientSize = New Size(NotificationWidth, notificationHeight)
             ControlBox = False
+            DoubleBuffered = True
             Font = New Font("Segoe UI", 9.0F)
             FormBorderStyle = FormBorderStyle.None
             MaximizeBox = False
@@ -196,10 +198,20 @@ Public NotInheritable Class NotificationManager
             closeButton.FlatAppearance.MouseOverBackColor = CompactUiTheme.NeutralBackground
             closeButton.FlatAppearance.MouseDownBackColor = Color.FromArgb(229, 232, 238)
 
-            Controls.AddRange(New Control() {messageLabel, titleLabel, iconSurface, closeButton, accentBar})
+            _progressIndicator = New NotificationProgressControl With {
+                .Anchor = AnchorStyles.Left Or AnchorStyles.Right Or AnchorStyles.Bottom,
+                .BackColor = CompactUiTheme.Surface,
+                .ForeColor = _toneColor,
+                .Location = New Point(1, notificationHeight - 3),
+                .Progress = 1.0R,
+                .Size = New Size(NotificationWidth - 2, 2)
+            }
+
+            Controls.AddRange(New Control() {messageLabel, titleLabel, iconSurface, closeButton, accentBar, _progressIndicator})
+            _progressIndicator.BringToFront()
             AddHandler closeButton.Click, Sub() Close()
 
-            _dismissTimer = New Timer With {.Interval = 50}
+            _dismissTimer = New Timer With {.Interval = 33}
             AddHandler _dismissTimer.Tick, AddressOf DismissTimer_Tick
         End Sub
 
@@ -235,14 +247,6 @@ Public NotInheritable Class NotificationManager
             Using borderPen As New Pen(CompactUiTheme.Border)
                 e.Graphics.DrawRectangle(borderPen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1)
             End Using
-
-            Dim remainingRatio = Math.Max(0.0R, 1.0R - (_elapsedMilliseconds / CDbl(_durationMilliseconds)))
-            Dim progressWidth = CInt((ClientSize.Width - 2) * remainingRatio)
-            If progressWidth > 0 Then
-                Using progressBrush As New SolidBrush(_toneColor)
-                    e.Graphics.FillRectangle(progressBrush, 1, ClientSize.Height - 3, progressWidth, 2)
-                End Using
-            End If
         End Sub
 
         Private Sub DismissTimer_Tick(sender As Object, e As EventArgs)
@@ -251,7 +255,7 @@ Public NotInheritable Class NotificationManager
                 Close()
                 Return
             End If
-            Invalidate(New Rectangle(0, ClientSize.Height - 4, ClientSize.Width, 4))
+            _progressIndicator.Progress = Math.Max(0.0R, 1.0R - (_elapsedMilliseconds / CDbl(_durationMilliseconds)))
         End Sub
 
         Private Sub PositionNearOwner()
@@ -321,5 +325,44 @@ Public NotInheritable Class NotificationManager
                     Return "Information"
             End Select
         End Function
+    End Class
+
+    Private NotInheritable Class NotificationProgressControl
+        Inherits Control
+
+        Private _progress As Double = 1.0R
+
+        Public Sub New()
+            SetStyle(
+                ControlStyles.AllPaintingInWmPaint Or
+                ControlStyles.OptimizedDoubleBuffer Or
+                ControlStyles.ResizeRedraw Or
+                ControlStyles.UserPaint,
+                True)
+            DoubleBuffered = True
+            TabStop = False
+        End Sub
+
+        Public Property Progress As Double
+            Get
+                Return _progress
+            End Get
+            Set(value As Double)
+                Dim boundedValue = Math.Max(0.0R, Math.Min(1.0R, value))
+                If Math.Abs(_progress - boundedValue) < 0.0001R Then Return
+                _progress = boundedValue
+                Invalidate()
+            End Set
+        End Property
+
+        Protected Overrides Sub OnPaint(e As PaintEventArgs)
+            e.Graphics.Clear(BackColor)
+            Dim progressWidth = CInt(Math.Round(ClientSize.Width * _progress))
+            If progressWidth <= 0 Then Return
+
+            Using progressBrush As New SolidBrush(ForeColor)
+                e.Graphics.FillRectangle(progressBrush, 0, 0, progressWidth, ClientSize.Height)
+            End Using
+        End Sub
     End Class
 End Class
