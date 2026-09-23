@@ -566,18 +566,21 @@ Namespace My.Managers
                                End Try
                            End Sub)
         End Function
-        Public Shared Sub CheckForSpacesInPath()
-            Dim exePath As String = Assembly.GetExecutingAssembly().Location
+        Public Shared Sub CheckForSpacesInPath(owner As IWin32Window)
+            Dim launcherFolder As String = AppContext.BaseDirectory
             Dim invalidChars As Char() = {" "c, "("c, ")"c, "{"c, "}"c}
 
-            If exePath.IndexOfAny(invalidChars) <> -1 Then
-                MessageBox.Show(owner:=SplashScreen,
-            "The path to the KeitaiWorldLauncher contains invalid characters:" & Environment.NewLine &
-            """" & exePath & """" & Environment.NewLine &
-            "Due to LocaleEmulator please move it to a location without spaces, parentheses (), or braces {}.",
-            "Warning - Invalid Path Characters",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Warning)
+            If launcherFolder.IndexOfAny(invalidChars) <> -1 Then
+                MessageBox.Show(owner,
+                    "Keitai World Launcher (KWL) may not work correctly because its folder path contains spaces, parentheses (), or braces {}." &
+                    Environment.NewLine & Environment.NewLine &
+                    "Current folder: " & launcherFolder &
+                    Environment.NewLine & Environment.NewLine &
+                    "Please close KWL and move the entire KWL folder to the root of your C: drive (for example, C:\KWL), then launch it again. " &
+                    "Make sure the new path contains no spaces, parentheses, or braces.",
+                    "Warning - Unsupported Folder Path",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning)
             End If
         End Sub
         Public Shared Async Function SetupDIRSAsync() As Task

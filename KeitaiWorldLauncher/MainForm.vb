@@ -136,6 +136,9 @@ Public Class MainForm
         Me.Opacity = 0
         Application.EnableVisualStyles()
 
+        ' Warn on every boot before the splash screen, configuration, or setup can fail.
+        UtilManager.CheckForSpacesInPath(Me)
+
         ' Build the compact, unified Library layout before loading data into it.
         InitializeCompactLibrary()
 
@@ -203,7 +206,6 @@ Public Class MainForm
         End If
 
         ' Check PreREQs if First Run
-        UtilManager.CheckForSpacesInPath()
         If FirstRun = True Then
             Logger.LogInfo("Detected First Run - Checking for Admin")
             Logger.LogInfo("Starting PreReq Check")
