@@ -1,12 +1,24 @@
 ﻿Imports System.IO
 Imports System.Diagnostics
+Imports System.Reflection
+Imports System.Runtime.InteropServices
 
 Namespace My.logger
     Public Class Logger
         Private Shared logFilePath As String = "logs\app_log.txt"
+        Public Shared ReadOnly SessionId As String = Guid.NewGuid().ToString("N")
+
         ' Initialize the logger with a custom log file path (optional)
         Public Shared Sub InitializeLogger(Optional filePath As String = "logs\app_log.txt")
             logFilePath = filePath
+        End Sub
+
+        Public Shared Sub LogStartupSession(bootTime As DateTimeOffset)
+            Dim assembly = GetType(Logger).Assembly
+            Dim fileVersion = assembly.GetCustomAttribute(Of AssemblyFileVersionAttribute)()?.Version
+            LogInfo($"========== KWL startup | Session={SessionId} ==========")
+            LogInfo($"[Startup] BootTime={bootTime:O}; AppVersion={assembly.GetName().Version}; FileVersion={fileVersion}")
+            LogInfo($"[Startup] OS={RuntimeInformation.OSDescription}; Runtime={RuntimeInformation.FrameworkDescription}; Architecture={RuntimeInformation.ProcessArchitecture}; PID={Environment.ProcessId}")
         End Sub
 
         ' Method to log general messages

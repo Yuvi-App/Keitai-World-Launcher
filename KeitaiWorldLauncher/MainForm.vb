@@ -133,6 +133,8 @@ Public Class MainForm
         ProcessManager.CheckAndCloseAHK()
     End Sub
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Dim bootTime = DateTimeOffset.Now
+        Dim startupTimer = System.Diagnostics.Stopwatch.StartNew()
         Me.Opacity = 0
         Application.EnableVisualStyles()
 
@@ -172,7 +174,7 @@ Public Class MainForm
         ' Check log File Size and Cleanup
         Await UtilManager.DeleteLogIfTooLargeAsync(Path.Join(LogFolder, "app_log.txt"))
         Logger.InitializeLogger()
-        Logger.LogInfo("Application started.")
+        Logger.LogStartupSession(bootTime)
 
         ' Load Config
         Try
@@ -349,6 +351,7 @@ Public Class MainForm
         ' Close the splash screen
         Await SplashScreen.CloseSplashAsync()
         Me.Opacity = 1
+        Logger.LogInfo($"[Startup] Main window ready; BootDurationMs={startupTimer.ElapsedMilliseconds}; Session={Logger.SessionId} (includes time spent in setup prompts).")
     End Sub
 
     ' SDK Functions
