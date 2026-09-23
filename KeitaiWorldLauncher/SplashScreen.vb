@@ -6,7 +6,7 @@ Imports ReaLTaiizor.Extension.Poison
 Imports ReaLTaiizor.Forms
 
 Public Class SplashScreen
-    Inherits PoisonForm
+    Inherits FixedPoisonForm
 
     Private Shared splashThread As Thread
     Private Shared splashForm As SplashScreen

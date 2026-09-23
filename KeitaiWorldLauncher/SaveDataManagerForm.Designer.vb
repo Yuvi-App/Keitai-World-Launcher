@@ -1,6 +1,6 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
 Partial Class SaveDataManagerForm
-    Inherits ReaLTaiizor.Forms.MaterialForm
+    Inherits FixedMaterialForm
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
@@ -26,6 +26,7 @@ Partial Class SaveDataManagerForm
         GroupBox1 = New GroupBox()
         GroupBox2 = New GroupBox()
         ContextMenuStrip1 = New ContextMenuStrip(components)
+        ContextMenuStrip1.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         DeleteToolStripMenuItem = New ToolStripMenuItem()
         btnBackup = New ReaLTaiizor.Controls.MaterialButton()
         btnRestoreBackup = New ReaLTaiizor.Controls.MaterialButton()

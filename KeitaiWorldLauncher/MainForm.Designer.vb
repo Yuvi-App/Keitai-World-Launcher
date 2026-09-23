@@ -1,6 +1,6 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class MainForm
-    Inherits ReaLTaiizor.Forms.MaterialForm
+    Inherits FixedMaterialForm
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()>
@@ -26,6 +26,7 @@ Partial Class MainForm
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(MainForm))
         ImageListGames = New ImageList(components)
         cmsGameLV = New ContextMenuStrip(components)
+        cmsGameLV.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cmsGameLV_Launch = New ToolStripMenuItem()
         cmsGameLV_Download = New ToolStripMenuItem()
         cmsGameLV_Delete = New ToolStripMenuItem()
@@ -62,6 +63,7 @@ Partial Class MainForm
         GroupBox2 = New GroupBox()
         ListViewMachiChara = New ListView()
         cmsMachiCharaLV = New ContextMenuStrip(components)
+        cmsMachiCharaLV.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         DownloadCMS_MachiChara = New ToolStripMenuItem()
         DeleteCMS_MachiChara = New ToolStripMenuItem()
         lblMachiCharaTotalCount = New Label()
@@ -100,6 +102,7 @@ Partial Class MainForm
         GroupBox10 = New GroupBox()
         ListViewCharaDen = New ListView()
         cmsCharadenLV = New ContextMenuStrip(components)
+        cmsCharadenLV.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         DownloadCMS_CharaDen = New ToolStripMenuItem()
         DeleteCMS_CharaDen = New ToolStripMenuItem()
         lblCharadenTotalCount = New Label()
@@ -478,7 +481,7 @@ Partial Class MainForm
         chkbxShaderGlass.AutoSize = True
         chkbxShaderGlass.Enabled = False
         chkbxShaderGlass.FlatStyle = FlatStyle.Flat
-        chkbxShaderGlass.Font = New Font("Segoe UI", 9F)
+        chkbxShaderGlass.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         chkbxShaderGlass.Location = New Point(85, 45)
         chkbxShaderGlass.Margin = New Padding(2)
         chkbxShaderGlass.Name = "chkbxShaderGlass"
@@ -633,7 +636,7 @@ Partial Class MainForm
         ' 
         btnLaunchGame.Enabled = False
         btnLaunchGame.FlatStyle = FlatStyle.Flat
-        btnLaunchGame.Font = New Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        btnLaunchGame.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Pixel)
         btnLaunchGame.Location = New Point(5, 21)
         btnLaunchGame.Margin = New Padding(2)
         btnLaunchGame.Name = "btnLaunchGame"
@@ -652,7 +655,7 @@ Partial Class MainForm
         MaterialTabControl1.Controls.Add(tpStats)
         MaterialTabControl1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         MaterialTabControl1.Depth = 0
-        MaterialTabControl1.Font = New Font("Segoe UI", 9F)
+        MaterialTabControl1.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         MaterialTabControl1.Location = New Point(0, 95)
         MaterialTabControl1.Margin = New Padding(0)
         MaterialTabControl1.MouseState = ReaLTaiizor.Helper.MaterialDrawHelper.MaterialMouseState.HOVER
@@ -744,7 +747,7 @@ Partial Class MainForm
         cbxControllerProfile.DropDownStyle = ComboBoxStyle.DropDownList
         cbxControllerProfile.Enabled = False
         cbxControllerProfile.FlatStyle = FlatStyle.Flat
-        cbxControllerProfile.Font = New Font("Segoe UI", 9F)
+        cbxControllerProfile.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxControllerProfile.FormattingEnabled = True
         cbxControllerProfile.Location = New Point(337, 75)
         cbxControllerProfile.Margin = New Padding(2)
@@ -768,7 +771,7 @@ Partial Class MainForm
         cbxGameControllers.DropDownStyle = ComboBoxStyle.DropDownList
         cbxGameControllers.Enabled = False
         cbxGameControllers.FlatStyle = FlatStyle.Flat
-        cbxGameControllers.Font = New Font("Segoe UI", 9F)
+        cbxGameControllers.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxGameControllers.FormattingEnabled = True
         cbxGameControllers.Location = New Point(337, 48)
         cbxGameControllers.Margin = New Padding(2)
@@ -779,7 +782,7 @@ Partial Class MainForm
         ' Label2
         ' 
         Label2.FlatStyle = FlatStyle.Flat
-        Label2.Font = New Font("Segoe UI", 9F)
+        Label2.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label2.Location = New Point(337, 102)
         Label2.Margin = New Padding(2, 0, 2, 0)
         Label2.Name = "Label2"
@@ -1265,7 +1268,7 @@ Partial Class MainForm
         ' 
         chkbxOpenDojaLaunchGUI.AutoSize = True
         chkbxOpenDojaLaunchGUI.FlatStyle = FlatStyle.Flat
-        chkbxOpenDojaLaunchGUI.Font = New Font("Segoe UI", 9F)
+        chkbxOpenDojaLaunchGUI.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         chkbxOpenDojaLaunchGUI.Location = New Point(190, 20)
         chkbxOpenDojaLaunchGUI.Margin = New Padding(2)
         chkbxOpenDojaLaunchGUI.Name = "chkbxOpenDojaLaunchGUI"
@@ -1314,7 +1317,7 @@ Partial Class MainForm
         ' 
         chkbxEnableHighPerformanceEmulator.AutoSize = True
         chkbxEnableHighPerformanceEmulator.FlatStyle = FlatStyle.Flat
-        chkbxEnableHighPerformanceEmulator.Font = New Font("Segoe UI", 9F)
+        chkbxEnableHighPerformanceEmulator.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         chkbxEnableHighPerformanceEmulator.Location = New Point(5, 94)
         chkbxEnableHighPerformanceEmulator.Margin = New Padding(2)
         chkbxEnableHighPerformanceEmulator.Name = "chkbxEnableHighPerformanceEmulator"
@@ -1337,7 +1340,7 @@ Partial Class MainForm
         cbxInternalRenderingResolution.DropDownStyle = ComboBoxStyle.DropDownList
         cbxInternalRenderingResolution.Enabled = False
         cbxInternalRenderingResolution.FlatStyle = FlatStyle.Flat
-        cbxInternalRenderingResolution.Font = New Font("Segoe UI", 9F)
+        cbxInternalRenderingResolution.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxInternalRenderingResolution.FormattingEnabled = True
         cbxInternalRenderingResolution.Items.AddRange(New Object() {"1x", "2x", "3x", "4x", "5x", "6x"})
         cbxInternalRenderingResolution.Location = New Point(196, 136)
@@ -1350,7 +1353,7 @@ Partial Class MainForm
         ' 
         chkboxEnforceHardwareRendering.AutoSize = True
         chkboxEnforceHardwareRendering.FlatStyle = FlatStyle.Flat
-        chkboxEnforceHardwareRendering.Font = New Font("Segoe UI", 9F)
+        chkboxEnforceHardwareRendering.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         chkboxEnforceHardwareRendering.Location = New Point(5, 117)
         chkboxEnforceHardwareRendering.Margin = New Padding(2)
         chkboxEnforceHardwareRendering.Name = "chkboxEnforceHardwareRendering"
@@ -1365,7 +1368,7 @@ Partial Class MainForm
         chkbxModifyJamFiles.Checked = True
         chkbxModifyJamFiles.CheckState = CheckState.Checked
         chkbxModifyJamFiles.FlatStyle = FlatStyle.Flat
-        chkbxModifyJamFiles.Font = New Font("Segoe UI", 9F)
+        chkbxModifyJamFiles.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         chkbxModifyJamFiles.Location = New Point(5, 71)
         chkbxModifyJamFiles.Margin = New Padding(2)
         chkbxModifyJamFiles.Name = "chkbxModifyJamFiles"
@@ -1437,7 +1440,7 @@ Partial Class MainForm
         ' 
         chkbxHidePhoneUI.AutoSize = True
         chkbxHidePhoneUI.FlatStyle = FlatStyle.Flat
-        chkbxHidePhoneUI.Font = New Font("Segoe UI", 9F)
+        chkbxHidePhoneUI.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         chkbxHidePhoneUI.Location = New Point(5, 49)
         chkbxHidePhoneUI.Margin = New Padding(2)
         chkbxHidePhoneUI.Name = "chkbxHidePhoneUI"
@@ -1450,7 +1453,7 @@ Partial Class MainForm
         ' 
         lblAudioWarning.AutoSize = True
         lblAudioWarning.FlatStyle = FlatStyle.Flat
-        lblAudioWarning.Font = New Font("Segoe UI", 7.8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        lblAudioWarning.Font = New Font("Segoe UI", 10.4F, FontStyle.Regular, GraphicsUnit.Pixel)
         lblAudioWarning.ForeColor = Color.Firebrick
         lblAudioWarning.Location = New Point(184, 28)
         lblAudioWarning.Margin = New Padding(2, 0, 2, 0)
@@ -1464,7 +1467,7 @@ Partial Class MainForm
         ' Label1
         ' 
         Label1.FlatStyle = FlatStyle.Flat
-        Label1.Font = New Font("Segoe UI", 9F)
+        Label1.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label1.Location = New Point(5, 22)
         Label1.Margin = New Padding(2, 0, 2, 0)
         Label1.Name = "Label1"
@@ -1477,7 +1480,7 @@ Partial Class MainForm
         ' 
         cbxAudioType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxAudioType.FlatStyle = FlatStyle.Flat
-        cbxAudioType.Font = New Font("Segoe UI", 9F)
+        cbxAudioType.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxAudioType.FormattingEnabled = True
         cbxAudioType.Items.AddRange(New Object() {"Standard", "903i", "903i-HP"})
         cbxAudioType.Location = New Point(95, 22)
@@ -1516,7 +1519,7 @@ Partial Class MainForm
         ' 
         cbxEZWebEZPlusSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxEZWebEZPlusSDK.FlatStyle = FlatStyle.Flat
-        cbxEZWebEZPlusSDK.Font = New Font("Segoe UI", 9F)
+        cbxEZWebEZPlusSDK.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxEZWebEZPlusSDK.FormattingEnabled = True
         cbxEZWebEZPlusSDK.Location = New Point(117, 228)
         cbxEZWebEZPlusSDK.Margin = New Padding(2)
@@ -1527,7 +1530,7 @@ Partial Class MainForm
         ' Label15
         ' 
         Label15.FlatStyle = FlatStyle.Flat
-        Label15.Font = New Font("Segoe UI", 9F)
+        Label15.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label15.Location = New Point(6, 228)
         Label15.Margin = New Padding(2, 0, 2, 0)
         Label15.Name = "Label15"
@@ -1540,7 +1543,7 @@ Partial Class MainForm
         ' 
         cbxSoftbankSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxSoftbankSDK.FlatStyle = FlatStyle.Flat
-        cbxSoftbankSDK.Font = New Font("Segoe UI", 9F)
+        cbxSoftbankSDK.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxSoftbankSDK.FormattingEnabled = True
         cbxSoftbankSDK.Location = New Point(117, 120)
         cbxSoftbankSDK.Margin = New Padding(2)
@@ -1551,7 +1554,7 @@ Partial Class MainForm
         ' Label12
         ' 
         Label12.FlatStyle = FlatStyle.Flat
-        Label12.Font = New Font("Segoe UI", 9F)
+        Label12.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label12.Location = New Point(6, 120)
         Label12.Margin = New Padding(2, 0, 2, 0)
         Label12.Name = "Label12"
@@ -1564,7 +1567,7 @@ Partial Class MainForm
         ' 
         cbxAirEdgeSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxAirEdgeSDK.FlatStyle = FlatStyle.Flat
-        cbxAirEdgeSDK.Font = New Font("Segoe UI", 9F)
+        cbxAirEdgeSDK.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxAirEdgeSDK.FormattingEnabled = True
         cbxAirEdgeSDK.Location = New Point(117, 201)
         cbxAirEdgeSDK.Margin = New Padding(2)
@@ -1575,7 +1578,7 @@ Partial Class MainForm
         ' Label11
         ' 
         Label11.FlatStyle = FlatStyle.Flat
-        Label11.Font = New Font("Segoe UI", 9F)
+        Label11.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label11.Location = New Point(6, 201)
         Label11.Margin = New Padding(2, 0, 2, 0)
         Label11.Name = "Label11"
@@ -1588,7 +1591,7 @@ Partial Class MainForm
         ' 
         cbxVodafoneSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxVodafoneSDK.FlatStyle = FlatStyle.Flat
-        cbxVodafoneSDK.Font = New Font("Segoe UI", 9F)
+        cbxVodafoneSDK.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxVodafoneSDK.FormattingEnabled = True
         cbxVodafoneSDK.Location = New Point(117, 174)
         cbxVodafoneSDK.Margin = New Padding(2)
@@ -1599,7 +1602,7 @@ Partial Class MainForm
         ' Label8
         ' 
         Label8.FlatStyle = FlatStyle.Flat
-        Label8.Font = New Font("Segoe UI", 9F)
+        Label8.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label8.Location = New Point(6, 174)
         Label8.Margin = New Padding(2, 0, 2, 0)
         Label8.Name = "Label8"
@@ -1612,7 +1615,7 @@ Partial Class MainForm
         ' 
         cbxFlashSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxFlashSDK.FlatStyle = FlatStyle.Flat
-        cbxFlashSDK.Font = New Font("Segoe UI", 9F)
+        cbxFlashSDK.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxFlashSDK.FormattingEnabled = True
         cbxFlashSDK.Location = New Point(117, 255)
         cbxFlashSDK.Margin = New Padding(2)
@@ -1623,7 +1626,7 @@ Partial Class MainForm
         ' Label7
         ' 
         Label7.FlatStyle = FlatStyle.Flat
-        Label7.Font = New Font("Segoe UI", 9F)
+        Label7.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label7.Location = New Point(6, 255)
         Label7.Margin = New Padding(2, 0, 2, 0)
         Label7.Name = "Label7"
@@ -1645,7 +1648,7 @@ Partial Class MainForm
         ' 
         cbxJSKYSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxJSKYSDK.FlatStyle = FlatStyle.Flat
-        cbxJSKYSDK.Font = New Font("Segoe UI", 9F)
+        cbxJSKYSDK.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxJSKYSDK.FormattingEnabled = True
         cbxJSKYSDK.Location = New Point(117, 147)
         cbxJSKYSDK.Margin = New Padding(2)
@@ -1656,7 +1659,7 @@ Partial Class MainForm
         ' Label5
         ' 
         Label5.FlatStyle = FlatStyle.Flat
-        Label5.Font = New Font("Segoe UI", 9F)
+        Label5.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label5.Location = New Point(6, 147)
         Label5.Margin = New Padding(2, 0, 2, 0)
         Label5.Name = "Label5"
@@ -1668,7 +1671,7 @@ Partial Class MainForm
         ' Label3
         ' 
         Label3.FlatStyle = FlatStyle.Flat
-        Label3.Font = New Font("Segoe UI", 9F)
+        Label3.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label3.Location = New Point(6, 70)
         Label3.Margin = New Padding(2, 0, 2, 0)
         Label3.Name = "Label3"
@@ -1681,7 +1684,7 @@ Partial Class MainForm
         ' 
         cbxStarSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxStarSDK.FlatStyle = FlatStyle.Flat
-        cbxStarSDK.Font = New Font("Segoe UI", 9F)
+        cbxStarSDK.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxStarSDK.FormattingEnabled = True
         cbxStarSDK.Location = New Point(117, 93)
         cbxStarSDK.Margin = New Padding(2)
@@ -1693,7 +1696,7 @@ Partial Class MainForm
         ' 
         cbxDojaSDK.DropDownStyle = ComboBoxStyle.DropDownList
         cbxDojaSDK.FlatStyle = FlatStyle.Flat
-        cbxDojaSDK.Font = New Font("Segoe UI", 9F)
+        cbxDojaSDK.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         cbxDojaSDK.FormattingEnabled = True
         cbxDojaSDK.Location = New Point(116, 70)
         cbxDojaSDK.Margin = New Padding(2)
@@ -1704,7 +1707,7 @@ Partial Class MainForm
         ' Label4
         ' 
         Label4.FlatStyle = FlatStyle.Flat
-        Label4.Font = New Font("Segoe UI", 9F)
+        Label4.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
         Label4.Location = New Point(6, 93)
         Label4.Margin = New Padding(2, 0, 2, 0)
         Label4.Name = "Label4"
@@ -1736,7 +1739,7 @@ Partial Class MainForm
         ' 
         ' lvwPlaytimes
         ' 
-        lvwPlaytimes.Font = New Font("Segoe UI", 10.8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        lvwPlaytimes.Font = New Font("Segoe UI", 14.4F, FontStyle.Regular, GraphicsUnit.Pixel)
         lvwPlaytimes.FullRowSelect = True
         lvwPlaytimes.GridLines = True
         lvwPlaytimes.HideSelection = True
@@ -1791,11 +1794,12 @@ Partial Class MainForm
         Controls.Add(MaterialTabControl1)
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Margin = New Padding(2)
-        MaximizeBox = True
-        MinimumSize = New Size(1100, 720)
+        MaximizeBox = False
+        MaximumSize = New Size(1280, 800)
+        MinimumSize = New Size(1280, 800)
         Name = "MainForm"
         Padding = New Padding(0, 63, 0, 0)
-        Sizable = True
+        Sizable = False
         StartPosition = FormStartPosition.CenterScreen
         Text = "Keitai World Launcher"
         cmsGameLV.ResumeLayout(False)

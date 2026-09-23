@@ -23,7 +23,7 @@ Public Module CompactUiTheme
         Dim button As New Button With {
             .AutoSize = False,
             .FlatStyle = FlatStyle.Flat,
-            .Font = New Font("Segoe UI", 9.0F, If(primaryAction, FontStyle.Bold, FontStyle.Regular)),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F, If(primaryAction, FontStyle.Bold, FontStyle.Regular)),
             .Height = 32,
             .Margin = New Padding(3),
             .Padding = New Padding(8, 0, 8, 0),
@@ -79,7 +79,7 @@ Public Module CompactUiTheme
         label.AutoSize = False
         label.Text = text
         label.TextAlign = ContentAlignment.MiddleCenter
-        label.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
+        label.Font = FixedLayout.CreateFont("Segoe UI", 8.5F, FontStyle.Bold)
         label.Padding = New Padding(6, 0, 6, 0)
         label.BackColor = If(installed, SuccessBackground, NeutralBackground)
         label.ForeColor = If(installed, Success, TextSecondary)

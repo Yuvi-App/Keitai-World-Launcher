@@ -75,9 +75,10 @@ Partial Public Class MainForm
         SuspendLayout()
         Try
             ClientSize = New Size(1280, 800)
-            MinimumSize = New Size(1100, 720)
-            MaximizeBox = True
-            Sizable = True
+            MinimumSize = Size
+            MaximumSize = Size
+            MaximizeBox = False
+            Sizable = False
             BackColor = CompactUiTheme.AppBackground
 
             tpAppli.Text = "Library"
@@ -133,7 +134,7 @@ Partial Public Class MainForm
         }
         Dim titleLabel As New Label With {
             .AutoSize = False,
-            .Font = New Font("Segoe UI Semibold", 17.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 17.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Location = New Point(0, 0),
             .Size = New Size(340, 31),
@@ -142,7 +143,7 @@ Partial Public Class MainForm
         }
         Dim subtitleLabel As New Label With {
             .AutoSize = False,
-            .Font = New Font("Segoe UI", 9.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Location = New Point(2, 32),
             .Size = New Size(420, 20),
@@ -224,14 +225,14 @@ Partial Public Class MainForm
         }
         Dim historyTitle As New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 11.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Text = "Play history",
             .TextAlign = ContentAlignment.MiddleLeft
         }
         _lblActivityHistoryCount = New Label With {
             .Dock = DockStyle.Right,
-            .Font = New Font("Segoe UI", 9.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Size = New Size(120, 54),
             .Text = "0 apps",
@@ -281,7 +282,7 @@ Partial Public Class MainForm
 
         GroupBox9.Controls.Remove(lvwPlaytimes)
         lvwPlaytimes.Dock = DockStyle.Fill
-        lvwPlaytimes.Font = New Font("Segoe UI", 9.5F)
+        lvwPlaytimes.Font = FixedLayout.CreateFont("Segoe UI", 9.5F)
         lvwPlaytimes.BackColor = CompactUiTheme.Surface
         lvwPlaytimes.BorderStyle = BorderStyle.None
         lvwPlaytimes.ForeColor = CompactUiTheme.TextPrimary
@@ -294,7 +295,7 @@ Partial Public Class MainForm
         _activityEmptyState = New Label With {
             .BackColor = CompactUiTheme.Surface,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 10.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 10.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = "No activity yet" & Environment.NewLine & Environment.NewLine &
                     "Play an app and its history will appear here.",
@@ -324,7 +325,7 @@ Partial Public Class MainForm
     Private Function CreateActivityColumnLabel(text As String, alignment As ContentAlignment) As Label
         Return New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 8.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 8.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Margin = New Padding(6, 0, 6, 0),
             .Text = text,
@@ -368,7 +369,7 @@ Partial Public Class MainForm
 
         Dim titleLabel As New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 8.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 8.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = title,
             .TextAlign = ContentAlignment.MiddleLeft
@@ -376,7 +377,7 @@ Partial Public Class MainForm
         valueLabel = New Label With {
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 17.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 17.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Text = initialValue,
             .TextAlign = ContentAlignment.MiddleLeft
@@ -384,7 +385,7 @@ Partial Public Class MainForm
         hintLabel = New Label With {
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 8.5F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.5F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = hint,
             .TextAlign = ContentAlignment.MiddleLeft
@@ -472,7 +473,7 @@ Partial Public Class MainForm
         }
         Dim titleLabel As New Label With {
             .AutoSize = False,
-            .Font = New Font("Segoe UI Semibold", 17.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 17.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Location = New Point(0, 0),
             .Size = New Size(340, 31),
@@ -481,7 +482,7 @@ Partial Public Class MainForm
         }
         Dim subtitleLabel As New Label With {
             .AutoSize = False,
-            .Font = New Font("Segoe UI", 9.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Location = New Point(2, 32),
             .Size = New Size(560, 20),
@@ -523,7 +524,7 @@ Partial Public Class MainForm
         navigationSurface.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         Dim navigationTitle As New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 8.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 8.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = "CATEGORIES",
             .TextAlign = ContentAlignment.MiddleLeft
@@ -533,7 +534,7 @@ Partial Public Class MainForm
             .BorderStyle = BorderStyle.None,
             .Dock = DockStyle.Fill,
             .DrawMode = DrawMode.OwnerDrawFixed,
-            .Font = New Font("Segoe UI", 10.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 10.0F),
             .ForeColor = CompactUiTheme.TextPrimary,
             .IntegralHeight = False,
             .ItemHeight = 44,
@@ -610,7 +611,7 @@ Partial Public Class MainForm
         End If
 
         Dim textBounds = New Rectangle(e.Bounds.Left + 16, e.Bounds.Top, e.Bounds.Width - 22, e.Bounds.Height)
-        Using navigationFont As New Font("Segoe UI", 9.5F, If(selected, FontStyle.Bold, FontStyle.Regular))
+        Using navigationFont = FixedLayout.CreateFont("Segoe UI", 9.5F, If(selected, FontStyle.Bold, FontStyle.Regular))
             TextRenderer.DrawText(
                 e.Graphics,
                 _settingsNavigation.Items(e.Index).ToString(),
@@ -660,7 +661,7 @@ Partial Public Class MainForm
         }
         Dim pageTitle As New Label With {
             .AutoSize = False,
-            .Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 15.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Location = New Point(0, 0),
             .Size = New Size(440, 28),
@@ -670,7 +671,7 @@ Partial Public Class MainForm
         }
         Dim pageSubtitle As New Label With {
             .AutoSize = False,
-            .Font = New Font("Segoe UI", 9.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Location = New Point(1, 30),
             .Size = New Size(760, 22),
@@ -729,7 +730,7 @@ Partial Public Class MainForm
         Dim cardTitle As New Label With {
             .AccessibleName = title,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 11.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Text = title,
             .TextAlign = ContentAlignment.MiddleLeft
@@ -738,7 +739,7 @@ Partial Public Class MainForm
             .AccessibleDescription = subtitle,
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 8.8F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.8F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = subtitle,
             .TextAlign = ContentAlignment.MiddleLeft
@@ -796,7 +797,7 @@ Partial Public Class MainForm
         Return New Label With {
             .AccessibleName = text,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 9.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Margin = New Padding(4, 0, 8, 0),
             .Text = text,
@@ -823,7 +824,7 @@ Partial Public Class MainForm
     End Sub
 
     Private Sub PrepareSettingsInput(control As Control)
-        control.Font = New Font("Segoe UI", 9.0F)
+        control.Font = FixedLayout.CreateFont("Segoe UI", 9.0F)
         control.ForeColor = CompactUiTheme.TextPrimary
         If TypeOf control Is ComboBox Then
             Dim combo = DirectCast(control, ComboBox)
@@ -852,7 +853,7 @@ Partial Public Class MainForm
         button.AutoSize = False
         button.FlatStyle = FlatStyle.Flat
         button.FlatAppearance.BorderSize = 1
-        button.Font = New Font("Segoe UI", 9.0F, If(primary, FontStyle.Bold, FontStyle.Regular))
+        button.Font = FixedLayout.CreateFont("Segoe UI", 9.0F, If(primary, FontStyle.Bold, FontStyle.Regular))
         button.Height = 36
         button.Margin = New Padding(4, 4, 8, 4)
         button.Padding = New Padding(10, 0, 10, 0)
@@ -922,7 +923,7 @@ Partial Public Class MainForm
         PrepareSettingsInput(_chkEnableKeitaiWiki)
         Dim wikiNote As New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 8.8F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.8F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Padding = New Padding(4, 2, 4, 0),
             .Text = "This is a WIP, as we finetune the integration.",
@@ -1051,7 +1052,7 @@ Partial Public Class MainForm
         cbxAudioType.Margin = New Padding(4, 5, 6, 5)
         lblAudioWarning.AutoSize = False
         lblAudioWarning.Dock = DockStyle.Fill
-        lblAudioWarning.Font = New Font("Segoe UI", 7.8F)
+        lblAudioWarning.Font = FixedLayout.CreateFont("Segoe UI", 7.8F)
         lblAudioWarning.ForeColor = CompactUiTheme.Danger
         lblAudioWarning.Margin = New Padding(0)
         lblAudioWarning.TextAlign = ContentAlignment.MiddleLeft
@@ -1187,7 +1188,7 @@ Partial Public Class MainForm
         For Each warning In New Label() {lblInvalidUID, lblInvalidTID}
             warning.AutoSize = False
             warning.Dock = DockStyle.Fill
-            warning.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
+            warning.Font = FixedLayout.CreateFont("Segoe UI", 8.5F, FontStyle.Bold)
             warning.ForeColor = CompactUiTheme.Danger
             warning.Margin = New Padding(10, 0, 4, 0)
             warning.TextAlign = ContentAlignment.MiddleLeft
@@ -1236,7 +1237,7 @@ Partial Public Class MainForm
         aboutLayout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         aboutLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 48.0F))
         lblHelp_AppVer.Dock = DockStyle.Fill
-        lblHelp_AppVer.Font = New Font("Segoe UI", 10.0F)
+        lblHelp_AppVer.Font = FixedLayout.CreateFont("Segoe UI", 10.0F)
         lblHelp_AppVer.ForeColor = CompactUiTheme.TextPrimary
         lblHelp_AppVer.TextAlign = ContentAlignment.MiddleCenter
         Dim helpActions As New TableLayoutPanel With {
@@ -1272,7 +1273,7 @@ Partial Public Class MainForm
             "half",
             troubleshootingContent)
         lblHelp_troubleshooting.Dock = DockStyle.Fill
-        lblHelp_troubleshooting.Font = New Font("Segoe UI", 9.0F)
+        lblHelp_troubleshooting.Font = FixedLayout.CreateFont("Segoe UI", 9.0F)
         lblHelp_troubleshooting.ForeColor = CompactUiTheme.TextPrimary
         lblHelp_troubleshooting.Padding = New Padding(4, 4, 4, 4)
         lblHelp_troubleshooting.TextAlign = ContentAlignment.TopLeft
@@ -1299,7 +1300,7 @@ Partial Public Class MainForm
             .AccessibleName = "Library categories",
             .AccessibleDescription = "Choose Apps, Machi-Chara, or Chara-Den. Use the arrow keys to change categories.",
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 9.5F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.5F),
             .ItemSize = New Size(128, 28),
             .Padding = New Point(14, 4),
             .SizeMode = TabSizeMode.Fixed
@@ -1424,7 +1425,7 @@ Partial Public Class MainForm
         }
         Dim statusGlyph As New Label With {
             .BackColor = Color.FromArgb(235, 239, 252),
-            .Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 12.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.Primary,
             .Location = New Point(16, 10),
             .Size = New Size(36, 36),
@@ -1433,7 +1434,7 @@ Partial Public Class MainForm
         }
         _downloadQueueTitle = New Label With {
             .AutoEllipsis = True,
-            .Font = New Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 9.5F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Location = New Point(66, 7),
             .Size = New Size(520, 22),
@@ -1442,7 +1443,7 @@ Partial Public Class MainForm
         }
         _downloadQueueStatus = New Label With {
             .AutoEllipsis = True,
-            .Font = New Font("Segoe UI", 8.7F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.7F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Location = New Point(66, 28),
             .Size = New Size(620, 20),
@@ -1451,7 +1452,7 @@ Partial Public Class MainForm
         }
         _downloadQueueCount = New Label With {
             .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
-            .Font = New Font("Segoe UI Semibold", 8.7F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 8.7F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Size = New Size(130, 34),
             .Text = "Current download",
@@ -1531,7 +1532,7 @@ Partial Public Class MainForm
         _actionDelete = New ToolStripMenuItem("Delete")
         _actionDelete.ForeColor = CompactUiTheme.Danger
 
-        _gameActionsMenu = New ContextMenuStrip()
+        _gameActionsMenu = New ContextMenuStrip With {.Font = FixedLayout.CreateFont("Segoe UI", 9.0F)}
         _gameActionsMenu.Items.AddRange(New ToolStripItem() {
             _actionRedownload,
             _actionBackupSave,
@@ -1574,18 +1575,26 @@ Partial Public Class MainForm
         Const outerRightMargin As Integer = 10
         Const columnGap As Integer = 8
 
+        ' Use the fixed pixel font's preferred widths. The old 120/194/322
+        ' offsets could overlap even at 96 DPI after a font/theme change.
+        For Each optionBox In New CheckBox() {chkbxLocalEmulator, chkbxShaderGlass,
+            chkbxDialpadNumpad, chkbxDialpadRotated, chkbxEnableController, chkboxControllerVibration}
+            optionBox.AutoSize = True
+            optionBox.Size = optionBox.GetPreferredSize(Size.Empty)
+        Next
+
         chkbxLocalEmulator.Location = New Point(optionsLeft, 29)
-        chkbxShaderGlass.Location = New Point(optionsLeft + 120, 29)
-        Label2.Location = New Point(optionsLeft + 216, 25)
+        chkbxShaderGlass.Location = New Point(chkbxLocalEmulator.Right + columnGap, 29)
+        Label2.Location = New Point(chkbxShaderGlass.Right + columnGap, 25)
         Label2.Size = New Size(54, 23)
         Label2.Text = "Scaling"
-        cbxShaderGlassScaling.Location = New Point(optionsLeft + 270, 26)
+        cbxShaderGlassScaling.Location = New Point(Label2.Right + columnGap, 26)
         cbxShaderGlassScaling.Width = Math.Max(64, Math.Min(85, GroupBox3.ClientSize.Width - cbxShaderGlassScaling.Left - outerRightMargin))
 
         chkbxDialpadNumpad.Location = New Point(optionsLeft, 61)
-        chkbxDialpadRotated.Location = New Point(optionsLeft + 120, 61)
-        chkbxEnableController.Location = New Point(optionsLeft + 194, 61)
-        chkboxControllerVibration.Location = New Point(optionsLeft + 322, 61)
+        chkbxDialpadRotated.Location = New Point(chkbxDialpadNumpad.Right + columnGap, 61)
+        chkbxEnableController.Location = New Point(chkbxDialpadRotated.Right + columnGap, 61)
+        chkboxControllerVibration.Location = New Point(chkbxEnableController.Right + columnGap, 61)
 
         Dim availableWidth = Math.Max(250, GroupBox3.ClientSize.Width - optionsLeft - outerRightMargin)
         Dim comboWidth = Math.Max(120, CInt(Math.Floor((availableWidth - columnGap) / 2.0)))
@@ -1627,7 +1636,7 @@ Partial Public Class MainForm
     Private Function BuildMachiCharaLauncherSelector() As Control
         Dim launcherLabel As New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 9.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = "OPEN WITH",
             .TextAlign = ContentAlignment.BottomLeft
@@ -1638,7 +1647,7 @@ Partial Public Class MainForm
             .AccessibleDescription = "Choose which emulator or companion app opens installed Machi-Chara files.",
             .Dock = DockStyle.Fill,
             .DropDownStyle = ComboBoxStyle.DropDownList,
-            .Font = New Font("Segoe UI", 9.5F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.5F),
             .IntegralHeight = False,
             .MaxDropDownItems = 4
         }
@@ -1735,7 +1744,7 @@ Partial Public Class MainForm
 
         searchBox = New TextBox With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 9.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
             .Margin = New Padding(0),
             .PlaceholderText = placeholder
         }
@@ -1779,7 +1788,7 @@ Partial Public Class MainForm
         titleLabel = New Label With {
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 16.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI", 16.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Text = heading,
             .TextAlign = ContentAlignment.BottomLeft
@@ -1787,7 +1796,7 @@ Partial Public Class MainForm
         metadataLabel = New Label With {
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 9.5F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.5F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .TextAlign = ContentAlignment.TopLeft
         }
@@ -1850,7 +1859,7 @@ Partial Public Class MainForm
     Private Sub BuildMachiActionsMenu()
         _actionMachiRedownload = New ToolStripMenuItem("Redownload")
         _actionMachiDelete = New ToolStripMenuItem("Delete") With {.ForeColor = CompactUiTheme.Danger}
-        _machiActionsMenu = New ContextMenuStrip()
+        _machiActionsMenu = New ContextMenuStrip With {.Font = FixedLayout.CreateFont("Segoe UI", 9.0F)}
         _machiActionsMenu.Items.AddRange(New ToolStripItem() {
             _actionMachiRedownload,
             New ToolStripSeparator(),
@@ -1865,7 +1874,7 @@ Partial Public Class MainForm
     Private Sub BuildCharaActionsMenu()
         _actionCharaRedownload = New ToolStripMenuItem("Redownload")
         _actionCharaDelete = New ToolStripMenuItem("Delete") With {.ForeColor = CompactUiTheme.Danger}
-        _charaActionsMenu = New ContextMenuStrip()
+        _charaActionsMenu = New ContextMenuStrip With {.Font = FixedLayout.CreateFont("Segoe UI", 9.0F)}
         _charaActionsMenu.Items.AddRange(New ToolStripItem() {
             _actionCharaRedownload,
             New ToolStripSeparator(),
@@ -2088,7 +2097,7 @@ Partial Public Class MainForm
         Dim title As New Label With {
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 17.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI", 17.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Text = game.ENTitle,
             .TextAlign = ContentAlignment.BottomLeft
@@ -2100,7 +2109,7 @@ Partial Public Class MainForm
         Dim subtitle As New Label With {
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 10.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 10.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = subtitleText,
             .TextAlign = ContentAlignment.TopLeft,
@@ -2108,14 +2117,14 @@ Partial Public Class MainForm
         }
         Dim facts As New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 9.5F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.5F),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Text = $"Platform: {game.Emulator}{Environment.NewLine}Status: {If(installed, "Installed", "Available to download")}",
             .TextAlign = ContentAlignment.TopLeft
         }
         Dim guidance As New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 9.5F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.5F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = If(offline AndAlso Not installed,
                        "This app is not installed. Connect to the internet to download it.",
@@ -2192,7 +2201,7 @@ Partial Public Class MainForm
                 .AccessibleName = "Advanced JAM or JAD app metadata",
                 .AutoEllipsis = True,
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI Semibold", 9.2F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 9.2F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Text = "Advanced JAM/JAD metadata",
                 .TextAlign = ContentAlignment.MiddleLeft
@@ -2286,21 +2295,21 @@ Partial Public Class MainForm
         overview.Controls.Add(New Label With {
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 15.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI", 15.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Text = game.ENTitle,
             .TextAlign = ContentAlignment.MiddleLeft
         }, 0, 0)
         overview.Controls.Add(New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 9.2F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 9.2F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.Success,
             .Text = "Installed",
             .TextAlign = ContentAlignment.MiddleLeft
         }, 0, 1)
         overview.Controls.Add(New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 8.8F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.8F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = "Technical JAM/JAD metadata is hidden by default. Choose Show details above if you need to inspect or edit it.",
             .TextAlign = ContentAlignment.TopLeft
@@ -2362,7 +2371,7 @@ Partial Public Class MainForm
         surface.Controls.Add(New Label With {
             .AccessibleName = "Checking KeitaiWiki",
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 8.8F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.8F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = "Checking KeitaiWiki...",
             .TextAlign = ContentAlignment.MiddleLeft
@@ -2409,7 +2418,7 @@ Partial Public Class MainForm
         }
         Dim imagePlaceholder As New Label With {
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 8.2F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.2F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = "Loading image...",
             .TextAlign = ContentAlignment.MiddleCenter
@@ -2420,7 +2429,7 @@ Partial Public Class MainForm
             .AccessibleName = $"Open {metadata.CanonicalTitle} on KeitaiWiki",
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 11.0F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .LinkBehavior = LinkBehavior.HoverUnderline,
             .LinkColor = CompactUiTheme.Primary,
@@ -2437,7 +2446,7 @@ Partial Public Class MainForm
             .AccessibleDescription = metadata.Extract,
             .AutoEllipsis = True,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 8.9F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.9F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Padding = New Padding(0, 4, 4, 0),
             .Text = TruncateKeitaiWikiExtract(metadata.Extract),
@@ -2451,7 +2460,7 @@ Partial Public Class MainForm
             .AccessibleName = "KeitaiWiki source details",
             .AccessibleDescription = $"KeitaiWiki page {metadata.PageId}, revision {metadata.RevisionId}, updated {updatedText}.",
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 8.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 8.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Text = $"KeitaiWiki · Page {metadata.PageId} · Updated {updatedText}",
             .TextAlign = ContentAlignment.BottomLeft
@@ -2532,7 +2541,7 @@ Partial Public Class MainForm
         Dim prompt As New Label With {
             .AccessibleName = "Confirm KeitaiWiki match",
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI Semibold", 9.5F, FontStyle.Bold),
+            .Font = FixedLayout.CreateFont("Segoe UI Semibold", 9.5F, FontStyle.Bold),
             .ForeColor = CompactUiTheme.TextPrimary,
             .Text = "Is this the right KeitaiWiki page?",
             .TextAlign = ContentAlignment.MiddleLeft
@@ -2543,7 +2552,7 @@ Partial Public Class MainForm
             .Dock = DockStyle.Fill,
             .DropDownStyle = ComboBoxStyle.DropDownList,
             .FlatStyle = FlatStyle.Flat,
-            .Font = New Font("Segoe UI", 9.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
             .Margin = New Padding(0, 4, 0, 4)
         }
         choices.Items.AddRange(candidates.Cast(Of Object)().ToArray())
@@ -2650,7 +2659,7 @@ Partial Public Class MainForm
         Return New Label With {
             .BackColor = CompactUiTheme.Surface,
             .Dock = DockStyle.Fill,
-            .Font = New Font("Segoe UI", 10.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 10.0F),
             .ForeColor = CompactUiTheme.TextSecondary,
             .Padding = New Padding(24),
             .Text = text,

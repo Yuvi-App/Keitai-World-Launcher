@@ -172,7 +172,7 @@ Public Class UIDialogManager
     End Function
 
     Private MustInherit Class CompactCustomDialogForm
-        Inherits Form
+        Inherits FixedLayoutForm
 
         Protected ReadOnly ContentHost As Panel
         Protected ReadOnly FooterHost As Panel
@@ -181,7 +181,7 @@ Public Class UIDialogManager
             AutoScaleMode = AutoScaleMode.None
             BackColor = CompactUiTheme.Surface
             ClientSize = New Size(dialogWidth, dialogHeight)
-            Font = New Font("Segoe UI", 9.0F)
+            Font = FixedLayout.CreateFont("Segoe UI", 9.0F)
             FormBorderStyle = FormBorderStyle.None
             KeyPreview = True
             MaximizeBox = False
@@ -220,7 +220,7 @@ Public Class UIDialogManager
             Dim titleLabel As New Label With {
                 .AccessibleName = $"Dialog title: {title}",
                 .AutoEllipsis = True,
-                .Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 12.0F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Location = New Point(21, 9),
                 .Size = New Size(dialogWidth - 86, 34),
@@ -233,7 +233,7 @@ Public Class UIDialogManager
                 .BackColor = CompactUiTheme.Surface,
                 .DialogResult = DialogResult.Cancel,
                 .FlatStyle = FlatStyle.Flat,
-                .Font = New Font("Segoe UI", 13.0F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 13.0F),
                 .ForeColor = CompactUiTheme.TextSecondary,
                 .Location = New Point(dialogWidth - 47, 7),
                 .Size = New Size(32, 32),
@@ -378,7 +378,7 @@ Public Class UIDialogManager
 
             Dim instructions As New Label With {
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI", 9.0F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
                 .ForeColor = CompactUiTheme.TextSecondary,
                 .Text = "Get your Network UID from the Keitai Wiki Discord:" & Environment.NewLine &
                         "1. Open the #Butler-sheep channel.  2. Select Get-UID.",
@@ -390,7 +390,7 @@ Public Class UIDialogManager
             _terminalIdTextBox = CreateTextBox(currentTerminalId, "Terminal ID")
             _validationLabel = New Label With {
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI", 8.5F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI", 8.5F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.Danger,
                 .Text = "Both values are required.",
                 .TextAlign = ContentAlignment.MiddleLeft,
@@ -420,7 +420,7 @@ Public Class UIDialogManager
         Private Shared Function CreateFieldLabel(text As String) As Label
             Return New Label With {
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI Semibold", 8.7F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 8.7F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Text = text,
                 .TextAlign = ContentAlignment.MiddleLeft
@@ -433,7 +433,7 @@ Public Class UIDialogManager
                 .BackColor = Color.FromArgb(249, 250, 252),
                 .BorderStyle = BorderStyle.FixedSingle,
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI", 9.5F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 9.5F),
                 .Margin = New Padding(0, 2, 0, 3),
                 .MaxLength = 50,
                 .Text = value
@@ -476,14 +476,14 @@ Public Class UIDialogManager
             formLayout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
             Dim messageLabel As New Label With {
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI", 9.0F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
                 .ForeColor = CompactUiTheme.TextSecondary,
                 .Text = message,
                 .TextAlign = ContentAlignment.TopLeft
             }
             Dim choiceLabel As New Label With {
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI Semibold", 8.7F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 8.7F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Text = "Emulator",
                 .TextAlign = ContentAlignment.MiddleLeft
@@ -494,7 +494,7 @@ Public Class UIDialogManager
                 .Dock = DockStyle.Fill,
                 .DropDownStyle = ComboBoxStyle.DropDownList,
                 .FlatStyle = FlatStyle.Flat,
-                .Font = New Font("Segoe UI", 9.5F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 9.5F),
                 .Margin = New Padding(0, 3, 0, 5)
             }
             For Each optionValue In options
@@ -507,7 +507,7 @@ Public Class UIDialogManager
                 .Checked = optionChecked,
                 .Dock = DockStyle.Fill,
                 .FlatStyle = FlatStyle.Flat,
-                .Font = New Font("Segoe UI", 9.0F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
                 .Text = optionText,
                 .UseVisualStyleBackColor = False,
                 .Visible = Not String.IsNullOrWhiteSpace(optionText)
@@ -537,7 +537,7 @@ Public Class UIDialogManager
                 .BackColor = CompactUiTheme.Surface,
                 .BorderStyle = BorderStyle.None,
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI", 9.5F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 9.5F),
                 .ForeColor = CompactUiTheme.TextSecondary,
                 .Multiline = True,
                 .ReadOnly = True,
@@ -605,7 +605,7 @@ Public Class UIDialogManager
             _stateLabel = New Label With {
                 .AccessibleName = "Gacha status",
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI Semibold", 8.7F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 8.7F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.Primary,
                 .Text = "Rolling the capsule...",
                 .TextAlign = ContentAlignment.MiddleCenter
@@ -614,7 +614,7 @@ Public Class UIDialogManager
                 .AccessibleName = "Gacha result",
                 .AutoEllipsis = True,
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 15.0F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Text = "???",
                 .TextAlign = ContentAlignment.MiddleCenter
@@ -622,7 +622,7 @@ Public Class UIDialogManager
             _detailLabel = New Label With {
                 .AccessibleName = "Gacha result details",
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI", 9.0F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
                 .ForeColor = CompactUiTheme.TextSecondary,
                 .Text = "The result comes from your current search and filter.",
                 .TextAlign = ContentAlignment.TopCenter
@@ -862,7 +862,7 @@ Public Class UIDialogManager
                 .BackColor = Color.FromArgb(249, 250, 252),
                 .BorderStyle = BorderStyle.FixedSingle,
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Consolas", 9.3F),
+                .Font = FixedLayout.CreateFont("Consolas", 9.3F),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Margin = New Padding(0, 0, 12, 0),
                 .Multiline = True,
@@ -881,7 +881,7 @@ Public Class UIDialogManager
                 imageSurface.Controls.Add(New Label With {
                     .AccessibleName = "Controller diagram unavailable",
                     .Dock = DockStyle.Fill,
-                    .Font = New Font("Segoe UI", 9.0F),
+                    .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
                     .ForeColor = CompactUiTheme.TextSecondary,
                     .Text = "The control diagram is not installed.",
                     .TextAlign = ContentAlignment.MiddleCenter
@@ -903,7 +903,7 @@ Public Class UIDialogManager
     End Class
 
     Private NotInheritable Class CompactDialogForm
-        Inherits Form
+        Inherits FixedLayoutForm
 
         Private Const DialogWidth As Integer = 460
         Private Const HorizontalPadding As Integer = 22
@@ -919,7 +919,7 @@ Public Class UIDialogManager
         )
             AutoScaleMode = AutoScaleMode.None
             BackColor = CompactUiTheme.Surface
-            Font = New Font("Segoe UI", 9.0F)
+            Font = FixedLayout.CreateFont("Segoe UI", 9.0F)
             FormBorderStyle = FormBorderStyle.None
             KeyPreview = True
             MaximizeBox = False
@@ -934,7 +934,7 @@ Public Class UIDialogManager
             AccessibleDescription = message
 
             Dim accentColor = GetToneColor(tone)
-            Dim messageFont As New Font("Segoe UI", 9.5F)
+            Dim messageFont = FixedLayout.CreateFont("Segoe UI", 9.5F)
             Dim availableTextWidth = DialogWidth - (HorizontalPadding * 2)
             Dim measuredMessage = TextRenderer.MeasureText(
                 message,
@@ -957,7 +957,7 @@ Public Class UIDialogManager
             Dim titleLabel As New Label With {
                 .AccessibleName = $"Dialog title: {title}",
                 .AutoEllipsis = True,
-                .Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 12.0F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Location = New Point(HorizontalPadding, 19),
                 .Size = New Size(DialogWidth - 88, 28),
@@ -970,7 +970,7 @@ Public Class UIDialogManager
                 .BackColor = CompactUiTheme.Surface,
                 .DialogResult = DialogResult.Cancel,
                 .FlatStyle = FlatStyle.Flat,
-                .Font = New Font("Segoe UI", 13.0F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 13.0F),
                 .ForeColor = CompactUiTheme.TextSecondary,
                 .Location = New Point(DialogWidth - 47, 12),
                 .Size = New Size(32, 32),

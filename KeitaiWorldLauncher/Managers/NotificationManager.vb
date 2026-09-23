@@ -97,7 +97,7 @@ Public NotInheritable Class NotificationManager
     End Class
 
     Private NotInheritable Class CompactNotificationForm
-        Inherits Form
+        Inherits FixedLayoutForm
 
         Private Const NotificationWidth As Integer = 410
         Private ReadOnly _durationMilliseconds As Integer
@@ -110,7 +110,7 @@ Public NotInheritable Class NotificationManager
             _durationMilliseconds = Math.Max(1000, durationMilliseconds)
             _toneColor = ToneColor(tone)
 
-            Dim messageFont As New Font("Segoe UI", 9.0F)
+            Dim messageFont = FixedLayout.CreateFont("Segoe UI", 9.0F)
             Dim messageSize = TextRenderer.MeasureText(
                 message,
                 messageFont,
@@ -128,7 +128,7 @@ Public NotInheritable Class NotificationManager
             ClientSize = New Size(NotificationWidth, notificationHeight)
             ControlBox = False
             DoubleBuffered = True
-            Font = New Font("Segoe UI", 9.0F)
+            Font = FixedLayout.CreateFont("Segoe UI", 9.0F)
             FormBorderStyle = FormBorderStyle.None
             MaximizeBox = False
             MinimizeBox = False
@@ -150,7 +150,7 @@ Public NotInheritable Class NotificationManager
             }
             Dim iconLabel As New Label With {
                 .Dock = DockStyle.Fill,
-                .Font = New Font("Segoe UI Semibold", 14.0F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 14.0F, FontStyle.Bold),
                 .ForeColor = _toneColor,
                 .Text = ToneGlyph(tone),
                 .TextAlign = ContentAlignment.MiddleCenter
@@ -161,7 +161,7 @@ Public NotInheritable Class NotificationManager
                 .AccessibleName = resolvedTitle,
                 .AccessibleRole = AccessibleRole.StaticText,
                 .AutoEllipsis = True,
-                .Font = New Font("Segoe UI Semibold", 10.0F, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI Semibold", 10.0F, FontStyle.Bold),
                 .ForeColor = CompactUiTheme.TextPrimary,
                 .Location = New Point(74, 14),
                 .Size = New Size(NotificationWidth - 120, 25),
@@ -186,7 +186,7 @@ Public NotInheritable Class NotificationManager
                 .AccessibleRole = AccessibleRole.PushButton,
                 .BackColor = CompactUiTheme.Surface,
                 .FlatStyle = FlatStyle.Flat,
-                .Font = New Font("Segoe UI", 12.0F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 12.0F),
                 .ForeColor = CompactUiTheme.TextSecondary,
                 .Location = New Point(NotificationWidth - 40, 8),
                 .Size = New Size(28, 28),

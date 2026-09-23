@@ -1,4 +1,4 @@
-﻿Imports System.IO
+Imports System.IO
 Imports System.ComponentModel
 Imports System.IO.Compression
 Imports System.Net
@@ -838,7 +838,7 @@ Namespace My.Managers
                             .Dock = DockStyle.Fill,
                             .TextAlign = ContentAlignment.MiddleCenter,
                             .ForeColor = Color.DarkRed,
-                            .Font = New Font("Segoe UI", 10, FontStyle.Bold)
+                            .Font = FixedLayout.CreateFont("Segoe UI", 10, FontStyle.Bold)
                         }
                         container.Controls.Add(noDataLabel)
                         Return
@@ -855,7 +855,7 @@ Namespace My.Managers
                     .FullRowSelect = True,
                     .GridLines = True,
                     .HeaderStyle = ColumnHeaderStyle.Nonclickable,
-                    .Font = New Font("Segoe UI", 9)
+                    .Font = FixedLayout.CreateFont("Segoe UI", 9)
                 }
 
                 ' Enable double-buffering
@@ -868,7 +868,7 @@ Namespace My.Managers
                 lv.Columns.Add("Value", Math.Max(240, container.ClientSize.Width - 184), HorizontalAlignment.Left)
 
                 ' Build the context menu
-                Dim cms As New ContextMenuStrip()
+                Dim cms As New ContextMenuStrip With {.Font = FixedLayout.CreateFont("Segoe UI", 9.0F)}
                 Dim editItem As New ToolStripMenuItem("Edit Value")
                 cms.Items.Add(editItem)
                 lv.ContextMenuStrip = cms
@@ -900,7 +900,7 @@ Namespace My.Managers
                                                ' Show one-time warning per app launch
                                                If Not _appliEditWarningShown Then
                                                    Dim accepted As Boolean = False
-                                                   Dim warningForm As New ReaLTaiizor.Forms.MaterialForm() With {
+                                                   Dim warningForm As New FixedMaterialForm() With {
                                                        .Text = "App metadata editor",
                                                        .Size = New Size(480, 230),
                                                        .StartPosition = FormStartPosition.CenterParent,
@@ -913,7 +913,7 @@ Namespace My.Managers
                                                        .Text = "Modifying app metadata can break games or cause" & vbCrLf &
                                                                "unexpected behavior." & vbCrLf & vbCrLf &
                                                                "Please do not modify this unless you know what you are doing.",
-                                                       .Font = New Font("Segoe UI", 10),
+                                                       .Font = FixedLayout.CreateFont("Segoe UI", 10),
                                                        .Left = 20,
                                                        .Top = 76,
                                                        .AutoSize = True
@@ -1061,7 +1061,7 @@ Namespace My.Managers
         End Function
 
         Private Shared Function ShowEditDialog(propertyName As String, currentValue As String) As String
-            Dim frm As New ReaLTaiizor.Forms.MaterialForm() With {
+            Dim frm As New FixedMaterialForm() With {
         .Text = $"Edit Property",
         .Size = New Size(520, 250),
         .StartPosition = FormStartPosition.CenterParent,
@@ -1073,7 +1073,7 @@ Namespace My.Managers
 
             Dim lblProperty As New Label() With {
         .Text = propertyName,
-        .Font = New Font("Segoe UI", 11, FontStyle.Bold),
+        .Font = FixedLayout.CreateFont("Segoe UI", 11, FontStyle.Bold),
         .Left = 20,
         .Top = 76,
         .AutoSize = True
@@ -2576,7 +2576,7 @@ Namespace My.Managers
 
                 LaunchOverlayLabel = New Label With {
                 .ForeColor = Color.Black,
-                .Font = New Font("Segoe UI", 16, FontStyle.Bold),
+                .Font = FixedLayout.CreateFont("Segoe UI", 16, FontStyle.Bold),
                 .BackColor = Color.Transparent,
                 .AutoSize = True
             }

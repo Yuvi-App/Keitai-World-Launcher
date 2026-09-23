@@ -23,9 +23,10 @@
 
     Partial Friend Class MyApplication
         Private Sub MyApplication_ApplyApplicationDefaults(sender As Object, e As Microsoft.VisualBasic.ApplicationServices.ApplyApplicationDefaultsEventArgs) Handles Me.ApplyApplicationDefaults
-            ' Keep the launcher at its designed 96-DPI layout. Windows can then scale
-            ' the completed window uniformly instead of resizing controls independently.
-            e.HighDpiMode = HighDpiMode.DpiUnaware
+            ' Prevent Windows bitmap scaling on every monitor. FixedLayout forms
+            ' retain the designer's pixel sizes and cancel WinForms DPI resizing.
+            ' Use PerMonitor (v1): v2 also enables automatic native child scaling.
+            e.HighDpiMode = HighDpiMode.PerMonitor
         End Sub
 
     End Class

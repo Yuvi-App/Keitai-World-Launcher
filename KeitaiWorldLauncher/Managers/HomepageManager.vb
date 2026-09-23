@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 
 Imports System.IO
@@ -206,7 +206,7 @@ Public Class HomepageManager
             .AutoSize = False,
             .Dock = DockStyle.Fill,
             .TextAlign = ContentAlignment.MiddleCenter,
-            .Font = New Font("Segoe UI", 10.0F),
+            .Font = FixedLayout.CreateFont("Segoe UI", 10.0F),
             .ForeColor = Color.Gray
         }
         tp.Controls.Add(lbl)

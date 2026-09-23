@@ -1,4 +1,4 @@
-﻿Imports System.IO
+Imports System.IO
 Imports KeitaiWorldLauncher.My.Models
 Imports ReaLTaiizor.Controls
 Imports ReaLTaiizor.Forms
@@ -239,7 +239,7 @@ Namespace My.Managers
             materialManager.Theme = MaterialSkinManager.Themes.LIGHT
 
             ' --- Form ---
-            Dim frm As New MaterialForm With {
+            Dim frm As New FixedMaterialForm With {
                 .Text = "Keitai World Launcher – User Agreement",
                 .StartPosition = FormStartPosition.CenterScreen,
                 .Sizable = False,
@@ -272,7 +272,7 @@ Namespace My.Managers
                 .DetectUrls = False,
                 .BackColor = card.BackColor, ' key: matches the card
                 .ForeColor = Color.Black,
-                .Font = New Font("Segoe UI", 10.0F),
+                .Font = FixedLayout.CreateFont("Segoe UI", 10.0F),
                 .Dock = DockStyle.Fill,
                 .Text =
     "By using this software, you acknowledge and agree to the following:

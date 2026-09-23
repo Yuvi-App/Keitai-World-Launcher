@@ -45,8 +45,9 @@
     </application>
   </compatibility>
 
-  <!-- High-DPI behavior is configured by the WinForms application framework so
-       the startup policy cannot conflict with the individual forms. -->
+  <!-- High-DPI behavior is configured in ApplicationEvents.vb (PerMonitor).
+       FixedLayout forms keep 96-DPI pixel dimensions without Windows stretching.
+       Do not add a conflicting dpiAware/dpiAwareness manifest override. -->
   
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
     <windowsSettings>
