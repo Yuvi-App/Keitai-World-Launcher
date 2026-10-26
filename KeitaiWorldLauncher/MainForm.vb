@@ -148,7 +148,7 @@ Public Class MainForm
         SetupLabelsinOptions()
 
         'Summon Splash
-        SplashScreen.ShowSplash()
+        Dim startupSplash = Await SplashScreen.ShowSplashAsync()
 
         ' Setup SJIS 
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
@@ -254,7 +254,7 @@ Public Class MainForm
                 ' Check for App update
                 Logger.LogInfo("Getting App Update")
                 If autoUpdate = True Then
-                    Await UpdateManager.CheckAndLaunchUpdaterAsync(versionCheckUrl, SplashScreen)
+                    Await UpdateManager.CheckAndLaunchUpdaterAsync(versionCheckUrl, startupSplash)
                 End If
 
                 ' Download all List Files in Parallel if Online and AutoUpdate Enabled

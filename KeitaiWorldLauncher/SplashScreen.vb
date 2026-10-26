@@ -10,6 +10,7 @@ Public Class SplashScreen
 
     Private Shared splashThread As Thread
     Private Shared splashForm As SplashScreen
+    Private Shared splashReady As Task(Of SplashScreen)
 
     Private loadingPhrases As String() = {
         "Spawning loot goblins...",
@@ -58,18 +59,27 @@ Public Class SplashScreen
     Private spinner As PoisonProgressSpinner
 
     ' ────────── Public Methods ──────────
-    Public Shared Sub ShowSplash()
+    Public Shared Function ShowSplashAsync() As Task(Of SplashScreen)
         If splashThread Is Nothing OrElse Not splashThread.IsAlive Then
+            Dim ready As New TaskCompletionSource(Of SplashScreen)(TaskCreationOptions.RunContinuationsAsynchronously)
+            splashReady = ready.Task
             splashThread = New Thread(Sub()
-                                          splashForm = New SplashScreen()
-                                          splashForm.Size = New Drawing.Size(520, 320)
-                                          splashForm.StartPosition = FormStartPosition.CenterScreen
-                                          Application.Run(splashForm)
+                                          Try
+                                              splashForm = New SplashScreen()
+                                              splashForm.Size = New Drawing.Size(520, 320)
+                                              splashForm.StartPosition = FormStartPosition.CenterScreen
+                                              ' Return the visible instance only once its UI thread can own dialogs.
+                                              AddHandler splashForm.Shown, Sub() ready.TrySetResult(splashForm)
+                                              Application.Run(splashForm)
+                                          Catch ex As Exception
+                                              If Not ready.TrySetException(ex) Then Throw
+                                          End Try
                                       End Sub)
             splashThread.SetApartmentState(Threading.ApartmentState.STA)
             splashThread.Start()
         End If
-    End Sub
+        Return splashReady
+    End Function
 
     Public Shared Async Function CloseSplashAsync() As Task
         If splashForm IsNot Nothing AndAlso Not splashForm.IsDisposed AndAlso splashForm.IsHandleCreated Then

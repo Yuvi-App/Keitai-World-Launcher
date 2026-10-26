@@ -72,6 +72,11 @@ Public NotInheritable Class MessageBox
         Optional defaultButton As MessageBoxDefaultButton = MessageBoxDefaultButton.Button1
     ) As DialogResult
         Dim ownerForm = ResolveOwner(owner)
+        If ownerForm IsNot Nothing AndAlso ownerForm.InvokeRequired Then
+            ' Create, show, and dispose the dialog on its owner's UI thread.
+            Return CType(ownerForm.Invoke(New Func(Of DialogResult)(
+                Function() ShowInternal(ownerForm, text, caption, buttons, icon, defaultButton))), DialogResult)
+        End If
         Dim dialogs As New UIDialogManager()
         Dim dialogTitle = If(String.IsNullOrWhiteSpace(caption), "Keitai World Launcher", caption)
         Dim tone = ToneFromContext(icon, dialogTitle, text)

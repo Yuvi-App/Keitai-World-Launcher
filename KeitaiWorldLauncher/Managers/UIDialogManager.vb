@@ -166,8 +166,10 @@ Public Class UIDialogManager
     Private Shared Function ShowOwnedDialog(dialog As Form, owner As Form) As DialogResult
         If owner Is Nothing OrElse owner.IsDisposed Then Return dialog.ShowDialog()
         If owner.InvokeRequired Then
-            Return CType(owner.Invoke(New Func(Of DialogResult)(Function() dialog.ShowDialog(owner))), DialogResult)
+            Return CType(owner.Invoke(New Func(Of DialogResult)(Function() ShowOwnedDialog(dialog, owner))), DialogResult)
         End If
+        ' Startup dialogs must stay in the same topmost layer as the splash screen.
+        dialog.TopMost = owner.TopMost
         Return dialog.ShowDialog(owner)
     End Function
 
