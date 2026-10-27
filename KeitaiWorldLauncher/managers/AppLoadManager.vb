@@ -15,6 +15,7 @@ Namespace My.Managers
                 MainForm.HomepageURL = cfg("HomepageURL")
                 MainForm.gameListUrl = cfg("GamelistURL")
                 MainForm.autoUpdateGameList = Boolean.Parse(cfg("AutoUpdateGameList"))
+                MainForm.GameTitleLanguage = If(String.Equals(cfg("GameTitleLanguage")?.Trim(), "Japanese", StringComparison.OrdinalIgnoreCase), "Japanese", "English")
                 MainForm.machicharaListUrl = cfg("MachiCharalistURL")
                 MainForm.autoUpdatemachicharaList = Boolean.Parse(cfg("AutoUpdateMachiCharaList"))
                 MainForm.charadenListUrl = cfg("CharaDenlistURL")

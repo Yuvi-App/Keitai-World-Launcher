@@ -73,6 +73,7 @@ Public Class MainForm
     Public HomepageURL As String
     Public gameListUrl As String
     Public autoUpdateGameList As Boolean
+    Public GameTitleLanguage As String = "English"
     Public machicharaListUrl As String
     Public autoUpdatemachicharaList As Boolean
     Public charadenListUrl As String
@@ -187,6 +188,7 @@ Public Class MainForm
 
         ' Access and Assign Config settings
         AppLoadManager.LoadConfigValues(config)
+        ApplyGameTitleLanguageSettingFromConfig()
         ApplyKeitaiWikiSettingFromConfig()
         ConfigureMachiCharaLauncherSelection()
 
@@ -762,7 +764,7 @@ Public Class MainForm
                     BustedGames.Add(game.ENTitle)
                 End If
 
-                Dim item As New ListViewItem(game.ENTitle) With {
+                Dim item As New ListViewItem(GetGameDisplayTitle(game)) With {
                 .ImageKey = game.DownloadURL,
                 .Tag = game
                 }
@@ -905,6 +907,10 @@ Public Class MainForm
                                                                     End Function)
 
         ' Update UI
+        ' Resolve titles after filtering so a preference changed during the await is respected.
+        For Each item In filteredItems
+            item.Text = GetGameDisplayTitle(DirectCast(item.Tag, Game))
+        Next
         ListViewGames.BeginUpdate()
         ListViewGames.Items.Clear()
         ListViewGames.BackColor = SystemColors.Window

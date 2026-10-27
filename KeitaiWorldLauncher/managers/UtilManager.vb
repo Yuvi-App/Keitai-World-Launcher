@@ -1176,7 +1176,7 @@ Namespace My.Managers
                                 Dim outputFilePath As String = Path.Combine(iconOutputFolder, outputFileName)
                                 Await Task.Run(Sub() resizedIcon.Save(outputFilePath, Imaging.ImageFormat.Gif))
 
-                                UpdateListViewItemIcon(SelectedGame.ENTitle, outputFilePath)
+                                UpdateListViewItemIcon(SelectedGame, outputFilePath)
                                 logger.Logger.LogInfo($"JSky icon extracted and resized: {outputFilePath}")
                             End Using
                             Return
@@ -1225,7 +1225,7 @@ Namespace My.Managers
                                                resizedIcon.Save(outputFilePath, Imaging.ImageFormat.Gif)
                                            End Sub)
 
-                            UpdateListViewItemIcon(SelectedGame.ENTitle, outputFilePath)
+                            UpdateListViewItemIcon(SelectedGame, outputFilePath)
                             logger.Logger.LogInfo($"Icon successfully extracted and resized: {outputFilePath}")
                         End Using
                     Else
@@ -1237,7 +1237,7 @@ Namespace My.Managers
                 MessageBox.Show($"Error extracting and resizing the icon: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Function
-        Private Sub UpdateListViewItemIcon(gameTitle As String, newIconPath As String)
+        Private Sub UpdateListViewItemIcon(game As Game, newIconPath As String)
             ' Ensure the ImageList exists
             If MainForm.ListViewGames.SmallImageList Is Nothing Then
                 MainForm.ListViewGames.SmallImageList = New ImageList()
@@ -1254,9 +1254,12 @@ Namespace My.Managers
                     MainForm.ListViewGames.SmallImageList.Images.Add(newImageKey, newIcon)
                 End If
 
-                ' Find and update the ListView item
+                ' Identify the game independently of the displayed title language.
                 For Each item As ListViewItem In MainForm.ListViewGames.Items
-                    If item.Text = gameTitle Then
+                    Dim itemGame = TryCast(item.Tag, Game)
+                    If itemGame IsNot Nothing AndAlso
+                       String.Equals(itemGame.ZIPName, game.ZIPName, StringComparison.OrdinalIgnoreCase) AndAlso
+                       String.Equals(itemGame.Emulator, game.Emulator, StringComparison.OrdinalIgnoreCase) Then
                         item.ImageKey = newImageKey ' Update the item's ImageKey
                         Exit For
                     End If

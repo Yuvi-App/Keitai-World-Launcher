@@ -7,6 +7,7 @@
   <Setting name="HomepageURL">https://example.com</Setting>
   <Setting name="GamelistURL">gamelist.xml</Setting>
   <Setting name="AutoUpdateGameList">true</Setting>
+  <Setting name="GameTitleLanguage">English</Setting>
   <Setting name="MachiCharalistURL">machicharalist.xml</Setting>
   <Setting name="AutoUpdateMachiCharaList">true</Setting>
   <Setting name="CharaDenlistURL">charadenlist.xml</Setting>

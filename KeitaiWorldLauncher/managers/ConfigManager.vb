@@ -15,6 +15,7 @@ Namespace My.Managers
         {"HomepageURL", "https://example.com"},
         {"GamelistURL", "gamelist.xml"},
         {"AutoUpdateGameList", "true"},
+        {"GameTitleLanguage", "English"},
         {"MachiCharalistURL", "machicharalist.xml"},
         {"AutoUpdateMachiCharaList", "true"},
         {"CharaDenlistURL", "charadenlist.xml"},

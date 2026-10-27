@@ -62,6 +62,8 @@ Partial Public Class MainForm
 
     Private _settingsNavigation As ListBox
     Private _settingsPages As List(Of Panel)
+    Private _cbxGameTitleLanguage As ComboBox
+    Private _applyingGameTitleLanguageSetting As Boolean
     Private _chkEnableKeitaiWiki As CheckBox
     Private _applyingKeitaiWikiSetting As Boolean
     Private _keitaiWikiLookupCts As CancellationTokenSource
@@ -875,7 +877,7 @@ Partial Public Class MainForm
         Dim cardContent As Panel = Nothing
         Dim actionsCard = CreateSettingsCard(
             "Launcher tools",
-            "Open frequently used management tools without leaving Settings.",
+            "Open frequently used management tools",
             154,
             "full",
             cardContent)
@@ -897,6 +899,25 @@ Partial Public Class MainForm
         Next
         cardContent.Controls.Add(actions)
         flow.Controls.Add(actionsCard)
+
+        Dim libraryContent As Panel = Nothing
+        Dim libraryCard = CreateSettingsCard(
+            "Game list",
+            "Choose how game titles appear.",
+            126,
+            "full",
+            libraryContent)
+        Dim libraryForm = CreateSettingsForm()
+        _cbxGameTitleLanguage = New ComboBox With {
+            .Name = "GameTitleLanguage",
+            .DropDownStyle = ComboBoxStyle.DropDownList
+        }
+        _cbxGameTitleLanguage.Items.AddRange(New Object() {"English", "Japanese"})
+        _cbxGameTitleLanguage.SelectedItem = GameTitleLanguage
+        AddSettingsField(libraryForm, 0, "Game title language", _cbxGameTitleLanguage)
+        libraryContent.Controls.Add(libraryForm)
+        flow.Controls.Add(libraryCard)
+        AddHandler _cbxGameTitleLanguage.SelectedIndexChanged, AddressOf GameTitleLanguage_SelectedIndexChanged
 
         Dim wikiContent As Panel = Nothing
         Dim wikiCard = CreateSettingsCard(
@@ -938,6 +959,41 @@ Partial Public Class MainForm
         ResizeSettingsCards(flow)
         Return page
     End Function
+
+    Private Function GetGameDisplayTitle(game As Game) As String
+        If String.Equals(GameTitleLanguage, "Japanese", StringComparison.OrdinalIgnoreCase) AndAlso
+           Not String.IsNullOrWhiteSpace(game.JPTitle) Then
+            Return game.JPTitle
+        End If
+        Return game.ENTitle
+    End Function
+
+    Private Sub ApplyGameTitleLanguageSettingFromConfig()
+        If _cbxGameTitleLanguage Is Nothing Then Return
+        _applyingGameTitleLanguageSetting = True
+        Try
+            _cbxGameTitleLanguage.SelectedItem = GameTitleLanguage
+        Finally
+            _applyingGameTitleLanguageSetting = False
+        End Try
+    End Sub
+
+    Private Sub GameTitleLanguage_SelectedIndexChanged(sender As Object, e As EventArgs)
+        If _applyingGameTitleLanguageSetting OrElse _cbxGameTitleLanguage?.SelectedItem Is Nothing Then Return
+        GameTitleLanguage = _cbxGameTitleLanguage.SelectedItem.ToString()
+        configManager.UpdateSetting("GameTitleLanguage", GameTitleLanguage)
+
+        ' Update labels in place to retain the current selection, variants, filters, and scroll position.
+        ListViewGames.BeginUpdate()
+        Try
+            For Each item As ListViewItem In ListViewGames.Items
+                Dim game = TryCast(item.Tag, Game)
+                If game IsNot Nothing Then item.Text = GetGameDisplayTitle(game)
+            Next
+        Finally
+            ListViewGames.EndUpdate()
+        End Try
+    End Sub
 
     Public Sub ApplyKeitaiWikiSettingFromConfig()
         If _chkEnableKeitaiWiki Is Nothing Then Return
