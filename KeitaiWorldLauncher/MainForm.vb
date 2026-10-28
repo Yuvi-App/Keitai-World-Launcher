@@ -2436,26 +2436,6 @@ Public Class MainForm
             End If
             Logger.LogInfo($"Detected emulator type: {CorrectedEmulator}")
 
-            ' Get Game Directory Path
-            Dim GameDirectory As String = ""
-            If CorrectedEmulator = "doja" Or CorrectedEmulator = "star" Then
-                Dim binIndex As Integer = CurrentSelectedGameJAM.LastIndexOf("\bin")
-                If binIndex <> -1 Then
-                    GameDirectory = CurrentSelectedGameJAM.Substring(0, binIndex)
-                    Logger.LogInfo($"Game directory resolved to: {GameDirectory}")
-                Else
-                    Logger.LogWarning("Could not determine GameDirectory: '\bin' not found in CurrentSelectedGameJAM path.")
-                End If
-            End If
-
-            ' Check for Helper Scripts
-            If selectedGame.ENTitle.Contains("Dirge of Cerberus") Then
-                Logger.LogInfo("Setting up FF7 Doja Helper Script...")
-                If Await gameManager.FF7_DOCLE_SetupAsync(DOJApath, GameDirectory) = False Then
-                    Exit Sub
-                End If
-            End If
-
             ' Start Launching Game
             NotificationManager.ShowInformation(Me, "Launching app", $"Opening '{selectedGameTitle}'.")
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
