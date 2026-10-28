@@ -394,7 +394,7 @@ Public Class MainForm
         ' SDK configuration: (ComboBox, DefaultValue, Prefixes)
         Dim sdkMappings As New List(Of (Combo As ComboBox, DefaultSdk As String, Prefixes As String())) From {
         (cbxDojaSDK, GetConfiguredDefaultSdk(DefaultDOJASDK, "OpenDoja"), {"idkdoja", "squirreljme", "kemnnx64", "freej2me", "opendoja"}),
-        (cbxStarSDK, GetConfiguredDefaultSdk(DefaultSTARSDK, "iDKStar2.0"), {"idkstar", "freej2me", "opendoja"}),
+        (cbxStarSDK, GetConfiguredDefaultSdk(DefaultSTARSDK, "OpenDoja"), {"idkstar", "freej2me", "opendoja"}),
         (cbxJSKYSDK, GetConfiguredDefaultSdk(DefaultJSKYSDK, "ReMEXA"), {"jsky_", "kemnnx64", "remexa"}),
         (cbxSoftbankSDK, GetConfiguredDefaultSdk(DefaultSOFTBANKSDK, "ReMEXA"), {"kemnnx64", "freej2me", "remexa"}),
         (cbxVodafoneSDK, GetConfiguredDefaultSdk(DefaultVODAFONESDK, "ReMEXA"), {"kemnnx64", "remexa"}),
@@ -1856,7 +1856,7 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("opendoja")
             End If
             STARpath = Path.Combine(ToolsFolder, selectedSDK)
-            STAREXE = Path.Combine(DOJApath, "opendoja-release.jar")
+            STAREXE = Path.Combine(STARpath, "opendoja-release.jar")
         End If
     End Sub
     Private Sub cbxDojaSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxDojaSDK.SelectedIndexChanged

@@ -18,7 +18,7 @@
   <Setting name="DojaStarHardwareRendering">false</Setting>
   <Setting name="DojaStarHighPerformanceEXE">false</Setting>
   <Setting name="DefaultDOJASDK">OpenDoja</Setting>
-  <Setting name="DefaultSTARSDK">iDKStar2.0</Setting>
+  <Setting name="DefaultSTARSDK">OpenDoja</Setting>
   <Setting name="DefaultJSKYSDK">ReMEXA</Setting>
   <Setting name="DefaultSOFTBANKSDK">ReMEXA</Setting>
   <Setting name="DefaultVODAFONESDK">ReMEXA</Setting>

@@ -26,7 +26,7 @@ Namespace My.Managers
         {"DojaStarHardwareRendering", "false"},
         {"DojaStarHighPerformanceEXE", "false"},
         {"DefaultDOJASDK", "OpenDoja"},
-        {"DefaultSTARSDK", "iDKStar2.0"},
+        {"DefaultSTARSDK", "OpenDoja"},
         {"DefaultJSKYSDK", "ReMEXA"},
         {"DefaultSOFTBANKSDK", "ReMEXA"},
         {"DefaultVODAFONESDK", "ReMEXA"},
