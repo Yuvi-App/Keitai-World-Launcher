@@ -2183,14 +2183,7 @@ Public Class MainForm
 
         cmsGameLV_Favorite.Text = If(isFavorited, "Unfavorite", "Favorite")
 
-        ' Check background color to determine if it's a "redownload" scenario
-        Dim itemColor As Color = ListViewGames.SelectedItems(0).BackColor
-        Dim isNormalWindowColor As Boolean = itemColor.Equals(SystemColors.Window)
-        Dim isHighlightColor As Boolean = itemColor.Equals(SystemColors.Highlight)
-        Dim isWhiteColor As Boolean = itemColor.Equals(Color.White)
-
-        cmsGameLV_Download.Text = If(Not isNormalWindowColor AndAlso Not isHighlightColor AndAlso Not isWhiteColor,
-                                 "Redownload", "Download")
+        cmsGameLV_Download.Text = If(IsGameInstalled(selectedGame), "Redownload", "Download")
 
         'To show custom game tools we create when needed
         If selectedGame.ENTitle.ToLower.Contains("bomberman puzzle special") Then

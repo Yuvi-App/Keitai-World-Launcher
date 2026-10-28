@@ -89,15 +89,16 @@ Namespace My.Managers
 
             Try
                 Dim sdFolder = $"SVC0000{Path.GetFileName(jamLocation)}"
-                Dim destinationPath As String = ""
+                Dim destinationPaths As New List(Of String)
 
                 Select Case game.Emulator.ToLowerInvariant()
-                    Case "doja"
-                        destinationPath = $"{MainForm.DOJApath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
-                    Case "star"
-                        destinationPath = $"{MainForm.STARpath}\lib\storagedevice\ext0\SD_BIND\{sdFolder}"
+                    Case "doja", "star"
+                        Dim sdkPath = If(String.Equals(game.Emulator, "doja", StringComparison.OrdinalIgnoreCase), MainForm.DOJApath, MainForm.STARpath)
+                        destinationPaths.Add(Path.Combine(sdkPath, "lib", "storagedevice", "ext0", "SD_BIND", sdFolder))
+                        ' Install for both SDKs so the data is available when switching to OpenDoja.
+                        destinationPaths.Add(Path.Combine(MainForm.ToolsFolder, "OpenDoja", ".opendoja", "storage", "ext0", "SD_BIND", sdFolder))
                     Case "jsky", "vodafone", "softbank"
-                        destinationPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReMEXA", "storage", "mc")
+                        destinationPaths.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ReMEXA", "storage", "mc"))
                     Case Else
                         logger.Logger.LogWarning($"[Download] Unknown emulator {game.Emulator} type when handling SD Card data.")
                         Return
@@ -105,8 +106,10 @@ Namespace My.Managers
 
                 Dim entryNameEncoding = DetectZipEntryNameEncoding(sdDownloadPath)
                 logger.Logger.LogInfo($"[Download] Extracting SD Card data using {entryNameEncoding.WebName} filename encoding.")
-                ZipFile.ExtractToDirectory(sdDownloadPath, destinationPath, entryNameEncoding, True)
-                logger.Logger.LogInfo($"[Download] SD Card data extracted to: {destinationPath}")
+                For Each destinationPath In destinationPaths
+                    ZipFile.ExtractToDirectory(sdDownloadPath, destinationPath, entryNameEncoding, True)
+                    logger.Logger.LogInfo($"[Download] SD Card data extracted to: {destinationPath}")
+                Next
                 File.Delete(sdDownloadPath)
                 logger.Logger.LogInfo($"[Download] SD Card zip file deleted: {sdDownloadPath}")
             Catch ex As Exception
