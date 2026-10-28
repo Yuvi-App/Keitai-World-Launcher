@@ -1257,6 +1257,7 @@ Partial Class MainForm
         ' 
         ' cbxOpenDojaFontType
         ' 
+        cbxOpenDojaFontType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxOpenDojaFontType.FormattingEnabled = True
         cbxOpenDojaFontType.Items.AddRange(New Object() {"Bitmap", "System"})
         cbxOpenDojaFontType.Location = New Point(89, 77)
@@ -1288,6 +1289,7 @@ Partial Class MainForm
         ' 
         ' cbxOpenDojaAudioType
         ' 
+        cbxOpenDojaAudioType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxOpenDojaAudioType.FormattingEnabled = True
         cbxOpenDojaAudioType.Items.AddRange(New Object() {"Fuetrek", "MA3"})
         cbxOpenDojaAudioType.Location = New Point(89, 48)
@@ -1306,6 +1308,7 @@ Partial Class MainForm
         ' 
         ' cbxOpenDojaHostScale
         ' 
+        cbxOpenDojaHostScale.DropDownStyle = ComboBoxStyle.DropDownList
         cbxOpenDojaHostScale.FormattingEnabled = True
         cbxOpenDojaHostScale.Items.AddRange(New Object() {"100%", "200%", "300%", "400%"})
         cbxOpenDojaHostScale.Location = New Point(89, 19)
@@ -1402,6 +1405,7 @@ Partial Class MainForm
         ' 
         ' cbxSJMEScaling
         ' 
+        cbxSJMEScaling.DropDownStyle = ComboBoxStyle.DropDownList
         cbxSJMEScaling.FormattingEnabled = True
         cbxSJMEScaling.Items.AddRange(New Object() {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"})
         cbxSJMEScaling.Location = New Point(98, 48)
@@ -1429,6 +1433,7 @@ Partial Class MainForm
         ' 
         ' cbxSJMELaunchOption
         ' 
+        cbxSJMELaunchOption.DropDownStyle = ComboBoxStyle.DropDownList
         cbxSJMELaunchOption.FormattingEnabled = True
         cbxSJMELaunchOption.Items.AddRange(New Object() {"SpringCoat", "Hosted"})
         cbxSJMELaunchOption.Location = New Point(98, 19)
@@ -1778,6 +1783,7 @@ Partial Class MainForm
         ' 
         ' cbxOpenDojaLaunchType
         ' 
+        cbxOpenDojaLaunchType.DropDownStyle = ComboBoxStyle.DropDownList
         cbxOpenDojaLaunchType.FormattingEnabled = True
         cbxOpenDojaLaunchType.Items.AddRange(New Object() {"Normal", "Standby"})
         cbxOpenDojaLaunchType.Location = New Point(185, 75)

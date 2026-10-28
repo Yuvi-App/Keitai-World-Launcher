@@ -125,7 +125,7 @@ Public Class MainForm
     Public Java24PlusBinFolderPath As String
 
     ' FORM Close/Load
-    Private Sub MainForm_Closing(sender As Object, e As EventArgs) Handles MyBase.FormClosing, MyBase.Closing
+    Private Sub MainForm_Closing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         CancelKeitaiWikiLookup(True)
         ProcessManager.StopMonitoring()
         vibrationManager.StopMonitoring()
