@@ -397,8 +397,8 @@ Public Class MainForm
         (cbxJSKYSDK, GetConfiguredDefaultSdk(DefaultJSKYSDK, "ReMEXA"), {"kemnnx64", "remexa"}),
         (cbxSoftbankSDK, GetConfiguredDefaultSdk(DefaultSOFTBANKSDK, "ReMEXA"), {"kemnnx64", "freej2me", "remexa"}),
         (cbxVodafoneSDK, GetConfiguredDefaultSdk(DefaultVODAFONESDK, "ReMEXA"), {"kemnnx64", "remexa"}),
-        (cbxAirEdgeSDK, GetConfiguredDefaultSdk(DefaultAIREDGESDK, "freej2me"), {"kemnnx64", "freej2me"}),
-        (cbxEZWebEZPlusSDK, GetConfiguredDefaultSdk(DefaultEZWEBEZPLUSSDK, "freej2me"), {"freej2me"}),
+        (cbxAirEdgeSDK, GetConfiguredDefaultSdk(DefaultAIREDGESDK, "freej2me"), {"kemnnx64", "freej2me", "remexa"}),
+        (cbxEZWebEZPlusSDK, GetConfiguredDefaultSdk(DefaultEZWEBEZPLUSSDK, "freej2me"), {"freej2me", "remexa"}),
         (cbxFlashSDK, GetConfiguredDefaultSdk(DefaultFlashSDK, "FlashPlayer"), {"flash"})
     }
 
@@ -2004,6 +2004,11 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("freej2me")
             End If
             AIREDGEEXE = Path.Combine(AIREDGEpath, "freej2me.jar")
+        ElseIf sdkLower.StartsWith("remexa") Then
+            If CompletedBootSequence Then
+                ShowEmulatorDisclaimer("remexa")
+            End If
+            AIREDGEEXE = Path.Combine(AIREDGEpath, "ReMEXA-Release.jar")
         End If
     End Sub
     Private Sub cbxEZWEBEZPLUSSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxEZWebEZPlusSDK.SelectedIndexChanged
@@ -2022,6 +2027,11 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("freej2me")
             End If
             EZWEBEZPLUSEXE = Path.Combine(EZWEBEZPLUSpath, "freej2me.jar")
+        ElseIf sdkLower.StartsWith("remexa") Then
+            If CompletedBootSequence Then
+                ShowEmulatorDisclaimer("remexa")
+            End If
+            EZWEBEZPLUSEXE = Path.Combine(EZWEBEZPLUSpath, "ReMEXA-Release.jar")
         End If
     End Sub
     Private Sub cbxFlashSDK_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxFlashSDK.SelectedIndexChanged
@@ -2531,6 +2541,9 @@ Public Class MainForm
                     ElseIf lowerAIREDGEPath.Contains("freej2me") Then
                         Logger.LogInfo("Launching game using FreeJ2ME emulator.")
                         utilManager.LaunchCustom_FreeJ2MEGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
+                    ElseIf selectedAIREDGESDK.StartsWith("remexa", StringComparison.OrdinalIgnoreCase) Then
+                        Logger.LogInfo("Launching AirEdge game using ReMEXA emulator.")
+                        utilManager.LaunchCustom_REMEXAGameCommand(AIREDGEpath, AIREDGEEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: AIREDGEPath={AIREDGEpath}, AIREDGEEXE={AIREDGEEXE}, GamePath={CurrentSelectedGameJAM}")
 
@@ -2539,6 +2552,9 @@ Public Class MainForm
                     If lowerEZPLUSPath.Contains("freej2me") Then
                         Logger.LogInfo("Launching game using FreeJ2ME emulator.")
                         utilManager.LaunchCustom_FreeJ2MEGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
+                    ElseIf selectedEZWEBEZPLUSSSDK.StartsWith("remexa", StringComparison.OrdinalIgnoreCase) Then
+                        Logger.LogInfo("Launching EZplus game using ReMEXA emulator.")
+                        utilManager.LaunchCustom_REMEXAGameCommand(EZWEBEZPLUSpath, EZWEBEZPLUSEXE, CurrentSelectedGameJAM)
                     End If
                     Logger.LogInfo($"Launched with: EZWEBEZPLUSpath={EZWEBEZPLUSpath}, EZWEBEZPLUSEXE={EZWEBEZPLUSEXE}, GamePath={CurrentSelectedGameJAM}")
 
