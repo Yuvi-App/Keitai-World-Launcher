@@ -25,7 +25,7 @@ Partial Public Class MainForm
         chkbxHidePhoneUI.Text = "Hide phone UI"
         chkbxEnableHighPerformanceEmulator.Text = "Enable high-performance emulators (experimental)"
         chkboxEnforceHardwareRendering.Text = "Enforce hardware rendering (experimental)"
-        chkbxOpenDojaLaunchGUI.Text = "Launch OpenDoJa GUI"
+        btnOpenDojaLaunchGUI.Text = "Launch OpenDoJa GUI"
         chkboxNetworkModifyURLS.Text = "Modify URLs for supported online apps"
 
         cmsGameLV_Launch.Text = "Play"
@@ -114,14 +114,14 @@ Partial Public Class MainForm
         SetAccessible(cbxOpenDojaAudioType, "OpenDoJa audio type", "Choose the OpenDoJa audio implementation.")
         SetAccessible(cbxOpenDojaFontType, "OpenDoJa font type", "Choose the font implementation used by OpenDoJa.")
         SetAccessible(cbxOpenDojaLaunchType, "OpenDoJa launch type", "Choose how OpenDoJa starts apps.")
+        SetAccessible(btnOpenDojaLaunchGUI, "Launch OpenDoJa GUI", "Open the OpenDoJa interface to configure keybinds, controllers, graphics, and other settings.")
         SetAccessible(cbxSJMELaunchOption, "SquirrelJME launch option", "Available when SquirrelJME is the selected DoJa SDK.")
         SetAccessible(cbxSJMEScaling, "SquirrelJME scaling", "Available when SquirrelJME is the selected DoJa SDK.")
         SetAccessible(btnSJMEUpdate, "Update SquirrelJME", "Available when SquirrelJME is the selected DoJa SDK.")
-        SetAccessible(btnReMEXALaunchGUI, "Open ReMEXA", "Open the ReMEXA configuration interface.")
+        SetAccessible(btnReMEXALaunchGUI, "Launch ReMEXA GUI", "Open the ReMEXA interface to configure keybinds, controllers, graphics, and other settings.")
         SetAccessible(cbxShaderGlass_Shader, "Default shader", "Choose the default ShaderGlass filter.")
         SetAccessible(btnUpdateNetworkUID, "Update network identity", "Change the Network UID and Terminal ID used by supported online apps.")
         SetAccessible(btnVisitKeitaiArchive, "Visit Keitai Archive", "Open the Keitai Archive website in your default browser.")
-        SetAccessible(btnControls, "Keyboard and controller guide", "Open the keyboard and controller reference.")
 
         SetGuidance(cbxSJMELaunchOption, "Available when SquirrelJME is the selected DoJa SDK")
         SetGuidance(cbxSJMEScaling, "Available when SquirrelJME is the selected DoJa SDK")

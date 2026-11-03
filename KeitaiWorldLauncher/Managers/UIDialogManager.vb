@@ -146,23 +146,6 @@ Public Class UIDialogManager
         End Using
     End Function
 
-    Public Sub ShowKeybindGuide(owner As Form, keybindText As String, imagePath As String)
-        Dim guideImage As Image = Nothing
-        If IO.File.Exists(imagePath) Then
-            Using sourceImage = Image.FromFile(imagePath)
-                guideImage = New Bitmap(sourceImage)
-            End Using
-        End If
-
-        Try
-            Using dialog As New CompactGuideDialog(keybindText, guideImage)
-                ShowOwnedDialog(dialog, owner)
-            End Using
-        Finally
-            guideImage?.Dispose()
-        End Try
-    End Sub
-
     Private Shared Function ShowOwnedDialog(dialog As Form, owner As Form) As DialogResult
         If owner Is Nothing OrElse owner.IsDisposed Then Return dialog.ShowDialog()
         If owner.InvokeRequired Then
@@ -839,68 +822,6 @@ Public Class UIDialogManager
         Protected Overrides Sub Dispose(disposing As Boolean)
             If disposing Then _timer.Dispose()
             MyBase.Dispose(disposing)
-        End Sub
-    End Class
-
-    Private NotInheritable Class CompactGuideDialog
-        Inherits CompactCustomDialogForm
-
-        Public Sub New(keybindText As String, guideImage As Image)
-            MyBase.New("Keyboard & Controller Guide", 860, 520, CompactDialogTone.Information)
-
-            Dim guideLayout As New TableLayoutPanel With {
-                .BackColor = CompactUiTheme.Surface,
-                .ColumnCount = 2,
-                .Dock = DockStyle.Fill,
-                .Margin = New Padding(0),
-                .RowCount = 1
-            }
-            guideLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 44.0F))
-            guideLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 56.0F))
-            guideLayout.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
-            Dim bindingsBox As New TextBox With {
-                .AccessibleName = "Keyboard and controller bindings",
-                .AccessibleDescription = "Read-only keyboard and controller reference. Use the arrow keys or Page Up and Page Down to scroll.",
-                .BackColor = Color.FromArgb(249, 250, 252),
-                .BorderStyle = BorderStyle.FixedSingle,
-                .Dock = DockStyle.Fill,
-                .Font = FixedLayout.CreateFont("Consolas", 9.3F),
-                .ForeColor = CompactUiTheme.TextPrimary,
-                .Margin = New Padding(0, 0, 12, 0),
-                .Multiline = True,
-                .ReadOnly = True,
-                .ScrollBars = ScrollBars.Vertical,
-                .TabStop = True,
-                .Text = keybindText
-            }
-            Dim imageSurface As New Panel With {
-                .BackColor = CompactUiTheme.NeutralBackground,
-                .Dock = DockStyle.Fill,
-                .Margin = New Padding(0),
-                .Padding = New Padding(12)
-            }
-            If guideImage Is Nothing Then
-                imageSurface.Controls.Add(New Label With {
-                    .AccessibleName = "Controller diagram unavailable",
-                    .Dock = DockStyle.Fill,
-                    .Font = FixedLayout.CreateFont("Segoe UI", 9.0F),
-                    .ForeColor = CompactUiTheme.TextSecondary,
-                    .Text = "The control diagram is not installed.",
-                    .TextAlign = ContentAlignment.MiddleCenter
-                })
-            Else
-                imageSurface.Controls.Add(New PictureBox With {
-                    .AccessibleName = "Controller reference diagram",
-                    .Dock = DockStyle.Fill,
-                    .Image = guideImage,
-                    .SizeMode = PictureBoxSizeMode.Zoom
-                })
-            End If
-            guideLayout.Controls.Add(bindingsBox, 0, 0)
-            guideLayout.Controls.Add(imageSurface, 1, 0)
-            ContentHost.Controls.Add(guideLayout)
-            Dim closeButton = ConfigureActions("Close", DialogResult.OK)
-            AddHandler Shown, Sub() closeButton.Focus()
         End Sub
     End Class
 

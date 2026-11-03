@@ -464,11 +464,26 @@ Public Class MainForm
     Private Sub ShowEmulatorDisclaimer(emulatorName As String)
         If Not CompletedBootSequence Then Return
         Logger.LogWarning($"[{emulatorName}] Disclaimer: This feature is in development and may exhibit issues or performance slowness.")
+        Dim title = $"{emulatorName} support"
+        Dim message = $"{emulatorName} support is still in active development." & vbCrLf & vbCrLf &
+            "You may encounter unexpected errors, interface issues, or performance slowdowns while using this emulator."
+
+        If String.Equals(emulatorName, "squirreljme", StringComparison.OrdinalIgnoreCase) Then
+            title = "SquirrelJME support"
+            message = "SquirrelJME is still in active development and may have bugs or run slowly." & vbCrLf & vbCrLf &
+                "Report issues to either:" & vbCrLf &
+                "https://github.com/SquirrelJME/SquirrelJME/issues" & vbCrLf &
+                "https://discord.gg/9PkMMKt" & vbCrLf & vbCrLf &
+                "Include the title you are trying to run and the SquirrelJME log (not the KWL launcher log). " &
+                "Look for lines starting with DB and compact stack traces such as:" & vbCrLf &
+                " | IN Ljava/lang/__Start__; (<UNKNOWN>)" & vbCrLf &
+                " | .__main:()V @0h (:-1 #LDC@0)"
+        End If
+
         UIDialogManager.ShowNotice(
             Me,
-            $"{emulatorName} support",
-            $"{emulatorName} support is still in active development." & vbCrLf & vbCrLf &
-            "You may encounter unexpected errors, interface issues, or performance slowdowns while using this emulator.",
+            title,
+            message,
             "I understand",
             CompactDialogTone.Warning)
     End Sub
@@ -2897,27 +2912,6 @@ Public Class MainForm
         Dim psi As New ProcessStartInfo(url) With {.UseShellExecute = True}
         Process.Start(psi)
     End Sub
-    Private Sub btnControls_Click(sender As Object, e As EventArgs) Handles btnControls.Click
-        Dim keybindText =
-            "DOJA & STAR KEYBINDS" & Environment.NewLine & Environment.NewLine &
-            "PHONE BUTTON        KEYBOARD" & Environment.NewLine &
-            "--------------------------------" & Environment.NewLine &
-            "UP                  Up Arrow" & Environment.NewLine &
-            "DOWN                Down Arrow" & Environment.NewLine &
-            "LEFT                Left Arrow" & Environment.NewLine &
-            "RIGHT               Right Arrow" & Environment.NewLine &
-            "Top Left Button     A" & Environment.NewLine &
-            "Top Center Button   D" & Environment.NewLine &
-            "Top Right Button    S" & Environment.NewLine &
-            "Center Button       Enter" & Environment.NewLine &
-            "123456789*#         123456789*#"
-        Dim imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "data", "tools", "skins", "doja", "doja_controls.png")
-        If Not File.Exists(imagePath) Then
-            Logger.LogInfo("Image not found for Keybind Form: " & imagePath)
-        End If
-        UIDialogManager.ShowKeybindGuide(Me, keybindText, imagePath)
-    End Sub
-
     'TabPage Changes
     Private Sub tabs(sender As Object, e As EventArgs) Handles MaterialTabControl1.SelectedIndexChanged
         If MaterialTabControl1.SelectedTab Is tpStats Then
@@ -2927,20 +2921,44 @@ Public Class MainForm
         End If
     End Sub
 
-    Private Async Sub btnReMEXALaunchGUI_Click(sender As Object, e As EventArgs) Handles btnReMEXALaunchGUI.Click
+    Private Sub btnOpenDojaLaunchGUI_Click(sender As Object, e As EventArgs) Handles btnOpenDojaLaunchGUI.Click
+        LaunchEmulatorGui("OpenDoJa", OpenDojapath, OpenDojaExe)
+    End Sub
+
+    Private Sub btnReMEXALaunchGUI_Click(sender As Object, e As EventArgs) Handles btnReMEXALaunchGUI.Click
+        LaunchEmulatorGui("ReMEXA", ReMEXApath, ReMEXAExe)
+    End Sub
+
+    Private Sub LaunchEmulatorGui(emulatorName As String, emulatorDirectory As String, emulatorJar As String)
         Try
-            Dim arguments = $"-jar ""{Path.GetFileName(ReMEXAExe)}"""
+            If String.IsNullOrWhiteSpace(emulatorJar) Then
+                Throw New InvalidOperationException($"The {emulatorName} JAR path is not configured.")
+            End If
+
+            Dim jarPath = emulatorJar
+            If String.IsNullOrEmpty(Path.GetDirectoryName(jarPath)) AndAlso Not String.IsNullOrWhiteSpace(emulatorDirectory) Then
+                jarPath = Path.Combine(emulatorDirectory, jarPath)
+            End If
+            jarPath = Path.GetFullPath(jarPath)
+            If Not File.Exists(jarPath) Then
+                Throw New FileNotFoundException($"The {emulatorName} JAR could not be found.", jarPath)
+            End If
+
             Dim JavaEXE As String = Path.Combine(Java24PlusBinFolderPath, "java.exe")
             Dim psi As New ProcessStartInfo(JavaEXE) With {
-                .Arguments = arguments,
                 .UseShellExecute = False,
                 .CreateNoWindow = True,
-                .WorkingDirectory = Path.GetDirectoryName(ReMEXAExe)
+                .WorkingDirectory = Path.GetDirectoryName(jarPath)
             }
+            psi.ArgumentList.Add("-jar")
+            psi.ArgumentList.Add(jarPath)
 
-            Dim process As Process = Process.Start(psi)
+            Using process As Process = Process.Start(psi)
+                Logger.LogInfo($"[JavaLaunch] Opened {emulatorName} GUI.")
+            End Using
         Catch ex As Exception
-            Logger.LogError($"[JavaLaunch] Failed to start Java app: {ex.Message}")
+            Logger.LogError($"[JavaLaunch] Failed to open {emulatorName} GUI.", ex)
+            UIDialogManager.ShowError(Me, $"Could not open {emulatorName}", ex.Message)
         End Try
     End Sub
 End Class

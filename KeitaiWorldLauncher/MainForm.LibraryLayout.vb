@@ -1123,10 +1123,11 @@ Partial Public Class MainForm
         runtimeContent.Controls.Add(runtimeForm)
 
         Dim openDojaContent As Panel = Nothing
+        Dim guiSettingsHint = "For keybinds, controllers, graphics, and other settings, launch the GUI and configure them there."
         Dim openDojaCard = CreateSettingsCard(
             "OpenDoJa",
             "Configure scaling, audio, fonts, and launch behavior.",
-            250,
+            330,
             "half",
             openDojaContent)
         Dim openDojaForm = CreateSettingsForm(43.0F)
@@ -1134,7 +1135,18 @@ Partial Public Class MainForm
         AddSettingsField(openDojaForm, 1, "Audio type", cbxOpenDojaAudioType)
         AddSettingsField(openDojaForm, 2, "Font type", cbxOpenDojaFontType)
         AddSettingsField(openDojaForm, 3, "Launch type", cbxOpenDojaLaunchType)
-        AddSettingsCheck(openDojaForm, 4, chkbxOpenDojaLaunchGUI)
+        EnsureSettingsRow(openDojaForm, 4, 44.0F)
+        btnOpenDojaLaunchGUI.Text = "Launch OpenDoJa GUI"
+        StyleSettingsButton(btnOpenDojaLaunchGUI, True)
+        btnOpenDojaLaunchGUI.Width = 180
+        btnOpenDojaLaunchGUI.TabIndex = 4
+        openDojaForm.Controls.Add(btnOpenDojaLaunchGUI, 0, 4)
+        openDojaForm.SetColumnSpan(btnOpenDojaLaunchGUI, 2)
+        EnsureSettingsRow(openDojaForm, 5, 64.0F)
+        Dim openDojaHint = CreateSettingsFieldLabel(guiSettingsHint)
+        openDojaHint.ForeColor = CompactUiTheme.TextSecondary
+        openDojaForm.Controls.Add(openDojaHint, 0, 5)
+        openDojaForm.SetColumnSpan(openDojaHint, 2)
         openDojaContent.Controls.Add(openDojaForm)
 
         Dim sjmeContent As Panel = Nothing
@@ -1162,17 +1174,19 @@ Partial Public Class MainForm
             190,
             "half",
             remexaContent)
-        Dim remexaActions As New FlowLayoutPanel With {
-            .BackColor = CompactUiTheme.Surface,
-            .Dock = DockStyle.Fill,
-            .FlowDirection = FlowDirection.LeftToRight,
-            .Padding = New Padding(0, 6, 0, 0),
-            .WrapContents = False
-        }
-        btnReMEXALaunchGUI.Text = "Open ReMEXA"
+        Dim remexaActions = CreateSettingsForm()
+        EnsureSettingsRow(remexaActions, 0, 44.0F)
+        btnReMEXALaunchGUI.Text = "Launch ReMEXA GUI"
         StyleSettingsButton(btnReMEXALaunchGUI, True)
         btnReMEXALaunchGUI.Width = 180
-        remexaActions.Controls.Add(btnReMEXALaunchGUI)
+        btnReMEXALaunchGUI.TabIndex = 0
+        remexaActions.Controls.Add(btnReMEXALaunchGUI, 0, 0)
+        remexaActions.SetColumnSpan(btnReMEXALaunchGUI, 2)
+        EnsureSettingsRow(remexaActions, 1, 64.0F)
+        Dim remexaHint = CreateSettingsFieldLabel(guiSettingsHint)
+        remexaHint.ForeColor = CompactUiTheme.TextSecondary
+        remexaActions.Controls.Add(remexaHint, 0, 1)
+        remexaActions.SetColumnSpan(remexaHint, 2)
         remexaContent.Controls.Add(remexaActions)
 
         flow.Controls.Add(runtimeCard)
@@ -1273,7 +1287,7 @@ Partial Public Class MainForm
         Dim flow As FlowLayoutPanel = Nothing
         Dim page = CreateSettingsPage(
             "Help & About",
-            "Version information, guides, and first-line troubleshooting.",
+            "Version information, useful links, and first-line troubleshooting.",
             flow)
 
         Dim aboutContent As Panel = Nothing
@@ -1296,29 +1310,12 @@ Partial Public Class MainForm
         lblHelp_AppVer.Font = FixedLayout.CreateFont("Segoe UI", 10.0F)
         lblHelp_AppVer.ForeColor = CompactUiTheme.TextPrimary
         lblHelp_AppVer.TextAlign = ContentAlignment.MiddleCenter
-        Dim helpActions As New TableLayoutPanel With {
-            .BackColor = CompactUiTheme.Surface,
-            .ColumnCount = 2,
-            .Dock = DockStyle.Fill,
-            .Margin = New Padding(0),
-            .Padding = New Padding(0, 2, 0, 0),
-            .RowCount = 1
-        }
-        helpActions.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 42.0F))
-        helpActions.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 58.0F))
-        helpActions.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         btnVisitKeitaiArchive.Text = "Visit Keitai Archive"
-        btnControls.Text = "Keyboard && controller guide"
         StyleSettingsButton(btnVisitKeitaiArchive)
-        StyleSettingsButton(btnControls)
         btnVisitKeitaiArchive.Dock = DockStyle.Fill
-        btnVisitKeitaiArchive.Margin = New Padding(0, 2, 6, 4)
-        btnControls.Dock = DockStyle.Fill
-        btnControls.Margin = New Padding(6, 2, 0, 4)
-        helpActions.Controls.Add(btnVisitKeitaiArchive, 0, 0)
-        helpActions.Controls.Add(btnControls, 1, 0)
+        btnVisitKeitaiArchive.Margin = New Padding(0, 4, 0, 4)
         aboutLayout.Controls.Add(lblHelp_AppVer, 0, 0)
-        aboutLayout.Controls.Add(helpActions, 0, 1)
+        aboutLayout.Controls.Add(btnVisitKeitaiArchive, 0, 1)
         aboutContent.Controls.Add(aboutLayout)
 
         Dim troubleshootingContent As Panel = Nothing

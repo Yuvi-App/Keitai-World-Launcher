@@ -118,7 +118,6 @@ Partial Class MainForm
         GroupBox7 = New GroupBox()
         lblHelp_AppVer = New Label()
         btnVisitKeitaiArchive = New Button()
-        btnControls = New Button()
         GroupBox11 = New GroupBox()
         lblInvalidTID = New Label()
         Label16 = New Label()
@@ -137,7 +136,7 @@ Partial Class MainForm
         GroupBox13 = New GroupBox()
         Label21 = New Label()
         cbxOpenDojaFontType = New ComboBox()
-        chkbxOpenDojaLaunchGUI = New CheckBox()
+        btnOpenDojaLaunchGUI = New Button()
         Label20 = New Label()
         cbxOpenDojaAudioType = New ComboBox()
         Label19 = New Label()
@@ -939,7 +938,6 @@ Partial Class MainForm
         tpConfig.Controls.Add(GroupBox8)
         tpConfig.Controls.Add(GroupBox7)
         tpConfig.Controls.Add(btnVisitKeitaiArchive)
-        tpConfig.Controls.Add(btnControls)
         tpConfig.Controls.Add(GroupBox11)
         tpConfig.Controls.Add(GroupBox6)
         tpConfig.Controls.Add(GroupBox5)
@@ -1055,15 +1053,6 @@ Partial Class MainForm
         btnVisitKeitaiArchive.TabIndex = 20
         btnVisitKeitaiArchive.Text = "Visit Keitai Archive"
         btnVisitKeitaiArchive.UseVisualStyleBackColor = True
-        ' 
-        ' btnControls
-        ' 
-        btnControls.Location = New Point(138, 514)
-        btnControls.Name = "btnControls"
-        btnControls.Size = New Size(101, 48)
-        btnControls.TabIndex = 19
-        btnControls.Text = "Keyboard && Controller Guide"
-        btnControls.UseVisualStyleBackColor = True
         ' 
         ' GroupBox11
         ' 
@@ -1234,7 +1223,7 @@ Partial Class MainForm
         GroupBox13.Controls.Add(cbxOpenDojaLaunchType)
         GroupBox13.Controls.Add(Label21)
         GroupBox13.Controls.Add(cbxOpenDojaFontType)
-        GroupBox13.Controls.Add(chkbxOpenDojaLaunchGUI)
+        GroupBox13.Controls.Add(btnOpenDojaLaunchGUI)
         GroupBox13.Controls.Add(Label20)
         GroupBox13.Controls.Add(cbxOpenDojaAudioType)
         GroupBox13.Controls.Add(Label19)
@@ -1265,18 +1254,15 @@ Partial Class MainForm
         cbxOpenDojaFontType.Size = New Size(77, 23)
         cbxOpenDojaFontType.TabIndex = 25
         ' 
-        ' chkbxOpenDojaLaunchGUI
+        ' btnOpenDojaLaunchGUI
         ' 
-        chkbxOpenDojaLaunchGUI.AutoSize = True
-        chkbxOpenDojaLaunchGUI.FlatStyle = FlatStyle.Flat
-        chkbxOpenDojaLaunchGUI.Font = New Font("Segoe UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel)
-        chkbxOpenDojaLaunchGUI.Location = New Point(190, 20)
-        chkbxOpenDojaLaunchGUI.Margin = New Padding(2)
-        chkbxOpenDojaLaunchGUI.Name = "chkbxOpenDojaLaunchGUI"
-        chkbxOpenDojaLaunchGUI.Size = New Size(84, 19)
-        chkbxOpenDojaLaunchGUI.TabIndex = 24
-        chkbxOpenDojaLaunchGUI.Text = "Launch GUI"
-        chkbxOpenDojaLaunchGUI.UseVisualStyleBackColor = True
+        btnOpenDojaLaunchGUI.Location = New Point(184, 19)
+        btnOpenDojaLaunchGUI.Margin = New Padding(2)
+        btnOpenDojaLaunchGUI.Name = "btnOpenDojaLaunchGUI"
+        btnOpenDojaLaunchGUI.Size = New Size(112, 32)
+        btnOpenDojaLaunchGUI.TabIndex = 24
+        btnOpenDojaLaunchGUI.Text = "Launch GUI"
+        btnOpenDojaLaunchGUI.UseVisualStyleBackColor = True
         ' 
         ' Label20
         ' 
@@ -1973,7 +1959,6 @@ Partial Class MainForm
     Friend WithEvents GroupBox7 As GroupBox
     Friend WithEvents lblHelp_AppVer As Label
     Friend WithEvents btnVisitKeitaiArchive As Button
-    Friend WithEvents btnControls As Button
     Friend WithEvents GroupBox8 As GroupBox
     Friend WithEvents lblHelp_troubleshooting As Label
     Friend WithEvents chkbxDialpadRotated As CheckBox
@@ -1986,7 +1971,7 @@ Partial Class MainForm
     Friend WithEvents cbxInternalRenderingResolution As ComboBox
     Friend WithEvents chkbxEnableHighPerformanceEmulator As CheckBox
     Friend WithEvents GroupBox13 As GroupBox
-    Friend WithEvents chkbxOpenDojaLaunchGUI As CheckBox
+    Friend WithEvents btnOpenDojaLaunchGUI As Button
     Friend WithEvents Label20 As Label
     Friend WithEvents cbxOpenDojaAudioType As ComboBox
     Friend WithEvents Label19 As Label

@@ -2341,17 +2341,9 @@ Namespace My.Managers
         End Function
         Public Async Function LaunchREMEXAAppAsync(javapath As String, REMEXAExePath As String, jamPath As String) As Task(Of Boolean)
             Try
-                Dim arguments As String
-                If MainForm.chkbxOpenDojaLaunchGUI.Checked Then
-                    arguments = $"-jar ""{Path.GetFileName(REMEXAExePath)}"""
-                Else
-                    Dim scalePercent As Integer = Integer.Parse(MainForm.cbxOpenDojaHostScale.SelectedItem.ToString().Replace("%", "").Trim())
-                    Dim scaleValue As String = (scalePercent \ 100).ToString()
-                    Dim synthValue As String = MainForm.cbxOpenDojaAudioType.SelectedItem.ToString().Trim()
-                    arguments = String.Join(" ",
-                        $"-jar ""{Path.GetFileName(REMEXAExePath)}""",
-                        $"--run-jad ""{jamPath}""")
-                End If
+                Dim arguments = String.Join(" ",
+                    $"-jar ""{Path.GetFileName(REMEXAExePath)}""",
+                    $"--run-jad ""{jamPath}""")
 
                 Dim psi As New ProcessStartInfo(javapath) With {
                     .Arguments = arguments,
@@ -2402,24 +2394,19 @@ Namespace My.Managers
         End Function
         Public Async Function LaunchOpenDojaAppAsync(javapath As String, opendojaExePath As String, jamPath As String) As Task(Of Boolean)
             Try
-                Dim arguments As String
-                If MainForm.chkbxOpenDojaLaunchGUI.Checked Then
-                    arguments = $"-jar ""{Path.GetFileName(opendojaExePath)}"""
-                Else
-                    Dim scalePercent As Integer = Integer.Parse(MainForm.cbxOpenDojaHostScale.SelectedItem.ToString().Replace("%", "").Trim())
-                    Dim scaleValue As String = (scalePercent \ 100).ToString()
-                    Dim synthValue As String = MainForm.cbxOpenDojaAudioType.SelectedItem.ToString().Trim()
-                    Dim Launchtype As String = MainForm.cbxOpenDojaLaunchType.SelectedItem.ToString().Trim().ToLower()
-                    arguments = String.Join(" ",
-                        $"-Dopendoja.hostScale={scaleValue}",
-                        $"-Dopendoja.mldSynth={synthValue}",
-                        $"-Dopendoja.userId={MainForm.NetworkUID}",
-                        $"-Dopendoja.terminalId={MainForm.TerminalID}",
-                        $"-Dopendoja.launchType={Launchtype}",
-                        $"-Dsun.java2d.uiScale.enabled=false",
-                        $"-jar ""{Path.GetFileName(opendojaExePath)}""",
-                        $"--run-jam ""{jamPath}""")
-                End If
+                Dim scalePercent As Integer = Integer.Parse(MainForm.cbxOpenDojaHostScale.SelectedItem.ToString().Replace("%", "").Trim())
+                Dim scaleValue As String = (scalePercent \ 100).ToString()
+                Dim synthValue As String = MainForm.cbxOpenDojaAudioType.SelectedItem.ToString().Trim()
+                Dim Launchtype As String = MainForm.cbxOpenDojaLaunchType.SelectedItem.ToString().Trim().ToLower()
+                Dim arguments = String.Join(" ",
+                    $"-Dopendoja.hostScale={scaleValue}",
+                    $"-Dopendoja.mldSynth={synthValue}",
+                    $"-Dopendoja.userId={MainForm.NetworkUID}",
+                    $"-Dopendoja.terminalId={MainForm.TerminalID}",
+                    $"-Dopendoja.launchType={Launchtype}",
+                    $"-Dsun.java2d.uiScale.enabled=false",
+                    $"-jar ""{Path.GetFileName(opendojaExePath)}""",
+                    $"--run-jam ""{jamPath}""")
 
                 Dim psi As New ProcessStartInfo(javapath) With {
                     .Arguments = arguments,
