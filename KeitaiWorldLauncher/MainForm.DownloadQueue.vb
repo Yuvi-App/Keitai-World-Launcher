@@ -308,7 +308,7 @@ Partial Public Class MainForm
     End Sub
 
     Private Function IsCurrentlySelectedGame(game As Game) As Boolean
-        If game Is Nothing OrElse ListViewGames.SelectedItems.Count = 0 Then Return False
+        If game Is Nothing OrElse ListViewGames.SelectedItems.Count <> 1 Then Return False
         Dim selected = TryCast(ListViewGames.SelectedItems(0).Tag, Game)
         Return String.Equals(GetGameKey(selected), GetGameKey(game), StringComparison.OrdinalIgnoreCase)
     End Function

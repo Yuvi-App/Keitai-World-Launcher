@@ -1431,7 +1431,7 @@ Partial Public Class MainForm
         AddHandler ListViewGamesVariants.VisibleChanged, AddressOf Variants_VisibleChanged
         txtLVSearch.PlaceholderText = "Search titles"
         cbxFilterType.AccessibleName = "Library filter"
-        ListViewGames.MultiSelect = False
+        ListViewGames.MultiSelect = True
         ListViewGames.HideSelection = False
     End Sub
 
@@ -1615,6 +1615,7 @@ Partial Public Class MainForm
         ' ItemActivate is the ListView's semantic double-click/default action.
         ' It also keeps the behavior available to keyboard and accessibility users.
         AddHandler ListViewGames.ItemActivate, AddressOf ListViewGames_Activate
+        AddHandler ListViewGames.KeyDown, AddressOf AppList_KeyDown
     End Sub
 
     Private Sub RepositionCompactLaunchOptions()
@@ -2663,7 +2664,7 @@ Partial Public Class MainForm
 
         If cancellationToken.IsCancellationRequested OrElse sequence <> _keitaiWikiLookupSequence Then Return False
         If host Is Nothing OrElse host.IsDisposed OrElse Not Object.ReferenceEquals(host, _keitaiWikiDetailsHost) Then Return False
-        If ListViewGames.SelectedItems.Count = 0 Then Return False
+        If ListViewGames.SelectedItems.Count <> 1 Then Return False
         Return Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, game)
     End Function
 
@@ -2715,10 +2716,19 @@ Partial Public Class MainForm
     End Function
 
     Public Sub UpdateGameSelectionState(game As Game)
+        If ListViewGames.SelectedItems.Count > 1 Then
+            ShowMultipleGamesSelected()
+            Return
+        End If
+        If ListViewGames.SelectedItems.Count = 0 Then
+            ShowNoGameSelected()
+            Return
+        End If
         If game Is Nothing Then
             ShowNoGameSelected()
             Return
         End If
+        If Not IsCurrentlySelectedGame(game) Then Return
 
         Dim installed = IsGameInstalled(game)
         Dim gameKey = GetGameKey(game)
@@ -2740,6 +2750,7 @@ Partial Public Class MainForm
             cmsGameLV_Launch.Enabled = False
             cmsGameLV_Download.Enabled = False
             cmsGameLV_Delete.Enabled = False
+            BackupSaveToolStripMenuItem.Enabled = False
             OpenGameFolderToolStripMenuItem.Enabled = False
             SetActionGuidance(btnLaunchGame, $"{game.ENTitle} is still downloading or installing. Wait for it to finish before opening it.")
             SetActionGuidance(_btnGameActions, "Open additional actions. Actions that need installed files remain unavailable until the download finishes.")
@@ -2754,11 +2765,11 @@ Partial Public Class MainForm
         _actionFavorite.Text = If(favorited, "Unfavorite", "Favorite")
         _actionFavorite.Enabled = True
         _actionOpenFolder.Enabled = installed
-        _actionDelete.Enabled = installed
+        _actionDelete.Enabled = CanDeleteGame(game) AndAlso Not _appDeletionInProgress
         cmsGameLV_Launch.Enabled = installed
         cmsGameLV_Download.Enabled = canDownload
         cmsGameLV_Download.Text = If(installed, "Redownload", "Download")
-        cmsGameLV_Delete.Enabled = installed
+        cmsGameLV_Delete.Enabled = _actionDelete.Enabled
         OpenGameFolderToolStripMenuItem.Enabled = installed
         If installed Then
             SetActionGuidance(btnLaunchGame, $"Play {game.ENTitle}.")
@@ -2781,6 +2792,15 @@ Partial Public Class MainForm
         If _actionFavorite IsNot Nothing Then _actionFavorite.Enabled = hasSelection
         If _actionOpenFolder IsNot Nothing Then _actionOpenFolder.Enabled = hasSelection AndAlso installed
         If _actionDelete IsNot Nothing Then _actionDelete.Enabled = hasSelection AndAlso installed
+        If _actionDelete IsNot Nothing Then _actionDelete.Text = "Delete"
+        cmsGameLV_Launch.Enabled = hasSelection AndAlso installed
+        cmsGameLV_Download.Enabled = hasSelection AndAlso canDownload
+        cmsGameLV_Delete.Enabled = hasSelection AndAlso installed
+        cmsGameLV_Delete.Text = "Delete"
+        cmsGameLV_Favorite.Enabled = hasSelection
+        BackupSaveToolStripMenuItem.Enabled = hasSelection AndAlso installed
+        OpenGameFolderToolStripMenuItem.Enabled = hasSelection AndAlso installed
+        cmsBombermanPuzzle.Visible = False
     End Sub
 
     Private Sub GameActions_Click(sender As Object, e As EventArgs)
@@ -2817,7 +2837,7 @@ Partial Public Class MainForm
     End Sub
 
     Private Async Sub ListViewGames_Activate(sender As Object, e As EventArgs)
-        If ListViewGames.SelectedItems.Count = 0 Then Return
+        If ListViewGames.SelectedItems.Count <> 1 Then Return
         Dim game = TryCast(ListViewGames.SelectedItems(0).Tag, Game)
         If game Is Nothing Then Return
 

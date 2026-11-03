@@ -50,13 +50,18 @@
       <DependentUpon>MainForm.vb</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="MainForm.AppSelection.vb">
+      <DependentUpon>MainForm.vb</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <!-- This partial class contains code only. Ignore any empty .resx that the
-         Visual Studio designer may try to create for it, since MainForm.resx
+    <!-- These partial classes contain code only. Ignore any empty .resx that the
+         Visual Studio designer may try to create for them, since MainForm.resx
          already owns the MainForm resource name. -->
     <EmbeddedResource Remove="MainForm.Accessibility.resx" />
+    <EmbeddedResource Remove="MainForm.AppSelection.resx" />
   </ItemGroup>
 
   <ItemGroup>

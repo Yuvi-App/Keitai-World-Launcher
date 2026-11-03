@@ -51,7 +51,7 @@ Partial Public Class MainForm
         SetAccessible(txtLVSearch, "Search apps", "Search titles. Press Control+F from the Library to return here.")
         SetAccessible(_btnAppGacha, "Roll App Gacha", "Reveal a random app from the current results, then choose whether to play or download it.")
         SetAccessible(cbxFilterType, "Filter apps", "Choose which apps appear in the list.")
-        SetAccessible(ListViewGames, "Apps", "Use the arrow keys to choose an app. Press Enter or double-click to play or download it.")
+        SetAccessible(ListViewGames, "Apps", "Use Control or Shift to select multiple apps, Control+A to select all, and Delete to remove the selection. Select exactly one app to play or download with Enter or double-click.")
         SetAccessible(ListViewGamesVariants, "App variants", "Use the arrow keys to choose a variant. Press Enter to select it.")
         SetAccessible(btnLaunchGame, "Play or download selected app", "Select an app first.")
         SetAccessible(_btnGameActions, "Selected app actions", "Select an app to see its additional actions.")
@@ -365,7 +365,7 @@ Partial Public Class MainForm
         _actionBackupSave.ToolTipText = "Back up save data. Available after the app is installed."
         _actionFavorite.ToolTipText = "Add or remove the app from Favorites."
         _actionOpenFolder.ToolTipText = "Open the installed app files. Available after installation."
-        _actionDelete.ToolTipText = "Remove the installed app files."
+        _actionDelete.ToolTipText = "Delete the selected apps' installed files and remove their custom app entries."
 
         _machiActionsMenu.ShowItemToolTips = True
         _actionMachiRedownload.ToolTipText = "Download a fresh copy. Available when installed and online."

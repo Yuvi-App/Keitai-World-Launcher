@@ -1,4 +1,4 @@
-﻿Imports System.ComponentModel
+Imports System.ComponentModel
 Imports System.IO
 Imports System.IO.Compression
 Imports System.Text
@@ -941,7 +941,7 @@ Public Class MainForm
             ListViewGamesVariants.Items.Clear()
             ListViewGamesVariants.BackColor = SystemColors.Window
 
-            If ListViewGames.SelectedItems.Count = 0 Then
+            If ListViewGames.SelectedItems.Count <> 1 Then
                 lblTotalVariantCount.Text = "Variants: 0"
                 ListViewGamesVariants.Visible = False
                 RefreshCompactLibraryLayout()
@@ -988,6 +988,10 @@ Public Class MainForm
         Optional allowDownloadPrompt As Boolean = True,
         Optional downloadAlreadyConfirmed As Boolean = False
     ) As Task
+        If ListViewGames.SelectedItems.Count > 1 Then
+            ShowMultipleGamesSelected()
+            Return
+        End If
         ' Ensure a game is selected
         If ListViewGames.SelectedItems.Count = 0 Then
             UIDialogManager.ShowMaterialError(Me, "Please select a game")
@@ -1083,7 +1087,7 @@ Public Class MainForm
                     "Redownload",
                     "Cancel",
                     CompactDialogTone.Warning)
-                If result = DialogResult.Yes Then
+                If result = DialogResult.Yes AndAlso IsCurrentlySelectedGame(selectedGame) Then
                     Logger.LogInfo($"Queueing redownload for {selectedGame.DownloadURL}")
                     QueueGameDownload(New QueuedGameDownload With {
                         .Game = selectedGame,
@@ -1124,7 +1128,7 @@ Public Class MainForm
                     "Cancel")
                 downloadApproved = result = DialogResult.Yes
             End If
-            If downloadApproved Then
+            If downloadApproved AndAlso IsCurrentlySelectedGame(selectedGame) Then
                 Logger.LogInfo($"Queueing download for {selectedGame.DownloadURL}")
                 QueueGameDownload(New QueuedGameDownload With {
                     .Game = selectedGame,
@@ -1214,158 +1218,6 @@ Public Class MainForm
             UpdateCharaDenSelectionState(selectedCharaDen)
         End If
     End Sub
-    Private Async Function DeleteGamesAsync() As Task
-        If ListViewGames.SelectedItems.Count = 0 Then
-            UIDialogManager.ShowNotice(Me, "Select an app", "Choose an installed app before using Delete.", "OK", CompactDialogTone.Warning)
-            Return
-        End If
-
-        Dim gamesToDelete As New List(Of Game)
-
-        For Each item As ListViewItem In ListViewGames.SelectedItems
-            Dim selectedGame As Game = TryCast(item.Tag, Game)
-            If selectedGame IsNot Nothing Then
-                gamesToDelete.Add(selectedGame)
-            End If
-        Next
-
-        Dim busyGame = gamesToDelete.FirstOrDefault(Function(game) IsGameDownloadBusy(game))
-        If busyGame IsNot Nothing Then
-            NotificationManager.ShowWarning(Me, "Download in progress", $"Wait for '{busyGame.ENTitle}' to finish installing before deleting it.")
-            Return
-        End If
-
-        Dim gameList = String.Join(Environment.NewLine, gamesToDelete.Select(Function(g) $"{g.ENTitle} ({g.ZIPName})"))
-        Dim result = UIDialogManager.ShowConfirmation(
-            Me,
-            If(gamesToDelete.Count = 1, "Delete app?", "Delete apps?"),
-            $"The following installed files will be removed:{Environment.NewLine}{Environment.NewLine}{gameList}{Environment.NewLine}{Environment.NewLine}" &
-            "Save data inside the app folder will also be removed. Existing backups are kept.",
-            "Delete",
-            "Cancel",
-            CompactDialogTone.Danger)
-        If result <> DialogResult.Yes Then Return
-
-        UtilManager.ShowLaunchOverlay(Me, "Deleting...")
-        Try
-
-            Dim deletedGames As New List(Of String)
-            Dim deletedCustomGames As New List(Of String)
-            Dim failedGames As New List(Of String)
-
-            ' Build a set of custom game base names for lookup
-            Dim customGameNames As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
-            If File.Exists(CustomGamesTxtFile) Then
-                For Each line In File.ReadAllLines(CustomGamesTxtFile)
-                    Dim parts = line.Split("|"c)
-                    If parts.Length > 0 AndAlso Not String.IsNullOrWhiteSpace(parts(0)) Then
-                        customGameNames.Add(parts(0).Trim())
-                    End If
-                Next
-            End If
-
-            Await Task.Run(Async Function() As Task
-                               For Each game In gamesToDelete
-                                   Try
-                                       Dim baseName = Path.GetFileNameWithoutExtension(game.ZIPName)
-                                       Dim isCustom = customGameNames.Contains(baseName)
-
-                                       Dim gameFolder = Path.Combine(DownloadsFolder, $"{baseName}_{game.Emulator}")
-                                       Dim zipPath = Path.Combine(DownloadsFolder, $"{baseName}_{game.Emulator}.zip")
-
-                                       If Directory.Exists(gameFolder) Then
-                                           ' 1) Remove the downloaded folder
-                                           My.Computer.FileSystem.DeleteDirectory(
-                                           gameFolder,
-                                           FileIO.UIOption.OnlyErrorDialogs,
-                                           FileIO.RecycleOption.DeletePermanently
-                                       )
-
-                                           ' 2) Delete the cached zip if it exists
-                                           If File.Exists(zipPath) Then
-                                               File.Delete(zipPath)
-                                           End If
-
-                                           ' 3) Clean up SD_BIND if needed
-                                           If Not String.IsNullOrEmpty(game.SDCardDataURL) Then
-                                               For Each emu As String In cbxDojaSDK.Items
-                                                   Dim sdJamFile = Path.Combine(
-                                                   ToolsFolder,
-                                                   Path.GetFileName(emu),
-                                                   "lib", "storagedevice", "ext0", "SD_BIND",
-                                                   "SVC0000" & baseName & ".jam"
-                                               )
-                                                   If File.Exists(sdJamFile) Then
-                                                       File.Delete(sdJamFile)
-                                                   End If
-                                               Next
-                                           End If
-
-                                           ' 4) If custom, remove from customgames.txt
-                                           If isCustom Then
-                                               Dim configPath = CustomGamesTxtFile
-                                               If File.Exists(configPath) Then
-                                                   Dim lines = File.ReadAllLines(configPath).ToList()
-                                                   Dim filtered = lines.Where(Function(line)
-                                                                                  Dim parts = line.Split("|"c)
-                                                                                  If parts.Length = 0 Then Return True
-                                                                                  Return Not parts(0).Trim().Equals(baseName, StringComparison.OrdinalIgnoreCase)
-                                                                              End Function).ToList()
-                                                   If filtered.Count <> lines.Count Then
-                                                       File.WriteAllLines(configPath, filtered)
-                                                   End If
-                                               End If
-                                               deletedCustomGames.Add($"{game.ENTitle} [{game.Emulator}]")
-                                           End If
-
-                                           deletedGames.Add($"{game.ENTitle} [{game.Emulator}]")
-                                       Else
-                                           failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Not downloaded)")
-                                       End If
-
-                                   Catch ex As Exception
-                                       failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Error: {ex.Message})")
-                                   End Try
-                               Next
-                           End Function)
-
-            ' Only remove CUSTOM games from the listview/games list
-            If deletedCustomGames.Count > 0 Then
-                Dim deletedSet = gamesToDelete.
-                Where(Function(g) customGameNames.Contains(Path.GetFileNameWithoutExtension(g.ZIPName))).
-                Select(Function(g) $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".ToLowerInvariant()).
-                ToHashSet(StringComparer.OrdinalIgnoreCase)
-
-                games = games.Where(Function(g)
-                                        Dim key = $"{Path.GetFileNameWithoutExtension(g.ZIPName)}_{g.Emulator}".ToLowerInvariant()
-                                        Return Not deletedSet.Contains(key)
-                                    End Function).ToList()
-
-                lblTotalGameCount.Text = $"Total: {games.Count}"
-            End If
-
-            ' Show summary
-            If deletedGames.Count > 0 Then
-                NotificationManager.ShowSuccess(
-                    Me,
-                    If(deletedGames.Count = 1, "App deleted", "Apps deleted"),
-                    If(deletedGames.Count = 1, "The selected app was removed.", $"{deletedGames.Count} selected apps were removed."))
-                Await FilterAndHighlightGamesAsync()
-            End If
-
-            If failedGames.Count > 0 Then
-                UIDialogManager.ShowNotice(
-                    Me,
-                    "Some files could not be deleted",
-                    String.Join(Environment.NewLine, failedGames),
-                    "OK",
-                    CompactDialogTone.Warning)
-            End If
-
-        Finally
-            UtilManager.HideLaunchOverlay()
-        End Try
-    End Function
     Public Async Function DeleteMachiCharaAsync() As Task
         If ListViewMachiChara.SelectedItems.Count = 0 Then
             NotificationManager.ShowWarning(Me, "Nothing selected", "Select at least one Machi-Chara to delete.")
@@ -1489,6 +1341,7 @@ Public Class MainForm
         ListViewGames.EndUpdate()
     End Sub
     Public Async Function VerifyGameDownloadedAsync() As Task(Of Boolean)
+        If ListViewGames.SelectedItems.Count > 1 Then Return False
         If ListViewGames.SelectedItems.Count = 0 Then
             MessageBox.Show("Please select a game.")
             Return False
@@ -1667,14 +1520,15 @@ Public Class MainForm
 
     ' LISTBOX/LISTVIEW CHANGES
     Private Sub ListViewGames_SelectedIndexChanged(sender As Object, e As EventArgs) Handles ListViewGames.SelectedIndexChanged
+        selectionTimer.Stop()
+        CancelKeitaiWikiLookup(True)
+        SetGameActionAvailability(False, False)
         If ListViewGames.SelectedItems.Count = 0 Then
-            selectionTimer.Stop()
             ShowNoGameSelected()
             Return
         End If
 
         ' Restart the timer on selection change
-        selectionTimer.Stop()
         selectionTimer.Start()
     End Sub
     Private Async Sub SelectionTimer_Tick(sender As Object, e As EventArgs) Handles selectionTimer.Tick
@@ -1682,6 +1536,10 @@ Public Class MainForm
 
         ' Check if any items are selected
         If ListViewGames.SelectedItems.Count = 0 Then Return
+        If ListViewGames.SelectedItems.Count > 1 Then
+            ShowMultipleGamesSelected()
+            Return
+        End If
 
         ' Find the game on a background thread
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
@@ -1691,16 +1549,16 @@ Public Class MainForm
     End Sub
 
     Private Async Function PrepareSelectedGameAsync(selectedGame As Game) As Task(Of Boolean)
-        If selectedGame Is Nothing OrElse ListViewGames.SelectedItems.Count = 0 Then Return False
+        If selectedGame Is Nothing OrElse ListViewGames.SelectedItems.Count <> 1 Then Return False
         If Not Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, selectedGame) Then Return False
 
         ' Prepare the selected app's variant and paths before any launch action.
         Await LoadGameVariantsAsync()
-        If ListViewGames.SelectedItems.Count = 0 OrElse
+        If ListViewGames.SelectedItems.Count <> 1 OrElse
            Not Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, selectedGame) Then Return False
 
         Await DownloadGames(False, False)
-        If ListViewGames.SelectedItems.Count = 0 OrElse
+        If ListViewGames.SelectedItems.Count <> 1 OrElse
            Not Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, selectedGame) Then Return False
 
         EnableButtons(selectedGame)
@@ -2192,7 +2050,12 @@ Public Class MainForm
         RefreshGameHighlighting()
     End Sub
     Private Async Sub cmsGameLV_Opening(sender As Object, e As System.ComponentModel.CancelEventArgs) Handles cmsGameLV.Opening
-        If ListViewGames.SelectedItems.Count = 0 Then Return
+        If ListViewGames.SelectedItems.Count = 0 Then
+            e.Cancel = True
+            Return
+        End If
+        UpdateGameSelectionState(TryCast(ListViewGames.SelectedItems(0).Tag, Game))
+        If ListViewGames.SelectedItems.Count <> 1 Then Return
 
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
@@ -2216,7 +2079,7 @@ Public Class MainForm
         End If
     End Sub
     Private Sub OpenGameFolderToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles OpenGameFolderToolStripMenuItem.Click
-        If ListViewGames.SelectedItems.Count = 0 Then Return
+        If ListViewGames.SelectedItems.Count <> 1 Then Return
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
         If selectedGame Is Nothing Then Return
@@ -2229,7 +2092,7 @@ Public Class MainForm
         End If
     End Sub
     Private Async Sub BackupSaveToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles BackupSaveToolStripMenuItem.Click
-        If ListViewGames.SelectedItems.Count = 0 Then Return
+        If ListViewGames.SelectedItems.Count <> 1 Then Return
         Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
         Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
         If selectedGame Is Nothing Then Return
@@ -2345,6 +2208,10 @@ Public Class MainForm
 
     'Launch Apps Buttons
     Private Async Sub btnLaunchGame_Click(sender As Object, e As EventArgs) Handles btnLaunchGame.Click, cmsGameLV_Launch.Click
+        If ListViewGames.SelectedItems.Count > 1 Then
+            ShowMultipleGamesSelected()
+            Return
+        End If
         Try
             Logger.LogInfo("Attempting To launch game...")
             If chkbxEnableController.Checked Then
@@ -2369,6 +2236,8 @@ Public Class MainForm
                 NotificationManager.ShowInformation(Me, "Download in progress", $"'{primaryActionGame.ENTitle}' must finish installing before it can be opened.")
                 Return
             End If
+            selectionTimer.Stop()
+            If Not Await PrepareSelectedGameAsync(primaryActionGame) Then Return
             If Not IsGameInstalled(primaryActionGame) Then
                 Await DownloadGames(True, True)
                 If ListViewGames.SelectedItems.Count > 0 Then
@@ -2428,6 +2297,7 @@ Public Class MainForm
                 Logger.LogWarning("Game launch aborted: Game not downloaded.")
                 Return
             End If
+            If Not IsCurrentlySelectedGame(primaryActionGame) Then Return
 
             ' Get the selected game
             Dim selectedGameTitle As String = ListViewGames.SelectedItems(0).Text
