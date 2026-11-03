@@ -393,9 +393,9 @@ Public Class MainForm
 
         ' SDK configuration: (ComboBox, DefaultValue, Prefixes)
         Dim sdkMappings As New List(Of (Combo As ComboBox, DefaultSdk As String, Prefixes As String())) From {
-        (cbxDojaSDK, GetConfiguredDefaultSdk(DefaultDOJASDK, "OpenDoja"), {"idkdoja", "squirreljme", "kemnnx64", "freej2me", "opendoja"}),
-        (cbxStarSDK, GetConfiguredDefaultSdk(DefaultSTARSDK, "OpenDoja"), {"idkstar", "freej2me", "opendoja"}),
-        (cbxJSKYSDK, GetConfiguredDefaultSdk(DefaultJSKYSDK, "ReMEXA"), {"jsky_", "kemnnx64", "remexa"}),
+        (cbxDojaSDK, GetConfiguredDefaultSdk(DefaultDOJASDK, "OpenDoja"), {"idkdoja5.1", "squirreljme", "kemnnx64", "freej2me", "opendoja"}),
+        (cbxStarSDK, GetConfiguredDefaultSdk(DefaultSTARSDK, "OpenDoja"), {"idkstar2.0", "freej2me", "opendoja"}),
+        (cbxJSKYSDK, GetConfiguredDefaultSdk(DefaultJSKYSDK, "ReMEXA"), {"kemnnx64", "remexa"}),
         (cbxSoftbankSDK, GetConfiguredDefaultSdk(DefaultSOFTBANKSDK, "ReMEXA"), {"kemnnx64", "freej2me", "remexa"}),
         (cbxVodafoneSDK, GetConfiguredDefaultSdk(DefaultVODAFONESDK, "ReMEXA"), {"kemnnx64", "remexa"}),
         (cbxAirEdgeSDK, GetConfiguredDefaultSdk(DefaultAIREDGESDK, "freej2me"), {"kemnnx64", "freej2me"}),
@@ -1857,7 +1857,7 @@ Public Class MainForm
         SaveDefaultSdkSelection("DefaultSTARSDK", selectedSDK)
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
 
-        If sdkLower.StartsWith("idkstar") Then
+        If sdkLower.StartsWith("idkstar2.0") Then
             STARpath = Path.Combine(ToolsFolder, selectedSDK)
             STAREXE = Path.Combine(STARpath, "bin", "star.exe")
         ElseIf sdkLower.StartsWith("freej2me") Then
@@ -1888,14 +1888,8 @@ Public Class MainForm
         ' Default: Disable SJME options unless enabled later
         SetSjmeSettingsEnabled(False)
 
-        If sdkLower.StartsWith("idkdoja") Then
+        If sdkLower.StartsWith("idkdoja5.1") Then
             DOJAEXE = Path.Combine(DOJApath, "bin", "doja.exe")
-
-            If selectedSDK.Contains("3.5") AndAlso chkbxShaderGlass.Checked Then
-                MessageBox.Show("Doja 3.5 does Not work With ShaderGlass. Disabling it.")
-                chkbxShaderGlass.Checked = False
-            End If
-
         ElseIf sdkLower.StartsWith("squirreljme") Then
             If CompletedBootSequence = True Then
                 ShowEmulatorDisclaimer("squirreljme")
@@ -1959,10 +1953,7 @@ Public Class MainForm
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
         JSKYpath = Path.Combine(ToolsFolder, selectedSDK)
 
-        If sdkLower.StartsWith("jsky_") Then
-            JSKYEXE = Path.Combine(JSKYpath, "jbmidp.jar")
-
-        ElseIf sdkLower.StartsWith("kemnnx64") Then
+        If sdkLower.StartsWith("kemnnx64") Then
             If CompletedBootSequence = True Then
                 ShowEmulatorDisclaimer("kemnnx64")
             End If
@@ -2462,7 +2453,7 @@ Public Class MainForm
                 Case "doja"
                     Dim lowerDojaPath = DOJApath.ToLowerInvariant()
 
-                    If lowerDojaPath.Contains("idkdoja") Then
+                    If selectedDojaSDK.StartsWith("idkdoja5.1", StringComparison.OrdinalIgnoreCase) Then
                         Logger.LogInfo("Launching game using DOJA emulator.")
                         utilManager.LaunchCustomDOJAGameCommand(DOJApath, DOJAEXE, CurrentSelectedGameJAM)
                     ElseIf lowerDojaPath.Contains("opendoja") Then
@@ -2482,7 +2473,7 @@ Public Class MainForm
 
                 Case "star"
                     Dim lowerStarPath = STARpath.ToLowerInvariant()
-                    If lowerStarPath.Contains("idkstar") Then
+                    If selectedStarSDK.StartsWith("idkstar2.0", StringComparison.OrdinalIgnoreCase) Then
                         Logger.LogInfo("Launching game using STAR emulator.")
                         utilManager.LaunchCustomSTARGameCommand(STARpath, STAREXE, CurrentSelectedGameJAM)
                     ElseIf lowerStarPath.Contains("freej2me") Then
@@ -2495,15 +2486,10 @@ Public Class MainForm
                     Logger.LogInfo($"Launched with: StarPath={STARpath}, StarEXE={STAREXE}, GamePath={CurrentSelectedGameJAM}")
 
                 Case "jsky"
-                    Dim lowerJSKYPath = JSKYpath.ToLowerInvariant()
-
-                    If lowerJSKYPath.Contains("jsky_") Then
-                        Logger.LogInfo("Launching game using JSKY emulator.")
-                        utilManager.LaunchCustomJSKYGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
-                    ElseIf lowerJSKYPath.Contains("kemnnx64") Then
+                    If selectedJSKYSDK.StartsWith("kemnnx64", StringComparison.OrdinalIgnoreCase) Then
                         Logger.LogInfo("Launching game using Kemulator emulator.")
                         utilManager.LaunchCustom_KEmulatorGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
-                    ElseIf lowerJSKYPath.Contains("remexa") Then
+                    ElseIf selectedJSKYSDK.StartsWith("remexa", StringComparison.OrdinalIgnoreCase) Then
                         Logger.LogInfo("Launching game using remexa emulator.")
                         utilManager.LaunchCustom_REMEXAGameCommand(JSKYpath, JSKYEXE, CurrentSelectedGameJAM)
                     End If

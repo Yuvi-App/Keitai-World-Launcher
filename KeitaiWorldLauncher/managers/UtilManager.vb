@@ -43,7 +43,7 @@ Namespace My.Managers
 
 
             ' Setup DOJA and STAR Reg
-            Dim toolDojaDirs = Directory.GetDirectories(MainForm.ToolsFolder, "idkDoja*")
+            Dim toolDojaDirs = Directory.GetDirectories(MainForm.ToolsFolder, "idkDoja5.1*")
             For Each dir As String In toolDojaDirs
                 Dim regFile As String = Path.Combine(dir, "doja.reg")
                 Dim dojaExe As String = Path.Combine(dir, "bin", "doja.exe")
@@ -55,7 +55,7 @@ Namespace My.Managers
                 End If
             Next
 
-            Dim toolStarDirs = Directory.GetDirectories(MainForm.ToolsFolder, "idkStar*")
+            Dim toolStarDirs = Directory.GetDirectories(MainForm.ToolsFolder, "idkStar2.0*")
             For Each dir As String In toolStarDirs
                 Dim regFile As String = Path.Combine(dir, "star.reg")
                 Dim starExe As String = Path.Combine(dir, "bin", "star.exe")
@@ -1316,18 +1316,12 @@ Namespace My.Managers
                     Exit Sub
                 End If
 
-                ' Get DOJA version
-                Dim VerIndex As Integer = DOJAPATH.LastIndexOf("\iDKDoJa", StringComparison.OrdinalIgnoreCase)
-                Dim DOJAVER As Integer = DOJAPATH.Substring(VerIndex + 8, 1)
-
-                ' Update draw size for DOJA5
-                If DOJAVER = 5 Then
-                    Dim dimensions = ExtractDrawAreaFromJam(jamPath, 240, 240)
-                    Dim width As Integer = dimensions.Item1
-                    Dim height As Integer = dimensions.Item2
-                    Await UpdatedDOJADrawSize(DOJAPATH, width, height)
-                    logger.Logger.LogInfo($"[Launch] Updated DOJA draw size to {width}x{height}")
-                End If
+                ' Update draw size for DoJa 5.1
+                Dim dimensions = ExtractDrawAreaFromJam(jamPath, 240, 240)
+                Dim width As Integer = dimensions.Item1
+                Dim height As Integer = dimensions.Item2
+                Await UpdatedDOJADrawSize(DOJAPATH, width, height)
+                logger.Logger.LogInfo($"[Launch] Updated DOJA draw size to {width}x{height}")
 
                 ' Update sound config
                 Await UpdateSoundConf(DOJAPATH, MainForm.cbxAudioType.SelectedItem.ToString())
@@ -1338,15 +1332,7 @@ Namespace My.Managers
                 If Not NoGameJameUpdatedList.Contains(Path.GetFileNameWithoutExtension(GameJAM)) Then
                     Await UpdateDOJAAppconfig(DOJAPATH, jamPath)
 
-                    If DOJAVER = 3 Then
-                        Await PrepareJamFileForLaunchAsync(jamPath, "doja3", MainForm.NetworkUID, MainForm.chkbxModifyJamFiles.Checked, MainForm.chkboxNetworkModifyURLS.Checked)
-                        ' Convert SP to SCR
-                        Dim rootFolder = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(GameJAM), ".."))
-                        Dim SPFile = Path.Combine(rootFolder, "sp", Path.GetFileNameWithoutExtension(GameJAM) & ".sp")
-                        Await ProcessDOJA3SPtoSCR(SPFile)
-                    Else
-                        Await PrepareJamFileForLaunchAsync(jamPath, "doja5", MainForm.NetworkUID, MainForm.chkbxModifyJamFiles.Checked, MainForm.chkboxNetworkModifyURLS.Checked)
-                    End If
+                    Await PrepareJamFileForLaunchAsync(jamPath, "doja5", MainForm.NetworkUID, MainForm.chkbxModifyJamFiles.Checked, MainForm.chkboxNetworkModifyURLS.Checked)
                 End If
 
                 ' Let filesystem settle (especially important on slower drives)
@@ -1837,78 +1823,6 @@ Namespace My.Managers
                 MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             End Try
         End Sub
-        Public Async Sub LaunchCustomJSKYGameCommand(JSKYPATH As String, JSKYEXELocation As String, GameJAM As String)
-            Try
-                logger.Logger.LogInfo("[Launch] Starting JSKY game launch sequence...")
-
-                ' Validate inputs
-                If String.IsNullOrWhiteSpace(JSKYPATH) OrElse String.IsNullOrWhiteSpace(JSKYEXELocation) OrElse String.IsNullOrWhiteSpace(GameJAM) Then
-                    Throw New ArgumentException("One or more required parameters are missing.")
-                End If
-
-                'Start overlay
-                UtilManager.ShowLaunchOverlay(MainForm, "Launching...")
-
-                ' Prepare all paths
-                Dim baseDir = AppDomain.CurrentDomain.BaseDirectory
-                Dim useLocaleEmulator As Boolean = MainForm.chkbxLocalEmulator.Checked
-                Dim appPath As String
-                Dim arguments As String
-
-                ' Make Full Paths
-                Dim Java32EXE As String = Path.Combine(MainForm.Java1_8BinFolderPath, "java.exe")
-                Dim exePath As String = JSKYEXELocation.Trim
-                Dim jadPath As String = Path.Combine(baseDir, GameJAM).Trim()
-
-                If jadPath.Length > 240 Then
-                    logger.Logger.LogWarning($"[Launch] JAD file path exceeds 240 characters: {jadPath}")
-                    MessageBox.Show("The file path length exceeds 240 characters. You might experience issues running. Try moving Keitai World Emulator to the root of C:/", "Path Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                End If
-
-                ' Form arguments based on launch method
-                appPath = Java32EXE
-                arguments = $"{Path.GetFileName(exePath)} ""{jadPath}"""
-                logger.Logger.LogInfo($"[Launch] Launching JSKY directly without Locale Emulator: {arguments}")
-
-                ' Config updates
-                Await UpdateJADJarURLAsync(jadPath)
-                Await AddJADMIDletEntriesAsync(jadPath, MainForm.NetworkUID, MainForm.TerminalID)
-                Await Task.Delay(500) ' Let the filesystem settle
-
-                ' Launch JSKY JAVA with retry logic
-                Dim success = Await LaunchJSkyAppAsync(Java32EXE, JSKYEXELocation, jadPath)
-                If Not success Then
-                    HideLaunchOverlay()
-                    MessageBox.Show("Failed to launch JSKY after retrying.", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    Exit Sub
-                End If
-
-                ' ShaderGlass launch if enabled
-                If MainForm.chkbxShaderGlass.Checked Then
-                    logger.Logger.LogInfo("[ShaderGlass] Waiting for JSKY to become idle...")
-                    If Await WaitForProcessWindowAsync({"java"}, "WaitForJavaToStart") Then
-                        Await LaunchShaderGlass("J-SKY Application Emulator")
-                        logger.Logger.LogInfo("[ShaderGlass] ShaderGlass launched and monitoring started.")
-                    Else
-                        logger.Logger.LogError("[ShaderGlass] Failed to detect JSKY running.")
-                        MessageBox.Show("Failed to detect JSKY running.", "ShaderGlass Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-                    End If
-                End If
-
-                If MainForm.chkbxEnableController.Checked = True Then
-                    Await LaunchControllerProfileAMGP()
-                End If
-                ProcessManager.StartMonitoring(jadPath)
-                HideLaunchOverlay()
-            Catch ex As ArgumentException
-                logger.Logger.LogError($"[Launch] Invalid input: {ex.Message}")
-                MessageBox.Show($"Invalid input: {ex.Message}", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-
-            Catch ex As Exception
-                logger.Logger.LogError($"[Launch] Exception occurred: {ex}")
-                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-            End Try
-        End Sub
         Public Async Sub LaunchCustomVODAFONEGameCommand(VODAFONEPATH As String, VODAFONEEXELocation As String, GameJAM As String)
             Try
                 logger.Logger.LogInfo("[Launch] Starting VODAFONE game launch sequence...")
@@ -2313,32 +2227,6 @@ Namespace My.Managers
                 logger.Logger.LogInfo("Failed to launch AntimicroX: " & ex.Message)
             End Try
         End Function
-        Public Async Function LaunchJSkyAppAsync(javapath As String, JskyExePath As String, jadPath As String) As Task(Of Boolean)
-            Try
-                ' Proper quoting for cmd.exe
-                Dim arguments As String = $"/C """"{javapath}"" -jar ""{Path.GetFileName(JskyExePath)}"" ""{jadPath}"""""
-
-                Dim psi As New ProcessStartInfo("cmd.exe", arguments) With {
-                    .UseShellExecute = True,
-                    .WorkingDirectory = Path.GetDirectoryName(JskyExePath),
-                    .CreateNoWindow = True
-                }
-
-                Dim process As Process = Process.Start(psi)
-
-                ' Optional delay to allow Java process to spawn
-                Await Task.Delay(1000)
-
-                ' Check for any java process
-                Dim javaRunning As Boolean = Process.GetProcessesByName("java").Any()
-
-                Return javaRunning
-
-            Catch ex As Exception
-                logger.Logger.LogError($"[JavaLaunch] Failed to start Java app: {ex.Message}")
-                Return False
-            End Try
-        End Function
         Public Async Function LaunchREMEXAAppAsync(javapath As String, REMEXAExePath As String, jamPath As String) As Task(Of Boolean)
             Try
                 Dim arguments = String.Join(" ",
@@ -2694,7 +2582,6 @@ Namespace My.Managers
             Await Task.Run(Sub()
                                Try
                                    Dim AppConfigFile = Path.Combine(DOJALOCATION, "AppSetting")
-                                   Dim AppConfigPROPFile = Path.Combine(DOJALOCATION, "AppSetting.properties")
                                    Dim GameDirectory As String = ""
                                    Dim GameName = Path.GetFileNameWithoutExtension(GAMEJAM)
 
@@ -2706,110 +2593,17 @@ Namespace My.Managers
                                        Return
                                    End If
 
-                                   Dim VerIndex As Integer = DOJALOCATION.LastIndexOf("\iDKDoJa")
-                                   Dim DOJAVER As Integer = DOJALOCATION.Substring(VerIndex + 8, 1)
-
                                    Dim targetAppConfig = Path.Combine(GameDirectory, GameName)
                                    Dim targetPropConfig = Path.Combine(GameDirectory, $"{GameName}.properties")
 
-                                   If DOJAVER = 3 Then
-                                       File.Copy(AppConfigFile, targetAppConfig, True)
-                                       File.Copy(AppConfigPROPFile, targetPropConfig, True)
-                                   ElseIf DOJAVER = 5 Then
-                                       File.Copy(AppConfigFile, targetAppConfig, True)
-                                       If File.Exists(targetPropConfig) Then
-                                           File.Delete(targetPropConfig)
-                                       End If
+                                   File.Copy(AppConfigFile, targetAppConfig, True)
+                                   If File.Exists(targetPropConfig) Then
+                                       File.Delete(targetPropConfig)
                                    End If
                                Catch ex As Exception
                                    logger.Logger.LogError($"Error updating DOJA AppConfig: {ex.Message}")
                                End Try
                            End Sub)
-        End Function
-        Public Async Function ProcessDOJA3SPtoSCR(inputSpPath As String, Optional idkdoja2 As Boolean = False) As Task(Of List(Of String))
-
-            Const HEADER_SIZE As Integer = &H40
-
-            If String.IsNullOrWhiteSpace(inputSpPath) Then
-                Throw New ArgumentException("inputSpPath is required.")
-                Return Nothing
-            End If
-
-            If Not File.Exists(inputSpPath) Then
-                Throw New FileNotFoundException("Input .sp file not found.", inputSpPath)
-                Return Nothing
-            End If
-
-            Dim outputDir As String = Path.GetDirectoryName(inputSpPath)
-            Dim baseName As String = Path.GetFileNameWithoutExtension(inputSpPath)
-
-            ' 🔹 Async read
-            Dim spData As Byte() = Await File.ReadAllBytesAsync(inputSpPath)
-
-            If spData.Length < HEADER_SIZE Then
-                Throw New InvalidDataException("File is smaller than the required 0x40 header.")
-            End If
-
-            ' Parse partition sizes
-            Dim sizes As New List(Of UInteger)
-            For offset As Integer = 0 To HEADER_SIZE - 1 Step 4
-                Dim size As UInteger = BitConverter.ToUInt32(spData, offset)
-                If size = &HFFFFFFFFUI Then Exit For
-                sizes.Add(size)
-            Next
-
-            ' Validate total size
-            Dim totalSize As ULong = 0
-            For Each s In sizes
-                totalSize += s
-            Next
-
-            If totalSize <> CULng(spData.Length - HEADER_SIZE) Then
-                Throw New InvalidDataException("Header sizes do not match file length.")
-            End If
-
-            ' DoJa 2.x restriction
-            If idkdoja2 AndAlso sizes.Count > 1 Then
-                Throw New InvalidDataException(
-                "DoJa 2.x allows only one or zero scratchpad partitions.")
-            End If
-
-            Dim writtenFiles As New List(Of String)
-            Dim dataOffset As Integer = HEADER_SIZE
-
-            For i As Integer = 0 To sizes.Count - 1
-                Dim partSize As Integer = CInt(sizes(i))
-
-                Dim outFileName As String =
-                If(idkdoja2,
-                   $"{baseName}.scr",
-                   $"{baseName}{i}.scr")
-
-                Dim outPath As String = Path.Combine(outputDir, outFileName)
-
-                ' Skip existing files
-                If File.Exists(outPath) Then
-                    dataOffset += partSize
-                    Continue For
-                End If
-
-                ' 🔹 Async write
-                Using fs As New FileStream(
-                outPath,
-                FileMode.Create,
-                FileAccess.Write,
-                FileShare.None,
-                bufferSize:=81920,
-                useAsync:=True)
-
-                    Await fs.WriteAsync(spData, dataOffset, partSize)
-                End Using
-
-                writtenFiles.Add(outPath)
-                dataOffset += partSize
-            Next
-
-            Return writtenFiles
         End Function
         Public Function ExtractAppNamefromJAM(GAMEJAM As String) As String
             ' 1) Make sure the file exists
@@ -2888,19 +2682,6 @@ Namespace My.Managers
             Dim enc = Encoding.GetEncoding(932)
             Dim lines = (Await File.ReadAllLinesAsync(jamFile, enc)).ToList()
             Dim modified As Boolean = False
-
-            ' DOJA3 special case: strip entries and exit early 
-            If mode = "doja3" Then
-                Dim entriesToRemove = {"TrustedAPID =", "MessageCode ="}
-                Dim filtered = lines.Where(Function(l) Not entriesToRemove.Any(
-            Function(e) l.StartsWith(e, StringComparison.OrdinalIgnoreCase))).ToList()
-
-                If filtered.Count <> lines.Count Then
-                    Await File.WriteAllLinesAsync(jamFile, filtered, enc)
-                    logger.Logger.LogInfo($"Removed DOJA3 jam entries from {jamFile}")
-                End If
-                Return
-            End If
 
             ' Normalize and ensure entries (if user allows JAM modifications)
             If modifyJam Then
@@ -3385,7 +3166,7 @@ Namespace My.Managers
             End Try
         End Function
 
-        'JSKY Helpers
+        'JAD Helpers
         Public Shared Async Function UpdateJADJarURLAsync(jadFilePath As String) As Task(Of Boolean)
             If Not File.Exists(jadFilePath) Then
                 logger.Logger.LogError($"JAD file not found: {jadFilePath}")

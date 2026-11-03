@@ -93,6 +93,26 @@ Namespace My.Managers
                                           _doc = freshDoc
                                       End If
 
+                                      Dim configuredDojaSdk = config("DefaultDOJASDK").Trim()
+                                      If configuredDojaSdk.StartsWith("idkdoja3.5", StringComparison.OrdinalIgnoreCase) OrElse
+                                         configuredDojaSdk.StartsWith("idkdoja5.0", StringComparison.OrdinalIgnoreCase) Then
+                                          config("DefaultDOJASDK") = DefaultConfig("DefaultDOJASDK")
+                                          UpdateDefaultSDKSetting("DefaultDOJASDK", config("DefaultDOJASDK"))
+                                          logger.Logger.LogInfo("DoJa 3.5 and 5.0 support has been removed. Changed the default DoJa SDK to OpenDoja.")
+                                      End If
+
+                                      If config("DefaultSTARSDK").Trim().StartsWith("idkstar1.5", StringComparison.OrdinalIgnoreCase) Then
+                                          config("DefaultSTARSDK") = DefaultConfig("DefaultSTARSDK")
+                                          UpdateDefaultSDKSetting("DefaultSTARSDK", config("DefaultSTARSDK"))
+                                          logger.Logger.LogInfo("Star 1.5 support has been removed. Changed the default Star SDK to OpenDoja.")
+                                      End If
+
+                                      If config("DefaultJSKYSDK").Trim().StartsWith("jsky_0.1.5b", StringComparison.OrdinalIgnoreCase) Then
+                                          config("DefaultJSKYSDK") = DefaultConfig("DefaultJSKYSDK")
+                                          UpdateDefaultSDKSetting("DefaultJSKYSDK", config("DefaultJSKYSDK"))
+                                          logger.Logger.LogInfo("JSky_0.1.5B support has been removed. Changed the default J-Sky SDK to ReMEXA.")
+                                      End If
+
                                       Return config
                                   End Function)
         End Function

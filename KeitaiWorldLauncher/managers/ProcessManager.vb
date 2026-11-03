@@ -9,7 +9,7 @@ Namespace My.Managers
         Private Shared ReadOnly _monitorLock As New Object()
 
         Public Shared ReadOnly EmulatorProcessNames As String() = {
-            "doja", "squirreljme", "star", "java", "javaw", "jbime", "emulator", "flashplayer"
+            "doja", "squirreljme", "star", "java", "javaw", "emulator", "flashplayer"
         }
 
         Public Shared Sub StartMonitoring(applipath As String)
@@ -127,7 +127,7 @@ Namespace My.Managers
                 {"DOJA Emulator", {"doja"}},
                 {"SquirrelJME", {"squirreljme"}},
                 {"Star Emulator", {"star", "full"}},
-                {"Java-based runtime", {"java", "javaw", "jbime"}},
+                {"Java-based runtime", {"java", "javaw"}},
                 {"Vodafone Emulator", {"emulator"}},
                 {"Flashplayer", {"flashplayer"}}
             }
