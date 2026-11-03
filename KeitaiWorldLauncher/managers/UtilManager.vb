@@ -1416,8 +1416,8 @@ Namespace My.Managers
                 End If
 
                 ' Determine launch method
-                Dim SJMELaunchMethod As String
-                Dim SJMEProcessWatch As String
+                Dim SJMELaunchMethod As String = "springcoat"
+                Dim SJMEProcessWatch As String = "squirreljme"
                 Dim selectedSJMELaunchOption = MainForm.cbxSJMELaunchOption.SelectedItem.ToString
                 Dim selectedSJMEScaling = MainForm.cbxSJMEScaling.SelectedItem.ToString
                 If selectedSJMELaunchOption = "SpringCoat" Then
@@ -1431,12 +1431,12 @@ Namespace My.Managers
                     ' Launch using Locale Emulator
                     appPath = Path.Combine(baseDir, "data", "tools", "locale_emulator", "LEProc.exe").Trim()
                     Dim guidArg As String = "-runas ad1a7fe1-4f95-45ba-b563-9ba60c3642d3"
-                    arguments = $"{guidArg} ""{dojaExePath}"" -Xemulator:{SJMELaunchMethod} -Xlibraries:""{spPath}"" -jar ""{jarPath}"" -Dcc.squirreljme.scale: {selectedSJMEScaling}"
+                    arguments = $"{guidArg} ""{dojaExePath}"" -Xemulator:{SJMELaunchMethod} -Xlibraries:""{spPath}"" -Dcc.squirreljme.scale={selectedSJMEScaling} -jar ""{jarPath}"""
                     logger.Logger.LogInfo($"[Launch] Launching via Locale Emulator with arguments: {arguments}")
                 Else
                     ' Launch directly
                     appPath = dojaExePath
-                    arguments = $"-Xemulator:{SJMELaunchMethod} -Xlibraries:""{spPath}"" -jar ""{jarPath}"" -Dcc.squirreljme.scale: {selectedSJMEScaling}"
+                    arguments = $"-Xemulator:{SJMELaunchMethod} -Xlibraries:""{spPath}"" -Dcc.squirreljme.scale={selectedSJMEScaling} -jar ""{jarPath}"""
                     logger.Logger.LogInfo($"[Launch] Launching directly without Locale Emulator: {arguments}")
                 End If
 

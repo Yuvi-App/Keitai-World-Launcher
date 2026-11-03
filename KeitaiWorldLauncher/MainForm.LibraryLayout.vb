@@ -1152,7 +1152,7 @@ Partial Public Class MainForm
         Dim sjmeContent As Panel = Nothing
         Dim sjmeCard = CreateSettingsCard(
             "SquirrelJME",
-            "Options become available when SquirrelJME is the selected DoJa SDK.",
+            "Configure launch mode, display scaling, and updates.",
             190,
             "half",
             sjmeContent)
@@ -1337,12 +1337,6 @@ Partial Public Class MainForm
         ResizeSettingsCards(flow)
         Return page
     End Function
-
-    Private Sub SetSjmeSettingsEnabled(enabled As Boolean)
-        cbxSJMELaunchOption.Enabled = enabled
-        cbxSJMEScaling.Enabled = enabled
-        btnSJMEUpdate.Enabled = enabled
-    End Sub
 
     Private Sub BuildUnifiedLibraryTabs()
         Dim appsPage As New TabPage("Apps") With {.BackColor = CompactUiTheme.AppBackground, .Padding = New Padding(4)}

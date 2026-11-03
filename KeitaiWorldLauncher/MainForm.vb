@@ -330,8 +330,7 @@ Public Class MainForm
         chkbxEnableHighPerformanceEmulator.Checked = DojaStarHighPerformanceEXE
         cbxFilterType.SelectedIndex = 0
         cbxShaderGlassScaling.SelectedIndex = 2
-        cbxSJMELaunchOption.SelectedIndex = 0
-        cbxSJMEScaling.SelectedIndex = 1
+        ApplySquirrelJmeSettingsFromConfig()
         cbxInternalRenderingResolution.SelectedIndex = 1
         cbxOpenDojaAudioType.SelectedIndex = 0
         cbxOpenDojaFontType.SelectedIndex = 0
@@ -1885,9 +1884,6 @@ Public Class MainForm
         Dim sdkLower As String = selectedSDK.ToLowerInvariant()
         DOJApath = Path.Combine(ToolsFolder, selectedSDK)
 
-        ' Default: Disable SJME options unless enabled later
-        SetSjmeSettingsEnabled(False)
-
         If sdkLower.StartsWith("idkdoja5.1") Then
             DOJAEXE = Path.Combine(DOJApath, "bin", "doja.exe")
         ElseIf sdkLower.StartsWith("squirreljme") Then
@@ -1895,7 +1891,6 @@ Public Class MainForm
                 ShowEmulatorDisclaimer("squirreljme")
             End If
             DOJAEXE = Path.Combine(DOJApath, "squirreljme.exe")
-            SetSjmeSettingsEnabled(True)
 
         ElseIf sdkLower.StartsWith("kemnnx64") Then
             If CompletedBootSequence = True Then
@@ -2067,13 +2062,21 @@ Public Class MainForm
             MessageBox.Show("Selected controller does Not support XInput vibration.")
         End If
     End Sub
-    Private Sub cbxSJMELaunchOption_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxSJMELaunchOption.SelectedIndexChanged
-        Dim selectedSJMELaunchOption = cbxSJMELaunchOption.SelectedItem.ToString
-        If selectedSJMELaunchOption = "SpringCoat" Then
-            'lblSJMELaunchOptionsText.Text = "Optimized For compatibility, slower but more reliable."
-        ElseIf selectedSJMELaunchOption = "Hosted" Then
-            'lblSJMELaunchOptionsText.Text = "Uses the system JVM, fastest but disregards any compatibility."
-        End If
+    Private Sub ApplySquirrelJmeSettingsFromConfig()
+        Dim launchOptionIndex = cbxSJMELaunchOption.FindStringExact(config("SJMELaunchOption").Trim())
+        cbxSJMELaunchOption.SelectedIndex = If(launchOptionIndex >= 0, launchOptionIndex, 0)
+        Dim scalingIndex = cbxSJMEScaling.FindStringExact(config("SJMEScaling").Trim())
+        cbxSJMEScaling.SelectedIndex = If(scalingIndex >= 0, scalingIndex, 1)
+    End Sub
+
+    Private Sub SquirrelJmeSettings_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxSJMELaunchOption.SelectedIndexChanged, cbxSJMEScaling.SelectedIndexChanged
+        If Not CompletedBootSequence Then Return
+
+        Dim combo = DirectCast(sender, ComboBox)
+        If combo.SelectedItem Is Nothing Then Return
+
+        Dim settingName = If(combo Is cbxSJMELaunchOption, "SJMELaunchOption", "SJMEScaling")
+        configManager.UpdateSetting(settingName, combo.SelectedItem.ToString())
     End Sub
     Private Sub cbxShaderGlass_Shader_SelectedIndexChanged(sender As Object, e As EventArgs) Handles cbxShaderGlass_Shader.SelectedIndexChanged
         If CompletedBootSequence = True Then
@@ -2861,15 +2864,47 @@ Public Class MainForm
         SaveDataManagerForm.ShowDialog()
     End Sub
     Private Sub btnSJMEUpdate_Click(sender As Object, e As EventArgs) Handles btnSJMEUpdate.Click
-        Dim Apppath = $"cmd"
-        Dim SJMEApppath As String = $"{ToolsFolder}\squirreljme\squirreljme-updater.exe"
-        Dim startInfo As New ProcessStartInfo()
-        startInfo.FileName = Apppath
-        startInfo.Arguments = $"/C {SJMEApppath}"
-        startInfo.UseShellExecute = False
-        startInfo.WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
-        Dim process As Process = Process.Start(startInfo)
+        Try
+            Dim startInfo = CreateSquirrelJmeUpdaterStartInfo()
+            Using process As Process = Process.Start(startInfo)
+                Logger.LogInfo($"[SquirrelJME] Started updater: {startInfo.FileName}")
+            End Using
+        Catch ex As Exception
+            Logger.LogError("[SquirrelJME] Failed to start updater.", ex)
+            UIDialogManager.ShowError(Me, "Could not update SquirrelJME", ex.Message)
+        End Try
     End Sub
+
+    Private Function CreateSquirrelJmeUpdaterStartInfo() As ProcessStartInfo
+        Dim toolsPath = Path.GetFullPath(ToolsFolder, AppDomain.CurrentDomain.BaseDirectory)
+        Dim selectedSdk = TryCast(cbxDojaSDK.SelectedItem, String)
+        Dim squirrelJmeDirectory As String
+
+        If selectedSdk IsNot Nothing AndAlso selectedSdk.StartsWith("squirreljme", StringComparison.OrdinalIgnoreCase) Then
+            squirrelJmeDirectory = Path.Combine(toolsPath, selectedSdk)
+        Else
+            squirrelJmeDirectory = Path.Combine(toolsPath, "squirreljme")
+            If Not File.Exists(Path.Combine(squirrelJmeDirectory, "squirreljme-updater.exe")) AndAlso Directory.Exists(toolsPath) Then
+                squirrelJmeDirectory = Directory.GetDirectories(toolsPath, "squirreljme*").
+                    OrderBy(Function(directory) directory, StringComparer.OrdinalIgnoreCase).
+                    FirstOrDefault(Function(directory) File.Exists(Path.Combine(directory, "squirreljme-updater.exe")))
+            End If
+        End If
+
+        If String.IsNullOrEmpty(squirrelJmeDirectory) Then
+            Throw New FileNotFoundException("SquirrelJME updater was not found. Install SquirrelJME in data/tools before updating.")
+        End If
+
+        Dim updaterPath = Path.Combine(squirrelJmeDirectory, "squirreljme-updater.exe")
+        If Not File.Exists(updaterPath) Then
+            Throw New FileNotFoundException($"SquirrelJME updater was not found at:{vbCrLf}{updaterPath}", updaterPath)
+        End If
+
+        Return New ProcessStartInfo(updaterPath) With {
+            .UseShellExecute = True,
+            .WorkingDirectory = squirrelJmeDirectory
+        }
+    End Function
 
     'Help Options in TabPage
     Private Sub SetupLabelsinOptions()

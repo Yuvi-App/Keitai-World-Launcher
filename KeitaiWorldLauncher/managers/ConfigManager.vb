@@ -33,6 +33,8 @@ Namespace My.Managers
         {"DefaultAIREDGESDK", "freej2me"},
         {"DefaultEZWEBEZPLUSSDK", "freej2me"},
         {"DefaultFlashSDK", "FlashPlayer"},
+        {"SJMELaunchOption", "SpringCoat"},
+        {"SJMEScaling", "2"},
         {"DOJAPath", "c:\doja"},
         {"DOJAEXEPath", "doja.exe"},
         {"DOJAHideUI", "true"},
