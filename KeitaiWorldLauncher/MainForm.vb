@@ -1049,8 +1049,7 @@ Public Class MainForm
             Dim installedForDetails = IsGameInstalled(selectedGame)
             CancelKeitaiWikiLookup(True)
             If installedForDetails AndAlso File.Exists(CurrentSelectedGameJAM) Then
-                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
-                AttachKeitaiWikiToCurrentDetails(selectedGame)
+                ShowInstalledGameDetails(selectedGame)
             Else
                 ShowSelectedGameSummary(selectedGame, installedForDetails, Not isOnline)
             End If
@@ -1069,7 +1068,7 @@ Public Class MainForm
         ' Check if the game is already downloaded
         If isOnline = False Then
             If File.Exists(CurrentSelectedGameJAM) Then
-                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
+                ShowInstalledGameDetails(selectedGame)
             Else
                 ShowSelectedGameSummary(selectedGame, False, True)
             End If
@@ -1100,7 +1099,7 @@ Public Class MainForm
                 End If
             End If
             If File.Exists(CurrentSelectedGameJAM) Then
-                UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
+                ShowInstalledGameDetails(selectedGame)
             End If
             UpdateGameSelectionState(selectedGame)
         Else

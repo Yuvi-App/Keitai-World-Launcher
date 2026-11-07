@@ -54,6 +54,10 @@
       <DependentUpon>MainForm.vb</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="MainForm.GameInformation.vb">
+      <DependentUpon>MainForm.vb</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 
   <ItemGroup>
@@ -62,6 +66,7 @@
          already owns the MainForm resource name. -->
     <EmbeddedResource Remove="MainForm.Accessibility.resx" />
     <EmbeddedResource Remove="MainForm.AppSelection.resx" />
+    <EmbeddedResource Remove="MainForm.GameInformation.resx" />
   </ItemGroup>
 
   <ItemGroup>

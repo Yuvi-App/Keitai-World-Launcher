@@ -259,7 +259,7 @@ Partial Public Class MainForm
                         SetCurrentGamePaths(request.Game)
                         If String.Equals(CurrentSelectedGameJAM, request.JamPath, StringComparison.OrdinalIgnoreCase) AndAlso
                            File.Exists(CurrentSelectedGameJAM) Then
-                            UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, request.Game.ENTitle)
+                            ShowInstalledGameDetails(request.Game)
                         End If
                     End If
                     NotificationManager.ShowSuccess(Me, "Download complete", $"'{request.Game.ENTitle}' is installed and ready to play.")

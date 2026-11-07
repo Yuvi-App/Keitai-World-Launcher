@@ -1017,8 +1017,7 @@ Partial Public Class MainForm
             Dim installed = IsGameInstalled(selectedGame)
             CancelKeitaiWikiLookup(True)
             If installed AndAlso File.Exists(CurrentSelectedGameJAM) Then
-                Global.KeitaiWorldLauncher.My.Managers.UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, selectedGame.ENTitle)
-                AttachKeitaiWikiToCurrentDetails(selectedGame)
+                ShowInstalledGameDetails(selectedGame)
             Else
                 ShowSelectedGameSummary(selectedGame, installed, Not isOnline)
             End If
@@ -2207,12 +2206,13 @@ Partial Public Class MainForm
         panelDynamic.Controls.Add(layout)
     End Sub
 
-    Private Sub AttachKeitaiWikiToCurrentDetails(game As Game)
+    Private Sub ShowInstalledGameDetails(game As Game)
         If game Is Nothing OrElse panelDynamic Is Nothing Then Return
         CancelKeitaiWikiLookup(True)
 
         panelDynamic.SuspendLayout()
         Try
+            Global.KeitaiWorldLauncher.My.Managers.UtilManager.GenerateDynamicControlsFromLines(CurrentSelectedGameJAM, panelDynamic, game.ENTitle)
             Dim metadataControls = panelDynamic.Controls.Cast(Of Control)().ToArray()
             For Each metadataControl In metadataControls
                 panelDynamic.Controls.Remove(metadataControl)
@@ -2220,17 +2220,23 @@ Partial Public Class MainForm
             panelDynamic.AutoScrollPosition = Point.Empty
 
             Dim root As New TableLayoutPanel With {
+                .AutoSize = True,
+                .AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 .BackColor = CompactUiTheme.Surface,
                 .ColumnCount = 1,
-                .Dock = DockStyle.Fill,
+                .Dock = DockStyle.Top,
                 .Margin = New Padding(0),
                 .Name = "InstalledAppDetailsLayout",
-                .RowCount = 3
+                .RowCount = 4
             }
             root.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100.0F))
+            root.RowStyles.Add(New RowStyle(SizeType.AutoSize))
             root.RowStyles.Add(New RowStyle(SizeType.Absolute, 42.0F))
             root.RowStyles.Add(New RowStyle(SizeType.Absolute, 0.0F))
-            root.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+            root.RowStyles.Add(New RowStyle(SizeType.Absolute, If(EnableKeitaiWiki, InstalledKeitaiWikiCardHeight + 8, 220.0F)))
+
+            Dim gameInformation = CreateGameInformationSection(game)
+            If gameInformation IsNot Nothing Then root.Controls.Add(gameInformation, 0, 0)
 
             Dim header As New TableLayoutPanel With {
                 .AccessibleName = "Advanced app metadata controls",
@@ -2300,26 +2306,20 @@ Partial Public Class MainForm
                     root.SuspendLayout()
                     metadataHost.Visible = metadataExpanded
                     If metadataExpanded Then
-                        root.RowStyles(1).SizeType = SizeType.Percent
-                        root.RowStyles(1).Height = 100.0F
-                        root.RowStyles(2).SizeType = SizeType.Absolute
-                        root.RowStyles(2).Height = If(EnableKeitaiWiki, InstalledKeitaiWikiCardHeight + 8, 88.0F)
+                        root.RowStyles(2).Height = 260.0F
                         toggleButton.Text = "Hide details"
                         toggleButton.AccessibleName = "Hide advanced JAM or JAD metadata"
                     Else
-                        root.RowStyles(1).SizeType = SizeType.Absolute
-                        root.RowStyles(1).Height = 0.0F
-                        root.RowStyles(2).SizeType = SizeType.Percent
-                        root.RowStyles(2).Height = 100.0F
+                        root.RowStyles(2).Height = 0.0F
                         toggleButton.Text = "Show details"
                         toggleButton.AccessibleName = "Show advanced JAM or JAD metadata"
                     End If
                     root.ResumeLayout(True)
                 End Sub
 
-            root.Controls.Add(header, 0, 0)
-            root.Controls.Add(metadataHost, 0, 1)
-            root.Controls.Add(primaryDetails, 0, 2)
+            root.Controls.Add(header, 0, 1)
+            root.Controls.Add(metadataHost, 0, 2)
+            root.Controls.Add(primaryDetails, 0, 3)
             panelDynamic.Controls.Add(root)
 
             If wikiHost IsNot Nothing Then BeginKeitaiWikiLookup(game, wikiHost)

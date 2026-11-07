@@ -14,6 +14,11 @@ Namespace My.Models
         Public Property ZipFilePath As String = String.Empty
         Public Property BaseFileName As String = String.Empty
         Public Property ResolvedVariant As String = String.Empty
+        Public ReadOnly Property InfoXml As String
+            Get
+                Return Path.Combine(GameBaseFolder, "info.xml")
+            End Get
+        End Property
         Public ReadOnly Property IsDownloaded As Boolean
             Get
                 Return Not String.IsNullOrEmpty(JAR) AndAlso File.Exists(JAR)
