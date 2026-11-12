@@ -85,7 +85,7 @@ Namespace My.Managers
 
             Dim sdDownloadPath = $"data\downloads\{Path.GetFileName(game.SDCardDataURL)}"
             logger.Logger.LogInfo($"[Download] Downloading SD Card Data from: {game.SDCardDataURL}")
-            Await DownloadFileAsync(game.SDCardDataURL, sdDownloadPath, "Downloading optional SD card data...")
+            Await DownloadFileAsync(game.SDCardDataURL, sdDownloadPath, "Downloading SD card data...")
 
             Try
                 Dim sdFolder = $"SVC0000{Path.GetFileName(jamLocation)}"
@@ -114,7 +114,7 @@ Namespace My.Managers
                 logger.Logger.LogInfo($"[Download] SD Card zip file deleted: {sdDownloadPath}")
             Catch ex As Exception
                 logger.Logger.LogError($"[Download] Failed to handle SD Card data:{vbCrLf}{ex}")
-                Throw New InvalidDataException("The optional SD card data could not be installed.", ex)
+                Throw New InvalidDataException("The SD card data could not be installed.", ex)
             End Try
         End Function
 
