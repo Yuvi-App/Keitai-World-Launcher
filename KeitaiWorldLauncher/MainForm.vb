@@ -2338,7 +2338,12 @@ Public Class MainForm
             Logger.LogInfo($"Detected emulator type: {CorrectedEmulator}")
 
             ' Start Launching Game
-            NotificationManager.ShowInformation(Me, "Launching app", $"Opening '{selectedGameTitle}'.")
+            Dim launchMessage = $"Opening '{selectedGameTitle}'."
+            Dim selectedVariant = currentGamePaths?.ResolvedVariant
+            If Not String.IsNullOrWhiteSpace(selectedVariant) Then
+                launchMessage &= $"{Environment.NewLine}Variant: {selectedVariant}"
+            End If
+            NotificationManager.ShowInformation(Me, "Launching app", launchMessage)
             UtilManager.SendAppLaunch(Path.GetFileName(CurrentSelectedGameJAM))
             Dim isEmulatorsRunning As Boolean = ProcessManager.CheckAndCloseAllEmulators()
             If isEmulatorsRunning Then
