@@ -44,6 +44,7 @@ Public Class MainForm
     Public XInputDevices As New Dictionary(Of String, Integer)
     Dim CompletedBootSequence As Boolean = False
     Private _isProgrammaticVariantSelection As Boolean = False
+    Private _variantListGame As Game = Nothing
     Public Shared UsingJDK1_8 As Boolean = False
     Private WithEvents searchDebounceTimer As New Timer With {.Interval = 400}
 
@@ -933,13 +934,26 @@ Public Class MainForm
         lblFilteredGameCount.Text = $"Showing {filteredItems.Count:N0}"
         ListViewGames.EndUpdate()
     End Function
-    Private Async Function LoadGameVariantsAsync() As Task
+    Private Sub LoadGameVariants()
+        Dim selectedGame As Game = Nothing
+        If ListViewGames.SelectedItems.Count = 1 Then
+            selectedGame = TryCast(ListViewGames.SelectedItems(0).Tag, Game)
+        End If
+
+        ' Only restore a variant that belongs to the game being prepared.
+        Dim selectedVariant As String = Nothing
+        If Object.ReferenceEquals(_variantListGame, selectedGame) AndAlso
+           ListViewGamesVariants.SelectedItems.Count > 0 Then
+            selectedVariant = ListViewGamesVariants.SelectedItems(0).Text
+        End If
+
         ListViewGamesVariants.BeginUpdate()
         _isProgrammaticVariantSelection = True
         Try
             ListViewGamesVariants.View = View.Details
             ListViewGamesVariants.Items.Clear()
             ListViewGamesVariants.BackColor = SystemColors.Window
+            _variantListGame = selectedGame
 
             If ListViewGames.SelectedItems.Count <> 1 Then
                 lblTotalVariantCount.Text = "Variants: 0"
@@ -948,9 +962,6 @@ Public Class MainForm
                 Return
             End If
 
-            Dim selectedItem As ListViewItem = ListViewGames.SelectedItems(0)
-            Dim selectedGame As Game = TryCast(selectedItem.Tag, Game)
-
             If selectedGame Is Nothing OrElse String.IsNullOrWhiteSpace(selectedGame.Variants) Then
                 lblTotalVariantCount.Text = "Variants: 0"
                 ListViewGamesVariants.Visible = False
@@ -958,22 +969,24 @@ Public Class MainForm
                 Return
             End If
 
-            Await Task.Yield()
-
             Dim variants As String() = selectedGame.Variants.Split(","c)
+            Dim itemToSelect As ListViewItem = Nothing
 
             For Each v As String In variants
                 Dim trimmed = v.Trim()
                 If trimmed.Length > 0 Then
-                    ListViewGamesVariants.Items.Add(New ListViewItem(trimmed))
+                    Dim variantItem As New ListViewItem(trimmed)
+                    ListViewGamesVariants.Items.Add(variantItem)
+                    If String.Equals(trimmed, selectedVariant, StringComparison.Ordinal) Then
+                        itemToSelect = variantItem
+                    End If
                 End If
             Next
 
-            If ListViewGamesVariants.Items.Count = 1 Then
-                ListViewGamesVariants.Items(0).Selected = True
-            Else
-                ListViewGamesVariants.Items(0).Selected = True
+            If itemToSelect Is Nothing AndAlso ListViewGamesVariants.Items.Count > 0 Then
+                itemToSelect = ListViewGamesVariants.Items(0)
             End If
+            If itemToSelect IsNot Nothing Then itemToSelect.Selected = True
 
             lblTotalVariantCount.Text = $"Variants: {ListViewGamesVariants.Items.Count}"
             ListViewGamesVariants.Visible = ListViewGamesVariants.Items.Count > 1
@@ -982,7 +995,7 @@ Public Class MainForm
             _isProgrammaticVariantSelection = False
             ListViewGamesVariants.EndUpdate()
         End Try
-    End Function
+    End Sub
     Private Async Function DownloadGames(
         ContextDownload As Boolean,
         Optional allowDownloadPrompt As Boolean = True,
@@ -1552,7 +1565,7 @@ Public Class MainForm
         If Not Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, selectedGame) Then Return False
 
         ' Prepare the selected app's variant and paths before any launch action.
-        Await LoadGameVariantsAsync()
+        LoadGameVariants()
         If ListViewGames.SelectedItems.Count <> 1 OrElse
            Not Object.ReferenceEquals(ListViewGames.SelectedItems(0).Tag, selectedGame) Then Return False
 
