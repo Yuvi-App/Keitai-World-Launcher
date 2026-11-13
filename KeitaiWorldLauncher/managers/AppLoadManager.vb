@@ -9,6 +9,7 @@ Namespace My.Managers
         Public Shared Sub LoadConfigValues(cfg As Dictionary(Of String, String))
             Try
                 MainForm.versionCheckUrl = cfg("VersionCheckURL")
+                MainForm.updaterVersionCheckUrl = cfg("UpdaterVersionCheckURL")
                 MainForm.autoUpdate = Boolean.Parse(cfg("AutoUpdate"))
                 MainForm.FirstRun = Boolean.Parse(cfg("FirstRun"))
                 MainForm.PolicyAgreement = Boolean.Parse(cfg("PolicyAgreement"))

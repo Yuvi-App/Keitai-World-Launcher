@@ -9,6 +9,7 @@ Namespace My.Managers
         ' Default configuration values
         Private ReadOnly DefaultConfig As New Dictionary(Of String, String) From {
         {"VersionCheckURL", "latest_version.txt"},
+        {"UpdaterVersionCheckURL", "latest_version_updater_app.txt"},
         {"AutoUpdate", "true"},
         {"FirstRun", "true"},
         {"PolicyAgreement", "false"},

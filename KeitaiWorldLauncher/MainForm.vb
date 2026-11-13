@@ -68,6 +68,7 @@ Public Class MainForm
 
     'Config Vars
     Public versionCheckUrl As String
+    Public updaterVersionCheckUrl As String
     Public autoUpdate As Boolean
     Public FirstRun As Boolean
     Public PolicyAgreement As Boolean
@@ -243,6 +244,11 @@ Public Class MainForm
         Logger.LogInfo("Checking internet connectivity...")
         Dim DomainCheck As String() = {"https://example.com", "http://www.msftconnecttest.com/connecttest.txt", "https://www.apple.com/library/test/success.html"}
         If Await UtilManager.IsInternetAvailableAsync(DomainCheck) Then
+            ' Refresh the updater before it can be launched
+            If autoUpdate Then
+                Await UpdaterUpdateManager.CheckAndUpdateAsync(updaterVersionCheckUrl)
+            End If
+
             'Check if we can get the VersionCheck File from Server
             If Await UtilManager.CanReachFileAsync(versionCheckUrl) Then
                 isOnline = True

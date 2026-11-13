@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Config>
   <Setting name="VersionCheckURL">latest_version.txt</Setting>
+  <Setting name="UpdaterVersionCheckURL">latest_version_updater_app.txt</Setting>
   <Setting name="AutoUpdate">true</Setting>
   <Setting name="FirstRun">true</Setting>
   <Setting name="PolicyAgreement">false</Setting>

@@ -9,6 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
+    <Version>1.0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
