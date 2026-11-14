@@ -81,7 +81,7 @@ Namespace My.Managers
             End If
 
             Dim supportedEmus = New HashSet(Of String)(StringComparer.OrdinalIgnoreCase) From {
-        "doja", "star", "jsky", "airedge", "vodafone", "softbank", "flash"
+        "doja", "star", "jsky", "airedge", "vodafone", "softbank", "flash", "ezplus"
     }
 
             For Each entry In customGameLines

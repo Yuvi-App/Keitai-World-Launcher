@@ -19,8 +19,13 @@ Partial Public Class MainForm
     Private Function CanDeleteGame(game As Game) As Boolean
         Dim key = GetGameKey(game)
         If String.IsNullOrWhiteSpace(key) Then Return False
-        Return (game.DownloadURL?.StartsWith("custom://", StringComparison.OrdinalIgnoreCase) = True) OrElse
+        Return IsCustomGame(game) OrElse
             Directory.Exists(Path.Combine(DownloadsFolder, key))
+    End Function
+
+    Private Shared Function IsCustomGame(game As Game) As Boolean
+        Return game IsNot Nothing AndAlso
+            If(game.DownloadURL, String.Empty).StartsWith("custom://", StringComparison.OrdinalIgnoreCase)
     End Function
 
     Private Shared Function CustomGameEntryKey(line As String) As String
@@ -30,7 +35,7 @@ Partial Public Class MainForm
         Dim emulator = "doja"
         If parts.Length > 1 Then
             Select Case parts(1).Trim().ToLowerInvariant()
-                Case "doja", "star", "jsky", "airedge", "vodafone", "softbank", "flash"
+                Case "doja", "star", "jsky", "airedge", "vodafone", "softbank", "flash", "ezplus"
                     emulator = parts(1).Trim().ToLowerInvariant()
             End Select
         End If
@@ -147,8 +152,7 @@ Partial Public Class MainForm
                                        If Not String.Equals(Path.GetDirectoryName(gameFolder), downloadsRoot, StringComparison.OrdinalIgnoreCase) Then
                                            Throw New IOException("The app folder is outside the downloads directory.")
                                        End If
-                                       Dim isCustom = customKeys.Contains(key) OrElse
-                                           game.DownloadURL?.StartsWith("custom://", StringComparison.OrdinalIgnoreCase) = True
+                                       Dim hasCustomEntry = customKeys.Contains(key) OrElse IsCustomGame(game)
                                        If Directory.Exists(gameFolder) Then Directory.Delete(gameFolder, recursive:=True)
                                        Dim zipPath = Path.Combine(downloadsRoot, key & ".zip")
                                        If File.Exists(zipPath) Then File.Delete(zipPath)
@@ -161,7 +165,7 @@ Partial Public Class MainForm
                                                If File.Exists(sdJamFile) Then File.Delete(sdJamFile)
                                            Next
                                        End If
-                                       If isCustom Then deletedCustomKeys.Add(key)
+                                       If hasCustomEntry Then deletedCustomKeys.Add(key)
                                        deletedGames.Add(game)
                                    Catch ex As Exception
                                        failedGames.Add($"{game.ENTitle} [{game.Emulator}] (Error: {ex.Message})")
@@ -182,7 +186,8 @@ Partial Public Class MainForm
                            End Sub)
 
             If deletedCustomKeys.Count > 0 Then
-                games = games.Where(Function(game) Not deletedCustomKeys.Contains(GetGameKey(game))).ToList()
+                games = games.Where(Function(game) Not (IsCustomGame(game) AndAlso
+                    deletedCustomKeys.Contains(GetGameKey(game)))).ToList()
                 lblTotalGameCount.Text = $"Total: {games.Count}"
             End If
             Await FilterAndHighlightGamesAsync()
